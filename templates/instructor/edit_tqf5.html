@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}แก้ไข มคอ.5 - {{ section.course.code }}{% endblock %}
+
+{% block content %}
+{% set is_locked = tqf5.status in ['SUBMITTED', 'APPROVED'] %}
+
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
+            <a href="{{ url_for('instructor_dashboard') }}" style="color: var(--primary-color);">Dashboard</a> /
+            <span style="color: var(--text-muted);">แก้ไข มคอ.5</span>
+        </nav>
+        <h2>มคอ.5: {{ section.course.code }} {{ section.course.name_th }}</h2>
+        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
+            <span class="status-badge" style="
+                {% if tqf5.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
+                {% elif tqf5.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
+                {% elif tqf5.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
+                {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
+            ">สถานะ: {{ tqf5.status }}</span>
+            {% if is_locked %}
+            <span style="color: var(--text-muted); font-size: 0.875rem;">🔒 เอกสารถูกล็อก (Read-Only)</span>
+            {% endif %}
+        </div>
+    </div>
+    <div style="display: flex; gap: 1rem;">
+        {% if not is_locked %}
+        <button type="submit" name="action" value="draft" form="tqf5-form" class="btn glass">บันทึกฉบับร่าง</button>
+        <button type="submit" name="action" value="submit" form="tqf5-form" class="btn btn-primary"
+            onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกเพื่อรอการตรวจสอบ')">ส่งให้หัวหน้าสาขา</button>
+        {% else %}
+        <a href="{{ url_for('instructor_dashboard') }}" class="btn glass">ย้อนกลับ</a>
+        {% endif %}
+    </div>
+</div>
+
+{% if feedbacks %}
+<div class="glass"
+    style="padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; border: 1px solid rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.02);">
+    <h4 style="color: var(--accent-danger); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+        <span>💬</span> ข้อเสนอแนะจากหัวหน้าสาขา
+    </h4>
+    {% for fb in feedbacks %}
+    <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--border-color);">
+        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">{{
+            fb.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div style="color: var(--text-main);">{{ fb.comment }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<form id="tqf5-form" method="POST" class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
+    <fieldset {% if is_locked %}disabled{% endif %} style="border: none; padding: 0; margin: 0;">
+        <!-- 2.1 ข้อมูลทั่วไป -->
+        <section style="margin-bottom: 4rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; color: var(--text-main);">
+                    2.1 -
+                    2.2 ข้อมูลทั่วไปและสรุปผู้เรียน</h3>
+                <span class="status-badge"
+                    style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">เชื่อมโยงข้อมูลจาก มคอ.3
+                    อัตโนมัติ</span>
+            </div>
+
+            <!-- Info pre-filled from Section/Course/Term -->
+            <div
+                style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 1rem; border: 1px dashed var(--border-color);">
+                <div><span style="color: var(--text-muted);">รหัส/ชื่อวิชา:</span> {{ section.course.code }} {{
+                    section.course.name_th }}</div>
+                <div><span style="color: var(--text-muted);">ภาคเรียน/ปีการศึกษา:</span> {{ section.term.semester }}/{{
+                    section.term.year }}</div>
+                <div><span style="color: var(--text-muted);">จำนวนหน่วยกิต:</span> {{ section.course.credits }}</div>
+                <div><span style="color: var(--text-muted);">อาจารย์ผู้สอน:</span> {{ section.instructor.full_name }}
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+                <div class="form-group">
+                    <label>จำนวนผู้ลงทะเบียน</label>
+                    <input type="number" name="students_enrolled" class="form-control"
+                        value="{{ tqf5.actual_teaching.get('students_enrolled', 0) }}">
+                </div>
+                <div class="form-group">
+                    <label>จำนวนผู้เรียนเมื่อสิ้นสุดภาค</label>
+                    <input type="number" name="students_finished" class="form-control"
+                        value="{{ tqf5.actual_teaching.get('students_finished', 0) }}">
+                </div>
+                <div class="form-group">
+                    <label>จำนวนผู้ถอน (W)</label>
+                    <input type="number" name="students_withdrawn" class="form-control"
+                        value="{{ tqf5.actual_teaching.get('students_withdrawn', 0) }}">
+                </div>
+            </div>
+        </section>
+
+        <!-- 2.3 & 2.4 -->
+        <section style="margin-bottom: 4rem;">
+            <h3
+                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+                2.3 - 2.4 การจัดการเรียนการสอนและปัญหา</h3>
+            <div class="form-group">
+                <label>หัวข้อที่สอนไม่ครอบคลุมตามแผน (ถ้ามี) และสาเหตุ</label>
+                <textarea name="deviations" class="form-control"
+                    rows="3">{{ tqf5.actual_teaching.get('deviations', '') }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>ปัญหาที่พบระหว่างสอน และวิธีการแก้ไข</label>
+                <textarea name="problems_fixed" class="form-control"
+                    rows="4">{{ tqf5.actual_teaching.get('problems_fixed', '') }}</textarea>
+            </div>
+        </section>
+
+        <!-- 2.5 ผลการบรรลุ CLO -->
+        <section style="margin-bottom: 4rem;">
+            <h3
+                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+                2.5 ผลการบรรลุ CLO</h3>
+            <table id="clo-table" style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 1rem; width: 100px;">รหัส CLO</th>
+                        <th style="padding: 1rem;">วิธีจัดการเรียนรู้ที่ใช้จริง</th>
+                        <th style="padding: 1rem;">วิธีประเมินที่ใช้จริง</th>
+                        <th style="padding: 1rem; width: 150px;">ผลสัมฤทธิ์ (%)</th>
+                        <th style="padding: 1rem; width: 50px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set saved_clo_codes = tqf5.actual_teaching.get('clo_code[]') %}
+                    {% if saved_clo_codes %}
+                    {% set clo_codes = saved_clo_codes %}
+                    {% set clo_methods = tqf5.actual_teaching.get('clo_method[]', ['']*clo_codes|length) %}
+                    {% set clo_assessments = tqf5.actual_teaching.get('clo_assess[]', ['']*clo_codes|length) %}
+                    {% set clo_results = tqf5.actual_teaching.get('clo_result[]', ['']*clo_codes|length) %}
+                    {% else %}
+                    {# Pre-fill from TQF3 #}
+                    {% set clo_codes = tqf3.general_info.get('clo_code[]', ['']) %}
+                    {% set tqf3_assess_clos = tqf3.general_info.get('assess_clo[]', []) %}
+                    {% set tqf3_assess_methods = tqf3.general_info.get('assess_method[]', []) %}
+
+                    {% set clo_methods = ['']*clo_codes|length %}
+                    {% set temp_assessments = [] %}
+                    {% for c_code in clo_codes %}
+                    {% set found_method = '' %}
+                    {% for idx in range(tqf3_assess_clos|length) %}
+                    {% if tqf3_assess_clos[idx]|string == c_code|string %}
+                    {% set found_method = tqf3_assess_methods[idx] %}
+                    {% endif %}
+                    {% endfor %}
+                    {% set temp_assessments = temp_assessments + [found_method] %}
+                    {% endfor %}
+                    {% set clo_assessments = temp_assessments %}
+                    {% set clo_results = ['0']*clo_codes|length %}
+                    {% endif %}
+
+                    {% for i in range(clo_codes|length) %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 1rem;"><input type="text" name="clo_code[]" class="form-control"
+                                value="{{ clo_codes[i] }}" placeholder="CLO 1"></td>
+                        <td style="padding: 1rem;"><input type="text" name="clo_method[]" class="form-control"
+                                value="{{ clo_methods[i] }}"></td>
+                        <td style="padding: 1rem;"><input type="text" name="clo_assess[]" class="form-control"
+                                value="{{ clo_assessments[i] }}"></td>
+                        <td style="padding: 1rem;"><input type="number" name="clo_result[]" class="form-control"
+                                value="{{ clo_results[i] }}"></td>
+                        <td style="padding: 1rem;"><button type="button" class="btn" onclick="removeRow(this)"
+                                style="color: var(--accent-danger);">×</button></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="button" class="btn glass" onclick="addRow('clo-table')"
+                style="margin-top: 1rem; font-size: 0.875rem;">+ เพิ่ม CLO</button>
+        </section>
+
+        <!-- 2.6 Grade Distribution -->
+        <section style="margin-bottom: 4rem;">
+            <h3
+                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+                2.6 การกระจายผลการเรียน (Grade Distribution)</h3>
+            <div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 0.75rem; margin-bottom: 2rem;">
+                {% for grade in ['A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F', 'I', 'W'] %}
+                <div class="form-group">
+                    <label style="display: block; text-align: center; font-size: 0.75rem;">{{ grade }}</label>
+                    <input type="number" name="grade_{{ grade }}" class="form-control"
+                        style="text-align: center; padding: 0.5rem;"
+                        value="{{ tqf5.actual_teaching.get('grade_' ~ grade, 0) }}">
+                </div>
+                {% endfor %}
+            </div>
+            <div class="form-group">
+                <label>ปัจจัยที่ทำให้ผลการเรียนผิดปกติ (ถ้ามี)</label>
+                <textarea name="grade_factors" class="form-control"
+                    rows="2">{{ tqf5.actual_teaching.get('grade_factors', '') }}</textarea>
+            </div>
+        </section>
+
+        <!-- 2.7 - 2.9 -->
+        <section>
+            <h3
+                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+                2.7 - 2.9 การทวนสอบและแผนปรับปรุง</h3>
+            <div class="form-group">
+                <label>วิธีการทวนสอบผลสัมฤทธิ์ และหลักฐานที่ใช้</label>
+                <textarea name="verification_method" class="form-control"
+                    rows="3">{{ tqf5.actual_teaching.get('verification_method', '') }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>แผนการปรับปรุงรายวิชาและข้อเสนอแนะ</label>
+                <textarea name="improvement_plan" class="form-control"
+                    rows="4">{{ tqf5.actual_teaching.get('improvement_plan', '') }}</textarea>
+            </div>
+        </section>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addRow(tableId) {
+        const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
+        const firstRow = table.rows[0];
+        const newRow = firstRow.cloneNode(true);
+
+        // Clear inputs in new row
+        const inputs = newRow.getElementsByTagName('input');
+        for (let i = 0; i < inputs.length; i++) {
+            inputs[i].value = '';
+        }
+
+        table.appendChild(newRow);
+    }
+
+    function removeRow(btn) {
+        const row = btn.closest('tr');
+        const tableBody = row.parentNode;
+        if (tableBody.rows.length > 1) {
+            row.remove();
+        } else {
+            const inputs = row.getElementsByTagName('input');
+            for (let i = 0; i < inputs.length; i++) inputs[i].value = '';
+        }
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends "base.html" %}
+
+{% block title %}{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} - {{ term.semester }}/{{ term.year }}{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+    <div>
+        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
+            <a href="{{ url_for('academic_dashboard') }}" style="color: var(--primary-color);">Dashboard ฝ่ายวิชาการ</a> /
+            <span style="color: var(--text-muted);">ปีการศึกษา {{ term.semester }}/{{ term.year }}</span> /
+            <span style="color: var(--text-muted);">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</span>
+        </nav>
+        <h2 style="margin: 0;">🎓 {{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</h2>
+        <p style="color: var(--text-muted); margin: 0.25rem 0 0;">ปีการศึกษา {{ term.semester }}/{{ term.year }}</p>
+    </div>
+
+    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary" style="color: var(--text-muted);">กลับไป Dashboard</a>
+</div>
+
+{% if not is_system_locked %}
+<div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="font-weight: 800;">จัดการรายวิชาในหลักสูตรนี้</div>
+            <div style="color: var(--text-muted); font-size: 0.95rem;">เพิ่ม/แก้ไขรายวิชาเปิดสอนในเทอมนี้</div>
+        </div>
+        <div style="display:flex; gap: 0.75rem; flex-wrap: wrap;">
+            <button type="button" class="btn glass" onclick="openBulkModal()" style="border-color: var(--primary-color); color: var(--primary-color);">+ เพิ่มรายวิชา (หลายวิชา)</button>
+            <button type="button" class="btn glass" onclick="openSingleModal()" style="border-color: var(--primary-color); color: var(--primary-color);">เปิดทีละวิชา</button>
+            <form method="POST" action="{{ url_for('academic_remove_program_from_term') }}" onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้ออกจากเทอม? (ต้องไม่มีรายวิชาที่เปิดสอนแล้ว)')" style="display:inline;">
+                <input type="hidden" name="term_id" value="{{ term.id }}">
+                <input type="hidden" name="program_id" value="{{ program.id }}">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="btn glass" style="border-color: var(--accent-danger); color: var(--accent-danger);">ลบหลักสูตรออกจากเทอม</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if courses_grouped %}
+{% for course_label, sections in courses_grouped.items() %}
+<div class="glass" style="margin-bottom: 1.5rem; border-radius: 1.25rem; overflow: hidden; border: 1px solid var(--border-color);">
+    <div style="padding: 1rem 1.5rem; background: rgba(99, 102, 241, 0.05); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+        <h5 style="margin: 0; color: var(--primary-color); display: flex; align-items: center; gap: 0.75rem; font-size: 1.125rem;">
+            <span style="background: var(--primary-color); color: white; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.875rem;">📚</span>
+            {{ course_label }}
+        </h5>
+        <span style="font-size: 0.75rem; color: var(--text-muted);">{{ sections|length }} กลุ่มเรียน</span>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; background: rgba(0,0,0,0.01); border-bottom: 1px solid var(--border-color);">
+                    <th style="padding: 0.875rem 1.5rem; width: 80px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">กลุ่ม</th>
+                    <th style="padding: 0.875rem 1.5rem; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">อาจารย์ผู้สอน</th>
+                    <th style="padding: 0.875rem 1.5rem; width: 130px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">มคอ.3</th>
+                    <th style="padding: 0.875rem 1.5rem; width: 130px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">มคอ.5</th>
+                    <th style="padding: 0.875rem 1.5rem; width: 100px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">สถานะ</th>
+                    <th style="padding: 0.875rem 1.5rem; width: 80px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem 1.5rem; font-weight: 600;">{{ section.section_number }}</td>
+                    <td style="padding: 1rem 1.5rem;">
+                        <form action="{{ url_for('assign_instructor', section_id=section.id) }}" method="POST" style="display: flex; gap: 0.5rem; align-items: center;">
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <select name="instructor_id" class="form-control" style="padding: 0.35rem; font-size: 0.875rem; min-width: 170px;">
+                                <option value="">-- เลือกผู้สอน --</option>
+                                {% for ins in instructors %}
+                                <option value="{{ ins.id }}" {% if section.instructor_id==ins.id %}selected{% endif %}>{{ ins.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">OK</button>
+                        </form>
+                    </td>
+                    <td style="padding: 1rem 1.5rem;">
+                        {% if section.tqf3 %}
+                        {% set s = section.tqf3.status %}
+                        <span class="status-badge" style="
+                                {% if s == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: #059669;
+                                {% elif s == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #d97706;
+                                {% elif s == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: #dc2626;
+                                {% else %}background: rgba(99, 102, 241, 0.1); color: #4f46e5;{% endif %}
+                            ">{{ s }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">รอดำเนินการ</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem 1.5rem;">
+                        {% if section.tqf5 %}
+                        {% set s = section.tqf5.status %}
+                        <span class="status-badge" style="
+                                {% if s == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: #059669;
+                                {% elif s == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #d97706;
+                                {% elif s == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: #dc2626;
+                                {% else %}background: rgba(99, 102, 241, 0.1); color: #4f46e5;{% endif %}
+                            ">{{ s }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.75rem;">รอดำเนินการ</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem 1.5rem;">
+                        {% if section.status == 'locked' %}
+                        <span style="color: var(--accent-danger); font-size: 0.8125rem;">🔒 ล็อก</span>
+                        {% else %}
+                        <span style="color: var(--accent-success); font-size: 0.8125rem;">✅ ปกติ</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem 1.5rem;">
+                        <form action="{{ url_for('delete_section', section_id=section.id) }}" method="POST" onsubmit="return confirm('ยืนยันการลบรายวิชาที่เปิดสอนนี้?')">
+                            <input type="hidden" name="next" value="{{ request.path }}">
+                            <button type="submit" class="btn glass" style="padding: 0.35rem 0.6rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">ลบ</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endfor %}
+{% else %}
+<div class="glass" style="padding: 4rem; border-radius: 1.5rem; text-align: center;">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
+    <h3 style="margin: 0 0 0.5rem;">ยังไม่มีรายวิชาเปิดสอนในหลักสูตรนี้</h3>
+    {% if not is_system_locked %}
+    <p style="color: var(--text-muted); margin: 0;">กด “เพิ่มรายวิชา” เพื่อเริ่มต้น</p>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Bulk add modal -->
+<div id="bulkModal" style="display:none; position:fixed; inset:0; z-index:9999; background: rgba(0,0,0,0.45);">
+    <div class="glass" style="width: min(960px, 96%); margin: 6vh auto; border-radius: 1.25rem; overflow:hidden;">
+        <div style="padding: 1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:flex-start; gap: 1rem; border-bottom: 1px solid var(--border-color);">
+            <div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-color);">เพิ่มรายวิชา (หลายวิชา)</div>
+                <div style="color: var(--text-muted); margin-top: 0.25rem;">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+            </div>
+            <button type="button" class="btn glass" onclick="closeBulkModal()" style="padding: 0.45rem 0.8rem;">ปิด</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('academic_bulk_open_courses') }}" style="padding: 1.25rem 1.5rem;">
+            <input type="hidden" name="term_id" value="{{ term.id }}">
+            <input type="hidden" name="program_id" value="{{ program.id }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+
+            <div style="display:flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
+                <div style="flex:1; min-width: 240px;">
+                    <input type="text" id="bulkSearch" class="form-control" placeholder="ค้นหารายวิชา (รหัส/ชื่อ)" oninput="filterBulkCourses()">
+                </div>
+                <div style="min-width: 180px;">
+                    <label style="font-size: 0.8125rem; color: var(--text-muted);">หมู่เรียน</label>
+                    <input type="text" name="section_number" class="form-control" value="1">
+                </div>
+            </div>
+
+            <div style="max-height: 50vh; overflow:auto; border: 1px solid var(--border-color); border-radius: 1rem;">
+                <table style="width:100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align:left; border-bottom: 1px solid var(--border-color);">
+                            <th style="padding: 0.75rem 1rem; width: 48px;"><input type="checkbox" id="bulkSelectAll" onclick="toggleBulkAll()"></th>
+                            <th style="padding: 0.75rem 1rem;">รหัส</th>
+                            <th style="padding: 0.75rem 1rem;">ชื่อรายวิชา</th>
+                            <th style="padding: 0.75rem 1rem; width: 90px;">หน่วยกิต</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bulkCourseTbody">
+                        {% for c in courses %}
+                        <tr class="bulk-row" data-text="{{ (c.code ~ ' ' ~ c.name_th)|lower }}" style="border-bottom: 1px solid var(--border-color);">
+                            <td style="padding: 0.65rem 1rem;"><input type="checkbox" name="course_ids" value="{{ c.id }}"></td>
+                            <td style="padding: 0.65rem 1rem; font-family: monospace;">{{ c.code }}</td>
+                            <td style="padding: 0.65rem 1rem;">{{ c.name_th }}</td>
+                            <td style="padding: 0.65rem 1rem; color: var(--text-muted);">{{ c.credits }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display:flex; justify-content:flex-end; gap: 0.75rem; margin-top: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeBulkModal()" style="color: var(--text-muted);">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">เพิ่มรายวิชา</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Single add modal -->
+<div id="singleModal" style="display:none; position:fixed; inset:0; z-index:9999; background: rgba(0,0,0,0.45);">
+    <div class="glass" style="width: min(860px, 96%); margin: 8vh auto; border-radius: 1.25rem; overflow:hidden;">
+        <div style="padding: 1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:flex-start; gap: 1rem; border-bottom: 1px solid var(--border-color);">
+            <div>
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-color);">เปิดรายวิชาสอน (ทีละวิชา)</div>
+                <div style="color: var(--text-muted); margin-top: 0.25rem;">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+            </div>
+            <button type="button" class="btn glass" onclick="closeSingleModal()" style="padding: 0.45rem 0.8rem;">ปิด</button>
+        </div>
+
+        <form method="POST" action="{{ url_for('open_course') }}" style="padding: 1.25rem 1.5rem;">
+            <input type="hidden" name="term_id" value="{{ term.id }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div>
+                    <label style="font-size: 0.8125rem; color: var(--text-muted);">รายวิชา</label>
+                    <select name="course_id" class="form-control" required>
+                        <option value="" disabled selected>-- เลือกรายวิชา --</option>
+                        {% for c in courses %}
+                        <option value="{{ c.id }}">{{ c.code }} — {{ c.name_th }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size: 0.8125rem; color: var(--text-muted);">หมู่เรียน</label>
+                    <input type="text" name="section_number" class="form-control" value="1">
+                </div>
+                <div style="grid-column: 1 / -1;">
+                    <label style="font-size: 0.8125rem; color: var(--text-muted);">มอบหมายผู้สอน (ถ้ามี)</label>
+                    <select name="instructor_id" class="form-control">
+                        <option value="">-- เลือกผู้สอน --</option>
+                        {% for ins in instructors %}
+                        <option value="{{ ins.id }}">{{ ins.full_name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap: 0.75rem; margin-top: 1rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeSingleModal()" style="color: var(--text-muted);">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">เปิดรายวิชา</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function openBulkModal() {
+        const el = document.getElementById('bulkModal');
+        if (el) el.style.display = 'block';
+        const search = document.getElementById('bulkSearch');
+        if (search) search.value = '';
+        filterBulkCourses();
+    }
+    function closeBulkModal() {
+        const el = document.getElementById('bulkModal');
+        if (el) el.style.display = 'none';
+    }
+    function openSingleModal() {
+        const el = document.getElementById('singleModal');
+        if (el) el.style.display = 'block';
+    }
+    function closeSingleModal() {
+        const el = document.getElementById('singleModal');
+        if (el) el.style.display = 'none';
+    }
+    function filterBulkCourses() {
+        const q = (document.getElementById('bulkSearch')?.value || '').toLowerCase();
+        document.querySelectorAll('#bulkCourseTbody .bulk-row').forEach(tr => {
+            const text = (tr.getAttribute('data-text') || '');
+            tr.style.display = text.includes(q) ? '' : 'none';
+        });
+    }
+    function toggleBulkAll() {
+        const all = document.getElementById('bulkSelectAll');
+        const checked = all && all.checked;
+        document.querySelectorAll('#bulkCourseTbody input[type="checkbox"][name="course_ids"]').forEach(cb => {
+            cb.checked = checked;
+        });
+    }
+
+    // close modals on backdrop click
+    document.addEventListener('click', function (e) {
+        const bulk = document.getElementById('bulkModal');
+        if (bulk && bulk.style.display === 'block' && e.target === bulk) closeBulkModal();
+        const single = document.getElementById('singleModal');
+        if (single && single.style.display === 'block' && e.target === single) closeSingleModal();
+    });
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            closeBulkModal();
+            closeSingleModal();
+        }
+    });
+</script>
+{% endblock %}

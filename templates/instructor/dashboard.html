@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard อาจารย์ - TQF System{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2>ยินดีต้อนรับ, {{ current_user.full_name }}</h2>
+    <p style="color: var(--text-muted);">รายวิชาที่คุณรับผิดชอบในทุกภาคการศึกษา</p>
+</div>
+
+<div class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
+    <div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+        <h3 style="margin: 0; font-size: 1.25rem;">รายการวิชาที่สอน</h3>
+        <form method="GET" action="{{ url_for('instructor_dashboard') }}" style="display:flex; gap: 0.5rem; align-items: center;">
+            <label style="color: var(--text-muted); font-size: 0.875rem;">ภาคการศึกษา</label>
+            <select name="term_id" class="form-control" style="height: 2.25rem; padding: 0.25rem 0.5rem; min-width: 200px;">
+                <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for t in terms %}
+                <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.9rem; color: var(--text-muted);">แสดง</button>
+        </form>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
+                    <th style="padding: 1rem;">สถานะการเปิดกรอก</th>
+                    <th style="padding: 1rem;">การดำเนินการ มคอ.3</th>
+                    <th style="padding: 1rem;">การดำเนินการ มคอ.5</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem;">
+                        <div style="font-weight: bold;">{{ section.course.code }} {{ section.course.name_th }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}
+                            | {{ section.term.semester }}/{{ section.term.year }}</div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        {% if section.is_open %}
+                        <span class="status-badge"
+                            style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢
+                            เปิดให้บันทึกข้อมูลแล้ว</span>
+                        {% else %}
+                        <span class="status-badge"
+                            style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒
+                            ยังไม่เปิดให้เข้าทำ</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- TQF3 Action -->
+                    <td style="padding: 1rem;">
+                        {% if section.is_open %}
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge" style="
+                                    {% if section.tqf3 and section.tqf3.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
+                                    {% elif section.tqf3 and section.tqf3.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
+                                    {% elif section.tqf3 and section.tqf3.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
+                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
+                                ">{{ section.tqf3.status if section.tqf3 else 'DRAFT' }}</span>
+                        </div>
+                        <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
+                            class="btn {% if section.tqf3 and section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}glass{% else %}btn-primary{% endif %}"
+                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            {% if section.tqf3 and section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}👁️ ดูรายละเอียด{%
+                            else %}📝 บันทึกข้อมูล{% endif %}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอผู้ดูแลเปิดให้กรอกข้อมูล</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- TQF5 Action -->
+                    <td style="padding: 1rem;">
+                        {% if section.is_open %}
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge" style="
+                                    {% if section.tqf5 and section.tqf5.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
+                                    {% elif section.tqf5 and section.tqf5.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
+                                    {% elif section.tqf5 and section.tqf5.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
+                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
+                                ">{{ section.tqf5.status if section.tqf5 else 'DRAFT' }}</span>
+                        </div>
+                        <a href="{{ url_for('edit_tqf5', section_id=section.id) }}"
+                            class="btn {% if section.tqf5 and section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}glass{% else %}btn-primary{% endif %}"
+                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            {% if section.tqf5 and section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}👁️ ดูรายละเอียด{%
+                            else %}📝 บันทึกข้อมูล{% endif %}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอผู้ดูแลเปิดให้กรอกข้อมูล</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                        ไม่พบรายวิชาที่คุณรับผิดชอบในขณะนี้</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

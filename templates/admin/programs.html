@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการหลักสูตร - Admin{% endblock %}
+
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+    <div>
+        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
+            <a href="{{ url_for('dashboard') }}" style="color: var(--primary-color);">Dashboard</a> /
+            <span style="color: var(--text-muted);">จัดการหลักสูตร</span>
+        </nav>
+        <h2>จัดการหลักสูตร/สาขาวิชา (Programs)</h2>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
+    <!-- Left Column: Upload + Add Program -->
+    <div style="display: grid; gap: 1.25rem;">
+        <!-- Upload Curriculum JSON -->
+        <div class="glass" style="padding: 1.5rem; border-radius: 1.5rem;">
+            <h3 style="margin-bottom: 0.75rem; font-size: 1.1rem;">อัปโหลดไฟล์หลักสูตร (JSON)</h3>
+            <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem;">
+                ระบบจะบันทึกไฟล์ลงฐานข้อมูล และคัดลอกรายวิชาเข้า DB อัตโนมัติ
+            </div>
+            <form method="POST" enctype="multipart/form-data">
+                <div class="form-group">
+                    <input type="file" name="curriculum_json" class="form-control" accept=".json" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">อัปโหลดและคัดลอกเข้า DB</button>
+            </form>
+
+            {% if uploads is defined and uploads|length > 0 %}
+            <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border-color);">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">อัปโหลดล่าสุด</div>
+                <div style="display: grid; gap: 0.5rem;">
+                    {% for u in uploads %}
+                    <div class="glass" style="padding: 0.75rem 0.9rem; border-radius: 0.9rem;">
+                        <div style="font-size: 0.9rem; font-weight: 600;">{{ u.curriculum_name_th or u.source_filename or ('Upload #' ~ u.id) }}</div>
+                        <div style="color: var(--text-muted); font-size: 0.8rem;">
+                            {{ u.faculty_name or '-' }} · {{ u.revision_year or '-' }} · {{ u.uploaded_at.strftime('%Y-%m-%d %H:%M') if u.uploaded_at else '' }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Add Program Form -->
+        <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">เพิ่มหลักสูตรใหม่</h3>
+            <form method="POST">
+                <div class="form-group">
+                    <label>คณะที่สังกัด</label>
+                    <select name="faculty_id" class="form-control" required>
+                        <option value="">-- เลือกคณะ --</option>
+                        {% for faculty in faculties %}
+                        <option value="{{ faculty.id }}">{{ faculty.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ชื่อหลักสูตร/สาขา</label>
+                    <input type="text" name="name" class="form-control" placeholder="เช่น วิศวกรรมคอมพิวเตอร์" required>
+                </div>
+                <div class="form-group">
+                    <label>ปีที่ปรับปรุงหลักสูตร (พ.ศ.)</label>
+                    <input type="number" name="year" class="form-control" placeholder="เช่น 2565">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">บันทึกข้อมูล</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Program List -->
+    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">รายชื่อหลักสูตรทั้งหมด</h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                        <th style="padding: 1rem; width: 80px;">ID</th>
+                        <th style="padding: 1rem;">ชื่อหลักสูตร</th>
+                        <th style="padding: 1rem; width: 100px;">ปี</th>
+                        <th style="padding: 1rem;">คณะที่สังกัด</th>
+                        <th style="padding: 1rem; width: 120px;">จำนวนรายวิชา</th>
+                        <th style="padding: 1rem; width: 80px;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for program in programs %}
+                    <tr style="border-bottom: 1px solid var(--border-color);">
+                        <td style="padding: 1rem; color: var(--text-muted);">#{{ program.id }}</td>
+                        <td style="padding: 1rem; font-weight: 500;">{{ program.name }}</td>
+                        <td style="padding: 1rem;">{{ program.year if program.year else '-' }}</td>
+                        <td style="padding: 1rem;">{{ program.faculty.name }}</td>
+                        <td style="padding: 1rem; text-align: center;">
+                            <span class="status-badge"
+                                style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">
+                                {{ program.courses|length }}
+                            </span>
+                        </td>
+                        <td style="padding: 1rem;">
+                            {% if current_user.role == 'admin' %}
+                            <form action="{{ url_for('admin_delete_program', program_id=program.id) }}" method="POST"
+                                onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้?')">
+                                <button type="submit" class="btn glass"
+                                    style="padding: 0.35rem 0.6rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">
+                                    ลบ
+                                </button>
+                            </form>
+                            {% else %}
+                            <span style="color: var(--text-muted); font-size: 0.85rem;">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                            ไม่พบข้อมูลหลักสูตรในระบบ</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+
+{% block title %}เลือกบทบาท - TQF System{% endblock %}
+
+{% block content %}
+<div class="glass" style="padding: 2.5rem; border-radius: 1.5rem; max-width: 720px; margin: 2rem auto;">
+    <h2 style="margin-bottom: 0.75rem;">เลือกบทบาทที่ต้องการใช้งาน</h2>
+    <p style="color: var(--text-muted); margin-bottom: 1.5rem;">บัญชีนี้มีหลายบทบาท กรุณาเลือกเพื่อเข้าสู่ระบบในบทบาทนั้น</p>
+
+    <form method="POST" style="display:flex; gap: 0.75rem; align-items:center;">
+        <select name="role" class="form-control" required style="flex:1; min-width: 160px;">
+            <option value="" >-- เลือกบทบาท --</option>
+            {% for r in roles %}
+            <option value="{{ r }}">{{ r|upper }}</option>
+            {% endfor %}
+        </select>
+        <button type="submit" class="btn btn-primary" style="min-width: 100px;">เข้าสู่ระบบ</button>
+    </form>
+
+    <div style="margin-top: 1.5rem; color: var(--text-muted); font-size: 0.875rem;">
+        หมายเหตุ: คุณสามารถสลับบทบาทได้จากแถบด้านบนหลังจากเลือกแล้ว
+    </div>
+</div>
+{% endblock %}

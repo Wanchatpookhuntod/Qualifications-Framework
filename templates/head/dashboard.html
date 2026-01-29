@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard หัวหน้าสาขา - TQF System{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2>Dashboard หัวหน้าสาขา</h2>
+    <p style="color: var(--text-muted);">Step C & E: มอบหมายผู้สอน ตรวจสอบ และอนุมัติ มคอ.</p>
+</div>
+
+<div class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
+    <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">รายวิชาในหลักสูตร {{ current_user.program.name }}</h3>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
+                    <th style="padding: 1rem;">อาจารย์ผู้สอน (Step C)</th>
+                    <th style="padding: 1rem;">สถานะเอกสาร (Step C)</th>
+                    <th style="padding: 1rem;">มคอ. 3</th>
+                    <th style="padding: 1rem;">มคอ. 5</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem;">
+                        <div style="font-weight: bold;">{{ section.course.code }} {{ section.course.name_th }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}
+                        </div>
+                    </td>
+
+                    <!-- Instructor Assignment -->
+                    <td style="padding: 1rem;">
+                        <form action="{{ url_for('assign_instructor', section_id=section.id) }}" method="POST"
+                            style="display: flex; gap: 0.5rem;">
+                            <select name="instructor_id" class="form-control"
+                                style="width: 180px; font-size: 0.8125rem; padding: 0.25rem 0.5rem;">
+                                <option value="">-- รอการมอบหมาย --</option>
+                                {% for inst in instructors %}
+                                <option value="{{ inst.id }}" {% if section.instructor_id==inst.id %}selected{% endif
+                                    %}>{{ inst.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary"
+                                style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">บันทึก</button>
+                        </form>
+                    </td>
+
+                    <!-- Toggle Open Status -->
+                    <td style="padding: 1rem;">
+                        <form action="{{ url_for('toggle_open', section_id=section.id) }}" method="POST">
+                            <button type="submit"
+                                class="btn {% if section.is_open %}glass{% else %}btn-primary{% endif %}"
+                                style="font-size: 0.75rem; padding: 0.5rem 1rem;">
+                                {% if section.is_open %}🔘 เปิดให้กรอกแล้ว{% else %}🔒 เริ่มเปิดกรอก{% endif %}
+                            </button>
+                        </form>
+                    </td>
+
+                    <!-- TQF 3 Status & Review -->
+                    <td style="padding: 1rem;">
+                        {% if section.tqf3 %}
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge" style="
+                                    {% if section.tqf3.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
+                                    {% elif section.tqf3.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
+                                    {% elif section.tqf3.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
+                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
+                                ">{{ section.tqf3.status }}</span>
+                        </div>
+                        <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" class="btn glass"
+                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            {% if section.tqf3.status == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดูรายละเอียด{% endif %}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.875rem;">รอดำเนินการ</span>
+                        {% endif %}
+                    </td>
+
+                    <!-- TQF 5 Status & Review -->
+                    <td style="padding: 1rem;">
+                        {% if section.tqf5 %}
+                        <div style="margin-bottom: 0.5rem;">
+                            <span class="status-badge" style="
+                                    {% if section.tqf5.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
+                                    {% elif section.tqf5.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
+                                    {% elif section.tqf5.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
+                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
+                                ">{{ section.tqf5.status }}</span>
+                        </div>
+                        <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" class="btn glass"
+                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
+                            {% if section.tqf5.status == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดูรายละเอียด{% endif %}
+                        </a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.875rem;">รอดำเนินการ</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                        ไม่พบรายวิชาเปิดสอนในหลักสูตรของคุณ</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

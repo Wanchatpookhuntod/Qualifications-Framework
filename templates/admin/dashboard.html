@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - TQF Management{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h2>Admin Dashboard</h2>
+    <p style="color: var(--text-muted);">ระบบตั้งค่าพื้นฐานและจัดการผู้ใช้งาน (System Configuration)</p>
+</div>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+    <!-- Manage Users -->
+    <a href="{{ url_for('manage_users') }}" class="glass card"
+        style="text-decoration: none; padding: 2rem; border-radius: 1.5rem; transition: transform 0.2s;">
+        <h3 style="color: var(--text-main); margin-bottom: 0.5rem;">จัดการผู้ใช้งาน</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">สร้าง/แก้ไข บัญชีผู้ใช้ กำหนดบทบาทอาจารย์ หัวหน้าสาขา
+            และฝ่ายวิชาการ</p>
+    </a>
+
+    <!-- Manage Faculties -->
+    <a href="{{ url_for('manage_faculties') }}" class="glass card"
+        style="text-decoration: none; padding: 2rem; border-radius: 1.5rem; transition: transform 0.2s;">
+        <h3 style="color: var(--text-main); margin-bottom: 0.5rem;">จัดการคณะ</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">เพิ่ม/แก้ไข รายชื่อคณะทั้งหมดในมหาวิทยาลัย</p>
+    </a>
+
+    <!-- Manage Programs -->
+    <a href="{{ url_for('admin_manage_programs') }}" class="glass card"
+        style="text-decoration: none; padding: 2rem; border-radius: 1.5rem; transition: transform 0.2s;">
+        <h3 style="color: var(--text-main); margin-bottom: 0.5rem;">จัดการหลักสูตร</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">จัดการรายชื่อหลักสูตรและสาขาวิชา แยกตามคณะที่สังกัด
+        </p>
+    </a>
+
+    <!-- Manage Courses (Master) -->
+    <a href="{{ url_for('manage_courses') }}" class="glass card"
+        style="text-decoration: none; padding: 2rem; border-radius: 1.5rem; transition: transform 0.2s;">
+        <h3 style="color: var(--text-main); margin-bottom: 0.5rem;">รายวิชา (Master Data)</h3>
+        <p style="color: var(--text-muted); font-size: 0.875rem;">จัดการฐานข้อมูลรายวิชากลาง เพิ่ม/แก้ไข
+            รายชื่อวิชาและหน่วยกิต</p>
+    </a>
+</div>
+
+<style>
+    .card:hover {
+        transform: translateY(-5px);
+        border-color: var(--primary-color) !important;
+    }
+</style>
+{% endblock %}

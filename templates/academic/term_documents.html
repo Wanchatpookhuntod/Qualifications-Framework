@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}รายการ มคอ. ของเทอม {{ term.semester }}/{{ term.year }}{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+    <div>
+        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
+            <a href="{{ url_for('academic_dashboard') }}" style="color: var(--primary-color);">Dashboard ฝ่ายวิชาการ</a> /
+            <span style="color: var(--text-muted);">รายการ มคอ. ของเทอม {{ term.semester }}/{{ term.year }}</span>
+        </nav>
+        <h2 style="margin: 0;">📚 รวม มคอ. ตามเทอม</h2>
+        <p style="color: var(--text-muted); margin: 0.25rem 0 0;">เทอม {{ term.semester }}/{{ term.year }} — ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</p>
+    </div>
+
+    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary" style="color: var(--text-muted);">กลับไป Dashboard</a>
+</div>
+
+<div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
+        <div style="display:flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">ทั้งหมด: {{ stats.total }}</span>
+            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">มคอ.3 ส่งแล้ว: {{ stats.tqf3_submitted }}</span>
+            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">มคอ.3 อนุมัติ: {{ stats.tqf3_approved }}</span>
+            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">มคอ.5 ส่งแล้ว: {{ stats.tqf5_submitted }}</span>
+            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">มคอ.5 อนุมัติ: {{ stats.tqf5_approved }}</span>
+        </div>
+
+        <form method="GET" action="{{ url_for('academic_term_documents', term_id=term.id) }}" style="display:flex; gap: 0.5rem; align-items: center;">
+            <label style="color: var(--text-muted); font-size: 0.875rem;">หลักสูตร</label>
+            <select name="program_id" class="form-control" style="height: 2.25rem; padding: 0.25rem 0.5rem; min-width: 320px;">
+                <option value="" {% if not selected_program_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for p in programs %}
+                <option value="{{ p.id }}" {% if selected_program_id == p.id %}selected{% endif %}>
+                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.9rem; color: var(--text-muted);">กรอง</button>
+        </form>
+    </div>
+</div>
+
+<div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="font-weight: 800;">สถานะการเปิดให้กรอก (ทั้งเทอม)</div>
+            <div style="color: var(--text-muted); font-size: 0.95rem;">มีผลกับทุกวิชาในเทอมนี้</div>
+        </div>
+        <div style="display:flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">มคอ.3: {{ 'เปิด' if term.is_open_tqf3 else 'ปิด' }}</span>
+            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">มคอ.5: {{ 'เปิด' if term.is_open_tqf5 else 'ปิด' }}</span>
+        </div>
+    </div>
+</div>
+
+<div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                    <th style="padding: 1rem;">หลักสูตร</th>
+                    <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
+                    <th style="padding: 1rem;">อาจารย์ผู้สอน</th>
+                    <th style="padding: 1rem;">มคอ.3</th>
+                    <th style="padding: 1rem;">มคอ.5</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 1rem;">
+                        {% if section.program %}
+                        <div style="font-weight: 700;">{{ section.program.name }}{% if section.program.year %} ({{ section.program.year }}){% endif %}</div>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.875rem;">—</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        <div style="font-weight: bold;">{{ section.course.code if section.course else '' }} {{ section.course.name_th if section.course else '' }}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}</div>
+                    </td>
+                    <td style="padding: 1rem;">
+                        {% if section.instructor %}
+                        <div style="font-weight: 600;">{{ section.instructor.full_name }}</div>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8125rem;">ยังไม่มอบหมายผู้สอน</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        {% if section.tqf3 %}
+                        <div style="margin-bottom: 0.5rem;">
+                            {% set s = section.tqf3.status %}
+                            {% if s == 'APPROVED' %}
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">{{ s }}</span>
+                            {% elif s == 'SUBMITTED' %}
+                            <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">{{ s }}</span>
+                            {% elif s == 'RETURNED' %}
+                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">{{ s }}</span>
+                            {% else %}
+                            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">{{ s }}</span>
+                            {% endif %}
+                        </div>
+                        <a class="btn glass" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" href="{{ url_for('academic_view_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id, next=request.path) }}">👁️ ดู</a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8125rem;">ยังไม่มีเอกสาร</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 1rem;">
+                        {% if section.tqf5 %}
+                        <div style="margin-bottom: 0.5rem;">
+                            {% set s = section.tqf5.status %}
+                            {% if s == 'APPROVED' %}
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">{{ s }}</span>
+                            {% elif s == 'SUBMITTED' %}
+                            <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">{{ s }}</span>
+                            {% elif s == 'RETURNED' %}
+                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">{{ s }}</span>
+                            {% else %}
+                            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">{{ s }}</span>
+                            {% endif %}
+                        </div>
+                        <a class="btn glass" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;" href="{{ url_for('academic_view_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id, next=request.path) }}">👁️ ดู</a>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8125rem;">ยังไม่มีเอกสาร</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-muted);">ยังไม่มีรายวิชาเปิดสอนในเทอมนี้</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

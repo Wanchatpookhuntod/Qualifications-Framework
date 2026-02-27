@@ -14,16 +14,44 @@
 </div>
 
 <div style="display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
-    <!-- Add Faculty Form -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">เพิ่มคณะใหม่</h3>
-        <form method="POST">
-            <div class="form-group">
-                <label>ชื่อคณะ</label>
-                <input type="text" name="name" class="form-control" placeholder="เช่น คณะวิศวกรรมศาสตร์" required>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">บันทึกข้อมูล</button>
-        </form>
+    <div style="display: grid; gap: 1.5rem;">
+        <!-- Add Faculty Form -->
+        <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">เพิ่มคณะใหม่</h3>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_faculty">
+                <div class="form-group">
+                    <label>ชื่อคณะ</label>
+                    <input type="text" name="name" class="form-control" placeholder="เช่น คณะวิศวกรรมศาสตร์" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">บันทึกข้อมูล</button>
+            </form>
+        </div>
+
+        <!-- Add Department (Branch) Form -->
+        <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">เพิ่มสาขาวิชาในคณะ</h3>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_department">
+                <div class="form-group">
+                    <label>คณะ</label>
+                    <select name="faculty_id" class="form-control" {% if not faculties %}disabled{% endif %} required>
+                        {% if faculties %}
+                            {% for f in faculties %}
+                                <option value="{{ f.id }}">{{ f.name }}</option>
+                            {% endfor %}
+                        {% else %}
+                            <option value="">ยังไม่มีคณะในระบบ</option>
+                        {% endif %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ชื่อสาขาวิชา</label>
+                    <input type="text" name="department_name" class="form-control" placeholder="เช่น วิศวกรรมคอมพิวเตอร์" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;" {% if not faculties %}disabled{% endif %}>บันทึกข้อมูล</button>
+            </form>
+        </div>
     </div>
 
     <!-- Faculty List -->
@@ -33,26 +61,58 @@
             <table style="width: 100%; border-collapse: collapse;">
                 <thead>
                     <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem; width: 80px;">ID</th>
-                        <th style="padding: 1rem;">ชื่อคณะ</th>
-                        <th style="padding: 1rem; width: 120px;">จำนวนหลักสูตร</th>
+                        <th style="padding: 1rem; width: 30%;">ชื่อคณะ</th>
+                        <th style="padding: 1rem; width: 60%;">จำนวนสาขา</th>
+                        <th style="padding: 1rem; width: 10%;">จัดการ</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody >
                     {% for faculty in faculties %}
                     <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem; color: var(--text-muted);">#{{ faculty.id }}</td>
-                        <td style="padding: 1rem; font-weight: 500;">{{ faculty.name }}</td>
-                        <td style="padding: 1rem; text-align: center;">
+                        <td style="padding: 1rem; font-weight: 500; width: 30%;">{{ faculty.name }}</td>
+                        <td style="padding: 1rem; width: 60%;">
                             <span class="status-badge"
                                 style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
-                                {{ faculty.programs|length }}
+                                {{ faculty.departments|length }}
                             </span>
+
+                            {% if faculty.departments|length > 0 %}
+                            <details style="margin-top: 0.5rem; text-align: left;">
+                                <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8125rem;">
+                                    ดู/ลบสาขา
+                                </summary>
+                                <div style="margin-top: 0.5rem; display: grid; gap: 0.35rem;">
+                                    {% for dept in faculty.departments %}
+                                    <div style="display:flex; justify-content: space-between; align-items:center; gap: 0.5rem;">
+                                        <div style="font-size: 0.85rem;">{{ dept.name }}</div>
+                                        <form action="{{ url_for('admin_delete_department', department_id=dept.id) }}"
+                                            method="POST" onsubmit="return confirm('ยืนยันการลบสาขานี้?')"
+                                            style="margin: 0;">
+                                            <button type="submit" class="btn glass"
+                                                style="padding: 0.2rem 0.5rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.72rem;">
+                                                ลบ
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </details>
+                            {% endif %}
+                        </td>
+
+                        <td style="padding: 1rem; width: 10%;">
+                            <form action="{{ url_for('admin_delete_faculty', faculty_id=faculty.id) }}" method="POST"
+                                onsubmit="return confirm('ยืนยันการลบคณะนี้?')" style="margin: 0;">
+                                <button type="submit" class="btn glass"
+                                    style="padding: 0.25rem 0.5rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">
+                                    ลบ
+                                </button>
+                            </form>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="3" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                        <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">
                             ไม่พบข้อมูลคณะในระบบ</td>
                     </tr>
                     {% endfor %}

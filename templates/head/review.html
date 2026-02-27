@@ -5,12 +5,23 @@
 {% block content %}
 <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: start;">
     <div>
-        <a href="{{ url_for('head_dashboard') }}" style="color: var(--primary-color); font-size: 0.875rem;">← กลับไปที่
-            Dashboard</a>
-        <h2 style="margin-top: 1rem;">ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}: {{ tqf.section.course.code
-            }} {{ tqf.section.course.name_th }}</h2>
-        <p style="color: var(--text-muted);">อาจารย์ผู้สอน: {{ tqf.section.instructor.full_name }} | Section: {{
-            tqf.section.section_number }}</p>
+        <a href="{{ back_url or url_for('head_dashboard') }}" style="color: var(--primary-color); font-size: 0.875rem;">← {{ back_label or 'กลับไปที่ Dashboard' }}</a>
+        <h2 style="margin-top: 1rem;">ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}:
+            {% if tqf.section and tqf.section.course %}
+            {{ tqf.section.course.code }} {{ tqf.section.course.name_th }}
+            {% else %}
+            (ไม่พบข้อมูลรายวิชา)
+            {% endif %}
+        </h2>
+        <p style="color: var(--text-muted);">
+            อาจารย์ผู้สอน:
+            {% if tqf.section and tqf.section.instructor %}
+            {{ tqf.section.instructor.full_name }}
+            {% else %}
+            (ยังไม่มอบหมาย)
+            {% endif %}
+            | Section: {{ tqf.section.section_number if tqf.section else '-' }}
+        </p>
     </div>
     <div style="text-align: right;">
         <span class="status-badge" style="
@@ -63,14 +74,25 @@
             </div>
             {% endif %}
 
-            <div
-                style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: center;">
-                <p style="color: var(--text-muted); font-size: 0.8125rem;">*
-                    สามารถดูข้อมูลฉบับเต็มได้ในขั้นตอนถัดไปในระบบจัดการเอกสาร</p>
+            <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: center;">
+                <p style="color: var(--text-muted); font-size: 0.8125rem;">* ดูข้อมูลฉบับเต็ม (ตามฟอร์ม) ด้านล่าง</p>
             </div>
+        </div>
+
+        <div style="margin-top: 1.75rem;">
+            {% if tqf_type == 'tqf3' %}
+                {% set section = tqf.section if tqf.section else None %}
+                {% set tqf3 = tqf %}
+                {% include 'shared/tqf3_readonly.html' %}
+            {% else %}
+                {% set section = tqf.section if tqf.section else None %}
+                {% set tqf5 = tqf %}
+                {% include 'shared/tqf5_readonly.html' %}
+            {% endif %}
         </div>
     </div>
 
+    {% if can_review %}
     <!-- Review Form -->
     <div class="glass" style="padding: 2rem; border-radius: 1.5rem; height: fit-content; position: sticky; top: 2rem;">
         <h3 style="margin-bottom: 1.5rem; color: var(--accent-warning);">ดำเนินการ Step E</h3>
@@ -93,5 +115,11 @@
             </div>
         </form>
     </div>
+    {% else %}
+    <div class="glass" style="padding: 2rem; border-radius: 1.5rem; height: fit-content; position: sticky; top: 2rem;">
+        <h3 style="margin-bottom: 1rem; color: var(--primary-color);">โหมดอ่านอย่างเดียว</h3>
+        <div style="color: var(--text-muted); font-size: 0.95rem;">ฝ่ายวิชาการสามารถเปิดดูเอกสารได้ แต่ไม่สามารถอนุมัติ/ตีกลับได้</div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

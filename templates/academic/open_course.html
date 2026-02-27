@@ -47,23 +47,12 @@
             </select>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; margin-bottom: 2.5rem;">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
             <!-- 3. Section Number -->
             <div class="form-group">
                 <label style="font-weight: 600; display: block; margin-bottom: 0.75rem;">3. ระบุกลุ่ม (Section)</label>
                 <input type="text" name="section_number" class="form-control" value="1" placeholder="เช่น 1" required
                     style="padding: 0.75rem;">
-            </div>
-
-            <!-- 4. Instructor Assignment -->
-            <div class="form-group">
-                <label style="font-weight: 600; display: block; margin-bottom: 0.75rem;">4. มอบหมายอาจารย์ผู้สอน</label>
-                <select name="instructor_id" class="form-control" style="padding: 0.75rem;">
-                    <option value="">-- ยังไม่มอบหมาย --</option>
-                    {% for ins in instructors %}
-                    <option value="{{ ins.id }}">{{ ins.full_name }}</option>
-                    {% endfor %}
-                </select>
             </div>
         </div>
 
@@ -74,7 +63,7 @@
             </button>
             <p
                 style="margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
-                * ข้อมูลที่ท่านบันทึกจะปรากฏบน Dashboard ของอาจารย์ผู้สอนและหัวหน้าสาขาโดยอัตโนมัติ
+                * หัวหน้าสาขาวิชาเป็นผู้มอบหมายอาจารย์ผู้สอน (ฝ่ายวิชาการเปิดรายวิชาเท่านั้น)
             </p>
         </div>
     </form>

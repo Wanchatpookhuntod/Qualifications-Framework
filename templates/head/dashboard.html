@@ -9,15 +9,34 @@
 </div>
 
 <div class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
-    <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">รายวิชาในหลักสูตร {{ current_user.program.name }}</h3>
+    <div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <h3 style="margin: 0; font-size: 1.25rem;">รายวิชาในสาขา/หลักสูตรที่รับผิดชอบ</h3>
+        <form method="GET" action="{{ url_for('head_dashboard') }}" style="display:flex; gap: 0.5rem; align-items: center;">
+            <label style="color: var(--text-muted); font-size: 0.875rem;">เทอม</label>
+            <select name="term_id" class="form-control" style="height: 2.25rem; padding: 0.25rem 0.5rem; min-width: 200px;">
+                <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for t in terms %}
+                <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.9rem; color: var(--text-muted);">แสดง</button>
+        </form>
+    </div>
+
+    {% if selected_term_id %}
+    <div style="margin-bottom: 1.25rem;">
+        <a class="btn glass" style="border-color: var(--border-color); color: var(--text-muted);" href="{{ url_for('head_term_documents', term_id=selected_term_id) }}">📄 รวม มคอ. ของเทอมนี้</a>
+    </div>
+    {% endif %}
 
     <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse;">
             <thead>
                 <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
                     <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
+                    <th style="padding: 1rem;">เทอม</th>
                     <th style="padding: 1rem;">อาจารย์ผู้สอน (Step C)</th>
-                    <th style="padding: 1rem;">สถานะเอกสาร (Step C)</th>
+                    <th style="padding: 1rem;">สถานะเปิดให้กรอก (ฝ่ายวิชาการ)</th>
                     <th style="padding: 1rem;">มคอ. 3</th>
                     <th style="padding: 1rem;">มคอ. 5</th>
                 </tr>
@@ -29,6 +48,14 @@
                         <div style="font-weight: bold;">{{ section.course.code }} {{ section.course.name_th }}</div>
                         <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}
                         </div>
+                    </td>
+
+                    <td style="padding: 1rem;">
+                        {% if section.term %}
+                        <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">{{ section.term.semester }}/{{ section.term.year }}</span>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.875rem;">—</span>
+                        {% endif %}
                     </td>
 
                     <!-- Instructor Assignment -->
@@ -48,15 +75,21 @@
                         </form>
                     </td>
 
-                    <!-- Toggle Open Status -->
+                    <!-- Open Status (read-only) -->
                     <td style="padding: 1rem;">
-                        <form action="{{ url_for('toggle_open', section_id=section.id) }}" method="POST">
-                            <button type="submit"
-                                class="btn {% if section.is_open %}glass{% else %}btn-primary{% endif %}"
-                                style="font-size: 0.75rem; padding: 0.5rem 1rem;">
-                                {% if section.is_open %}🔘 เปิดให้กรอกแล้ว{% else %}🔒 เริ่มเปิดกรอก{% endif %}
-                            </button>
-                        </form>
+                        <div style="display:flex; flex-direction: column; gap: 0.35rem;">
+                            {% if section.term and section.term.is_open_tqf3 %}
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 มคอ.3 เปิด</span>
+                            {% else %}
+                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 มคอ.3 ปิด</span>
+                            {% endif %}
+
+                            {% if section.term and section.term.is_open_tqf5 %}
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 มคอ.5 เปิด</span>
+                            {% else %}
+                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 มคอ.5 ปิด</span>
+                            {% endif %}
+                        </div>
                     </td>
 
                     <!-- TQF 3 Status & Review -->
@@ -101,7 +134,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-muted);">
+                    <td colspan="6" style="padding: 3rem; text-align: center; color: var(--text-muted);">
                         ไม่พบรายวิชาเปิดสอนในหลักสูตรของคุณ</td>
                 </tr>
                 {% endfor %}

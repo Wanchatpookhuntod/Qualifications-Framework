@@ -6,7 +6,11 @@
     <title>{% block title %}ระบบ มคอ.3 และ มคอ.5{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap">
+    </noscript>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
@@ -15,13 +19,13 @@
     <nav class="navbar glass">
         <div class="nav-brand">TQF System</div>
         <div class="nav-user">
-            <span>{{ current_user.full_name }} ({{ active_role or current_user.role }})</span>
+            <span>{{ current_user.full_name }} ({{ active_role or current_user.best_role() }})</span>
             <a href="{{ url_for('account') }}" class="btn btn-secondary" style="margin-left: 1rem; color: var(--text-muted);">บัญชีของฉัน</a>
-            {% if active_role and available_roles and available_roles|length > 1 %}
+            {% if available_roles and available_roles|length > 1 %}
             <form method="POST" action="{{ url_for('switch_role') }}" style="display:inline-flex; align-items:center; gap:0.5rem; margin-left: 1rem;">
                 <select name="role" class="form-control" style="height: 2rem; padding: 0.25rem 0.5rem;">
                     {% for r in available_roles %}
-                    <option value="{{ r }}" {% if r == active_role %}selected{% endif %}>{{ r|upper }}</option>
+                    <option value="{{ r }}" {% if r == (active_role or current_user.best_role()) %}selected{% endif %}>{{ r|upper }}</option>
                     {% endfor %}
                 </select>
                 <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; color: var(--text-muted);">สลับบทบาท</button>

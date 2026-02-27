@@ -61,13 +61,22 @@
                 </select>
             </div>
             <div class="form-group">
+                <label>สาขาที่สังกัด (ถ้ามี)</label>
+                <select name="department_id" class="form-control">
+                    <option value="">-- ไม่ระบุ --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
                 <label>หลักสูตรที่สังกัด (ถ้ามี)</label>
                 <select name="program_id" class="form-control">
                     <option value="">-- ไม่ระบุ --</option>
                     {% for program in programs %}
                     <option value="{{ program.id }}">
-                        {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }} ({{
-                        program.faculty.name }})
+                        {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
+                        ({{ department_name_by_id.get(program.department_id) or '-' }} / {{ faculty_name_by_id.get(program.faculty_id) or '-' }})
                     </option>
                     {% endfor %}
                 </select>
@@ -87,6 +96,7 @@
                         <th style="padding: 1rem;">ชื่อ-นามสกุล</th>
                         <th style="padding: 1rem;">บทบาท</th>
                         <th style="padding: 1rem;">สังกัด</th>
+                        <th style="padding: 1rem; width: 80px;">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -128,7 +138,60 @@
                             </details>
                         </td>
                         <td style="padding: 1rem; font-size: 0.8125rem; color: var(--text-muted);">
-                            {{ user.program.name if user.program else user.faculty.name if user.faculty else 'System' }}
+                            {{ user_affiliation_by_user_id.get(user.id) or 'System' }}
+
+                            <details style="margin-top: 0.75rem;">
+                                <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8125rem;">แก้ไขสังกัด</summary>
+                                <form method="POST" action="{{ url_for('admin_update_user_affiliation', user_id=user.id) }}" style="margin-top: 0.75rem; display:grid; gap:0.5rem; max-width: 420px;">
+                                    <div class="form-group" style="margin:0;">
+                                        <label style="font-size: 0.8125rem;">คณะที่สังกัด</label>
+                                        <select name="faculty_id" class="form-control">
+                                            <option value="">-- ไม่ระบุ --</option>
+                                            {% for faculty in faculties %}
+                                            <option value="{{ faculty.id }}" {% if user.faculty_id == faculty.id %}selected{% endif %}>{{ faculty.name }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="margin:0;">
+                                        <label style="font-size: 0.8125rem;">สาขาที่สังกัด</label>
+                                        <select name="department_id" class="form-control">
+                                            <option value="">-- ไม่ระบุ --</option>
+                                            {% for dept in departments %}
+                                            <option value="{{ dept.id }}" {% if user.department_id == dept.id %}selected{% endif %}>
+                                                {{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <div class="form-group" style="margin:0;">
+                                        <label style="font-size: 0.8125rem;">หลักสูตรที่สังกัด</label>
+                                        <select name="program_id" class="form-control">
+                                            <option value="">-- ไม่ระบุ --</option>
+                                            {% for program in programs %}
+                                            <option value="{{ program.id }}" {% if user.program_id == program.id %}selected{% endif %}>
+                                                {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
+                                                ({{ department_name_by_id.get(program.department_id) or '-' }} / {{ faculty_name_by_id.get(program.faculty_id) or '-' }})
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn-secondary" style="justify-self:start; padding: 0.35rem 0.9rem;">บันทึกสังกัด</button>
+                                </form>
+                            </details>
+                        </td>
+
+                        <td style="padding: 1rem;">
+                            {% if current_user.id != user.id %}
+                            <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST"
+                                onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')" style="margin: 0;">
+                                <button type="submit" class="btn glass"
+                                    style="padding: 0.25rem 0.5rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">
+                                    ลบ
+                                </button>
+                            </form>
+                            {% else %}
+                            <span style="font-size: 0.75rem; color: var(--text-muted);">-</span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

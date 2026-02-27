@@ -1,45 +1,92 @@
-from app import app, db
-from models import User, Course, Term, Section, Faculty, Program, TQF3, TQF5
+from __future__ import annotations
+
+from typing import Iterable
+
 from werkzeug.security import generate_password_hash
 
-def clean_and_seed():
-    with app.app_context():
-        print("Cleaning database...")
-        # Clear all data in correct order
-        try:
-            TQF5.query.delete()
-            TQF3.query.delete()
-            Section.query.delete()
-            Course.query.delete()
-            Program.query.delete()
-            User.query.delete()
-            Faculty.query.delete()
-            Term.query.delete()
-            db.session.commit()
-            print("Database cleared successfully.")
-        except Exception as e:
-            db.session.rollback()
-            print(f"Error cleaning database: {e}")
-            return
+from firestore_db import get_firestore_client
+from models import User
 
-        # Seed initial users to allow re-login
-        print("Seeding initial users...")
-        admin = User(
-            username='admin',
-            password_hash=generate_password_hash('password'),
-            role='admin',
-            full_name='System Administrator'
-        )
-        academic = User(
-            username='academic',
-            password_hash=generate_password_hash('password'),
-            role='academic',
-            full_name='Academic Officer'
-        )
-        db.session.add(admin)
-        db.session.add(academic)
-        db.session.commit()
-        print("Initial users created: admin/password, academic/password")
 
-if __name__ == '__main__':
+def _delete_collection(collection_path: str, batch_size: int = 200) -> int:
+    db = get_firestore_client()
+    col_ref = db.collection(collection_path)
+
+    deleted = 0
+    while True:
+        docs = list(col_ref.limit(batch_size).stream())
+        if not docs:
+            break
+
+        batch = db.batch()
+        for d in docs:
+            batch.delete(d.reference)
+        batch.commit()
+        deleted += len(docs)
+
+    return deleted
+
+
+def _delete_collections(collections: Iterable[str]) -> None:
+    total = 0
+    for name in collections:
+        n = _delete_collection(name)
+        total += n
+        print(f"Deleted {n} docs from {name}")
+    print(f"Deleted {total} docs total")
+
+
+def clean_and_seed() -> None:
+    collections = [
+        "tqf5",
+        "tqf3",
+        "feedback",
+        "sections",
+        "courses",
+        "term_programs",
+        "terms",
+        "programs",
+        "faculties",
+        "curriculum_uploads",
+        "users",
+    ]
+    print("Cleaning Firestore collections...")
+    _delete_collections(collections)
+
+    print("Seeding initial users...")
+    defaults = [
+        {
+            "id": "admin",
+            "username": "admin",
+            "password": "password",
+            "full_name": "System Administrator",
+            "roles": ["admin"],
+        },
+        {
+            "id": "academic",
+            "username": "academic",
+            "password": "password",
+            "full_name": "Academic Officer",
+            "roles": ["academic"],
+        },
+    ]
+
+    created = 0
+    for d in defaults:
+        if User.get_by_username(d["username"]):
+            continue
+        u = User(
+            id=d["id"],
+            username=d["username"],
+            password_hash=generate_password_hash(d["password"]),
+            full_name=d["full_name"],
+            roles=d["roles"],
+        )
+        u.save()
+        created += 1
+
+    print(f"Initial users created: {created} created")
+
+
+if __name__ == "__main__":
     clean_and_seed()

@@ -1,0 +1,116 @@
+{# Read-only view of TQF5 in a filled-format display (no inputs). #}
+
+<div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+    <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">ข้อมูลฉบับเต็ม (รูปแบบตามที่กรอก)</h3>
+
+    {% set data = tqf5.actual_teaching or {} %}
+
+    <!-- 2.1 - 2.2 -->
+    <section style="margin-bottom: 4rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; color: var(--text-main);">2.1 - 2.2 ข้อมูลทั่วไปและสรุปผู้เรียน</h3>
+        </div>
+
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color);">
+            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div><span style="color: var(--text-muted);">รหัส/ชื่อวิชา:</span> {{ section.course.code if section and section.course else '-' }} {{ section.course.name_th if section and section.course else '' }}</div>
+                <div><span style="color: var(--text-muted);">ภาคเรียน/ปีการศึกษา:</span> {{ section.term.semester if section and section.term else '-' }}/{{ section.term.year if section and section.term else '-' }}</div>
+                <div><span style="color: var(--text-muted);">จำนวนหน่วยกิต:</span> {{ section.course.credits if section and section.course else '-' }}</div>
+                <div><span style="color: var(--text-muted);">อาจารย์ผู้สอน:</span> {{ section.instructor.full_name if section and section.instructor else '-' }}</div>
+            </div>
+        </div>
+
+        <div style="display:flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+            <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">ลงทะเบียน: {{ data.get('students_enrolled', 0) }}</span>
+            <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">จบ: {{ data.get('students_finished', 0) }}</span>
+            <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">ถอน (W): {{ data.get('students_withdrawn', 0) }}</span>
+        </div>
+    </section>
+
+    <!-- 2.3 - 2.4 -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">2.3 - 2.4 การจัดการเรียนการสอนและปัญหา</h3>
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+            <div style="margin-bottom: 1rem;">
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">หัวข้อที่สอนไม่ครอบคลุมตามแผน (ถ้ามี) และสาเหตุ</div>
+                <div style="white-space: pre-wrap;">{{ data.get('deviations', '-') }}</div>
+            </div>
+            <div>
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">ปัญหาที่พบระหว่างสอน และวิธีการแก้ไข</div>
+                <div style="white-space: pre-wrap;">{{ data.get('problems_fixed', '-') }}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2.5 ผลการบรรลุ CLO (cards) -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">2.5 ผลการบรรลุ CLO</h3>
+
+        {% set clo_codes = data.get('clo_code[]', []) %}
+        {% set clo_methods = data.get('clo_method[]', []) %}
+        {% set clo_assessments = data.get('clo_assess[]', []) %}
+        {% set clo_results = data.get('clo_result[]', []) %}
+
+        {% if clo_codes|length == 0 %}
+        <div style="color: var(--text-muted);">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            {% for i in range(clo_codes|length) %}
+            {% set code = clo_codes[i] %}
+            {% set method = clo_methods[i] if i < clo_methods|length else '' %}
+            {% set assess = clo_assessments[i] if i < clo_assessments|length else '' %}
+            {% set result = clo_results[i] if i < clo_results|length else '' %}
+
+            {% if (code|string)|trim or (method|string)|trim or (assess|string)|trim or (result|string)|trim %}
+            <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+                <div style="display:flex; justify-content: space-between; align-items:center; gap: 0.75rem;">
+                    <div style="font-weight: 800;">{{ code or '(ไม่ระบุรหัส CLO)' }}</div>
+                    <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">ผลสัมฤทธิ์: {{ result or '-' }}%</span>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">วิธีจัดการเรียนรู้ที่ใช้จริง</div>
+                    <div style="white-space: pre-wrap;">{{ method or '-' }}</div>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">วิธีประเมินที่ใช้จริง</div>
+                    <div style="white-space: pre-wrap;">{{ assess or '-' }}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 2.6 Grade Distribution (cards) -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">2.6 การกระจายผลการเรียน (Grade Distribution)</h3>
+        <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap: 0.75rem;">
+            {% for grade in ['A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F', 'I', 'W'] %}
+            <div class="glass" style="padding: 0.9rem; border-radius: 1rem; text-align: center;">
+                <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.35rem;">{{ grade }}</div>
+                <div style="font-weight: 800;">{{ data.get('grade_' ~ grade, 0) }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-top: 1rem;">
+            <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">ปัจจัยที่ทำให้ผลการเรียนผิดปกติ (ถ้ามี)</div>
+            <div style="white-space: pre-wrap;">{{ data.get('grade_factors', '-') }}</div>
+        </div>
+    </section>
+
+    <!-- 2.7 - 2.9 -->
+    <section>
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">2.7 - 2.9 การทวนสอบและแผนปรับปรุง</h3>
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+            <div style="margin-bottom: 1rem;">
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">วิธีการทวนสอบผลสัมฤทธิ์ และหลักฐานที่ใช้</div>
+                <div style="white-space: pre-wrap;">{{ data.get('verification_method', '-') }}</div>
+            </div>
+            <div>
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">แผนการปรับปรุงรายวิชาและข้อเสนอแนะ</div>
+                <div style="white-space: pre-wrap;">{{ data.get('improvement_plan', '-') }}</div>
+            </div>
+        </div>
+    </section>
+</div>

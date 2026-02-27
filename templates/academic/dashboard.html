@@ -3,6 +3,7 @@
 {% block title %}Dashboard ฝ่ายวิชาการ - TQF System{% endblock %}
 
 {% block content %}
+{% set lock_confirm_msg = '🔓 ยืนยันการเปิดรอบภาคการศึกษา? อาจารย์จะสามารถแก้ไขเอกสารได้อีกครั้ง' if is_system_locked else '⚠️ ยืนยันการปิดภาคเรียน? เอกสารทั้งหมดจะถูกล็อกทันทีและไม่สามารถแก้ไขได้จนกว่าจะเปิดรอบใหม่' %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
     <div>
         <h2>Dashboard ฝ่ายวิชาการ (Step B & F)</h2>
@@ -17,11 +18,10 @@
                 {% endfor %}
             </select>
         </form>
-        <a href="{{ url_for('manage_terms') }}" class="btn glass">📅 จัดการปีการศึกษา</a>
+        <a href="{{ url_for('manage_terms') }}" class="btn glass" style="color: #6366f1;">จัดการปีการศึกษา</a>
 
-        <form action="{{ url_for('unlock_term') if is_system_locked else url_for('lock_term') }}" method="POST"
-            onsubmit="return confirm(&quot;{{ '🔓 ยืนยันการเปิดรอบภาคการศึกษา? อาจารย์จะสามารถแก้ไขเอกสารได้อีกครั้ง' if is_system_locked else '⚠️ ยืนยันการปิดภาคเรียน? เอกสารทั้งหมดจะถูกล็อกทันทีและไม่สามารถแก้ไขได้จนกว่าจะเปิดรอบใหม่' }}&quot;)">
-            <button type="submit" class="btn glass term-toggle-btn {% if is_system_locked %}term-toggle-unlock{% else %}term-toggle-lock{% endif %}">
+        <form action="{{ url_for('unlock_term') if is_system_locked else url_for('lock_term') }}" method="POST" data-confirm="{{ lock_confirm_msg|e }}">
+            <button type="submit" style="height: 100%;" class="btn glass term-toggle-btn {% if is_system_locked %}term-toggle-unlock{% else %}term-toggle-lock{% endif %}">
                 {% if is_system_locked %} เปิดรอบภาคการศึกษา{% else %} ปิดรอบภาคการศึกษา{% endif %}
             </button>
         </form>
@@ -42,24 +42,53 @@
         <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">มคอ.5 (ส่งแล้ว)</div>
         <div style="font-size: 2rem; font-weight: bold; color: var(--primary-color);">{{ stats.tqf5_perc }}%</div>
     </div>
-    <div class="glass"
-        style="padding: 1.5rem; border-radius: 1rem; text-align: center; background-color: {% if is_system_locked %}var(--accent-danger){% else %}var(--accent-success){% endif %};">
+    {% if is_system_locked %}
+    <div class="glass" style="padding: 1.5rem; border-radius: 1rem; text-align: center; background-color: var(--accent-danger);">
         <div style="font-size: 0.75rem; margin-bottom: 0.5rem;">สถานะระบบ</div>
-        <div
-            style="font-size: 1.125rem; font-weight: bold; background-color: {% if is_system_locked %}var(--accent-danger){% else %}var(--accent-success){% endif %};">
-            {% if is_system_locked %} ปิดรอบ{% else %} เปิดรอบ (ปกติ){% endif %}
-        </div>
+        <div style="font-size: 1.125rem; font-weight: bold; background-color: var(--accent-danger);">ปิดรอบ</div>
     </div>
+    {% else %}
+    <div class="glass" style="padding: 1.5rem; border-radius: 1rem; text-align: center; background-color: var(--accent-success);">
+        <div style="font-size: 0.75rem; margin-bottom: 0.5rem;">สถานะระบบ</div>
+        <div style="font-size: 1.125rem; font-weight: bold; background-color: var(--accent-success);">เปิดรอบ (ปกติ)</div>
+    </div>
+    {% endif %}
 </div>
 
 <div class="dashboard-hierarchy">
     {% for term_label, term_data in grouped_data.items() %}
     <details class="glass" style="margin-bottom: 2rem; border-radius: 1.5rem; padding: 1.25rem 1.5rem;" {% if loop.first %}open{% endif %}>
         <summary style="cursor: pointer; list-style: none; display:flex; align-items:center; gap: 1rem;">
-            <h3 style="margin: 0; font-size: 1.5rem; color: var(--text-color);">📅 ปีการศึกษา {{ term_label }}</h3>
+            <h3 style="margin: 0; font-size: 1.5rem; color: var(--text-color);">ปีการศึกษา {{ term_label }}</h3>
             <div style="flex-grow: 1; height: 2px; background: linear-gradient(to right, var(--border-color), transparent);"></div>
             <span style="color: var(--text-muted); font-size: 0.875rem;">คลิกเพื่อย่อ/ขยาย</span>
         </summary>
+
+        {% if not is_system_locked %}
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-top: 1rem; margin-bottom: 1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap: 1rem; flex-wrap:wrap;">
+                <div>
+                    <div style="font-weight: 800;">เปิดช่วงให้กรอก มคอ. (ทั้งเทอม)</div>
+                    <div style="color: var(--text-muted); font-size: 0.95rem;">เมื่อเปิด/ปิด จะมีผลกับทุกวิชาในเทอมนี้</div>
+                </div>
+                <div style="display:flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                    <a class="btn glass" style="border-color: var(--border-color); color: var(--text-muted);" href="{{ url_for('academic_term_documents', term_id=term_data.term_id) }}">📄 ดูรายการ มคอ. ของเทอม</a>
+                    <form method="POST" action="{{ url_for('toggle_open_term_tqf3', term_id=term_data.term_id) }}" style="display:inline;">
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button type="submit" class="btn glass" style="border-color: var(--primary-color); color: var(--primary-color);">
+                            มคอ.3: {% if term_data.is_open_tqf3 %}ปิดให้กรอก{% else %}เปิดให้กรอก{% endif %}
+                        </button>
+                    </form>
+                    <form method="POST" action="{{ url_for('toggle_open_term_tqf5', term_id=term_data.term_id) }}" style="display:inline;">
+                        <input type="hidden" name="next" value="{{ request.path }}">
+                        <button type="submit" class="btn glass" style="border-color: var(--primary-color); color: var(--primary-color);">
+                            มคอ.5: {% if term_data.is_open_tqf5 %}ปิดให้กรอก{% else %}เปิดให้กรอก{% endif %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         {% if not is_system_locked %}
         <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 2rem;">
@@ -68,9 +97,9 @@
                     <div style="font-weight: 700; color: var(--text-color);">เพิ่มหลักสูตรจากฐานข้อมูล</div>
                     <div style="color: var(--text-muted); font-size: 0.95rem;">เพิ่มหลักสูตรในเทอมนี้ก่อน แล้วค่อยเพิ่มรายวิชาแบบเลือกหลายวิชา</div>
                 </div>
-                <form method="POST" action="{{ url_for('academic_add_program_to_term') }}" style="display:flex; gap: 0.75rem; align-items:center; flex-wrap:wrap;">
+                <form method="POST" action="{{ url_for('academic_add_program_to_term') }}" style="display:grid; grid-template-columns: 3fr 1fr; gap: 0.75rem; text-align: center; align-items:center; flex-wrap:wrap;">
                     <input type="hidden" name="term_id" value="{{ term_data.term_id }}">
-                    <select name="program_id" class="form-control" required style="min-width: 320px;">
+                    <select name="program_id" class="form-control" required style="min-width: 320px; text-align: center;">
                         <option value="" disabled selected>-- เลือกหลักสูตร --</option>
                         {% set already = term_program_ids.get(term_data.term_id, []) %}
                         {% for p in programs %}
@@ -79,7 +108,7 @@
                         </option>
                         {% endfor %}
                     </select>
-                    <button type="submit" class="btn btn-primary">+ เพิ่มหลักสูตร</button>
+                    <button type="submit" class="btn btn-primary">เพิ่มหลักสูตร</button>
                 </form>
             </div>
         </div>
@@ -87,12 +116,12 @@
 
         <div style="margin-top: 1.5rem;">
             {% if term_data.programs %}
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1rem;">
+            <div style="display:grid; grid-template-rows: repeat(auto-fit, minmax(100px, 1fr)); gap: 1rem;">
                 {% for program_id, program_data in term_data.programs.items() %}
                 <a href="{{ url_for('academic_term_program', term_id=term_data.term_id, program_id=program_id) }}" class="glass" style="display:block; padding: 1.25rem; border-radius: 1.25rem; border: 1px solid var(--border-color); text-decoration: none;">
                     <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem;">
-                        <div style="font-weight: 800; color: var(--text-color);">{{ program_data.name }}{% if program_data.year %} ({{ program_data.year }}){% endif %}</div>
-                        <div style="color: var(--primary-color); font-weight: 700;">เปิดรายละเอียด →</div>
+                        <div style="font-weight: 800; color: white;">{{ program_data.name }}{% if program_data.year %} ({{ program_data.year }}){% endif %}</div>
+                        <div style="color: var(--primary-color); font-weight: 700;">เปิดรายละเอียด </div>
                     </div>
                     <div style="margin-top: 0.35rem; color: var(--text-muted); font-size: 0.9rem;">คลิกเพื่อเข้าไปเพิ่มรายวิชา / มอบหมายผู้สอน / ติดตามสถานะเอกสาร</div>
                 </a>
@@ -115,4 +144,17 @@
     </div>
     {% endfor %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('form[data-confirm]').forEach(function (form) {
+            form.addEventListener('submit', function (e) {
+                var msg = form.getAttribute('data-confirm');
+                if (msg && !window.confirm(msg)) {
+                    e.preventDefault();
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

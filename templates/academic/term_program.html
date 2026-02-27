@@ -36,6 +36,29 @@
         </div>
     </div>
 </div>
+
+<div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
+        <div>
+            <div style="font-weight: 800;">เปิดช่วงให้กรอก มคอ. (ทั้งเทอม)</div>
+            <div style="color: var(--text-muted); font-size: 0.95rem;">มีผลกับทุกวิชาในเทอมนี้</div>
+        </div>
+        <div style="display:flex; gap: 0.75rem; flex-wrap: wrap;">
+            <form action="{{ url_for('toggle_open_term_tqf3', term_id=term.id) }}" method="POST" style="display:inline;">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="btn glass" style="border-color: var(--primary-color); color: var(--primary-color);">
+                    มคอ.3: {% if term.is_open_tqf3 %}ปิดให้กรอก{% else %}เปิดให้กรอก{% endif %}
+                </button>
+            </form>
+            <form action="{{ url_for('toggle_open_term_tqf5', term_id=term.id) }}" method="POST" style="display:inline;">
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="btn glass" style="border-color: var(--primary-color); color: var(--primary-color);">
+                    มคอ.5: {% if term.is_open_tqf5 %}ปิดให้กรอก{% else %}เปิดให้กรอก{% endif %}
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
 {% endif %}
 
 {% if courses_grouped %}
@@ -66,42 +89,59 @@
                 <tr style="border-bottom: 1px solid var(--border-color);">
                     <td style="padding: 1rem 1.5rem; font-weight: 600;">{{ section.section_number }}</td>
                     <td style="padding: 1rem 1.5rem;">
-                        <form action="{{ url_for('assign_instructor', section_id=section.id) }}" method="POST" style="display: flex; gap: 0.5rem; align-items: center;">
-                            <input type="hidden" name="next" value="{{ request.path }}">
-                            <select name="instructor_id" class="form-control" style="padding: 0.35rem; font-size: 0.875rem; min-width: 170px;">
-                                <option value="">-- เลือกผู้สอน --</option>
-                                {% for ins in instructors %}
-                                <option value="{{ ins.id }}" {% if section.instructor_id==ins.id %}selected{% endif %}>{{ ins.full_name }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;">OK</button>
-                        </form>
+                        {% if section.instructor %}
+                        <div style="font-weight: 600;">{{ section.instructor.full_name }}</div>
+                        {% else %}
+                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอหัวหน้าสาขามอบหมายผู้สอน</span>
+                        {% endif %}
                     </td>
                     <td style="padding: 1rem 1.5rem;">
                         {% if section.tqf3 %}
                         {% set s = section.tqf3.status %}
-                        <span class="status-badge" style="
-                                {% if s == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: #059669;
-                                {% elif s == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #d97706;
-                                {% elif s == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: #dc2626;
-                                {% else %}background: rgba(99, 102, 241, 0.1); color: #4f46e5;{% endif %}
-                            ">{{ s }}</span>
+                        {% if s == 'APPROVED' %}
+                        <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669;">{{ s }}</span>
+                        {% elif s == 'SUBMITTED' %}
+                        <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">{{ s }}</span>
+                        {% elif s == 'RETURNED' %}
+                        <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">{{ s }}</span>
+                        {% else %}
+                        <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: #4f46e5;">{{ s }}</span>
+                        {% endif %}
                         {% else %}
                         <span style="color: var(--text-muted); font-size: 0.75rem;">รอดำเนินการ</span>
                         {% endif %}
+
+                        <div style="margin-top: 0.5rem;">
+                            {% if term.is_open_tqf3 %}
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 เปิดทั้งเทอม</span>
+                            {% else %}
+                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 ปิดทั้งเทอม</span>
+                            {% endif %}
+                        </div>
                     </td>
                     <td style="padding: 1rem 1.5rem;">
                         {% if section.tqf5 %}
                         {% set s = section.tqf5.status %}
-                        <span class="status-badge" style="
-                                {% if s == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: #059669;
-                                {% elif s == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #d97706;
-                                {% elif s == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: #dc2626;
-                                {% else %}background: rgba(99, 102, 241, 0.1); color: #4f46e5;{% endif %}
-                            ">{{ s }}</span>
+                        {% if s == 'APPROVED' %}
+                        <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669;">{{ s }}</span>
+                        {% elif s == 'SUBMITTED' %}
+                        <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">{{ s }}</span>
+                        {% elif s == 'RETURNED' %}
+                        <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">{{ s }}</span>
+                        {% else %}
+                        <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: #4f46e5;">{{ s }}</span>
+                        {% endif %}
                         {% else %}
                         <span style="color: var(--text-muted); font-size: 0.75rem;">รอดำเนินการ</span>
                         {% endif %}
+
+                        <div style="margin-top: 0.5rem;">
+                            {% if term.is_open_tqf5 %}
+                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 เปิดทั้งเทอม</span>
+                            {% else %}
+                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 ปิดทั้งเทอม</span>
+                            {% endif %}
+                        </div>
                     </td>
                     <td style="padding: 1rem 1.5rem;">
                         {% if section.status == 'locked' %}

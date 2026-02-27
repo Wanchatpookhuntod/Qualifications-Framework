@@ -1,0 +1,188 @@
+{# Read-only view of TQF3 in a filled-format display (no inputs). #}
+
+<div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+    <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">ข้อมูลฉบับเต็ม (รูปแบบตามที่กรอก)</h3>
+
+    {% set general = tqf3.general_info or {} %}
+
+    <!-- 1.1 ข้อมูลรายวิชาพื้นฐาน -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+            1.1 ข้อมูลรายวิชาพื้นฐาน (Course Information)
+        </h3>
+
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; background: rgba(255,255,255,0.02); border: 1px dashed var(--border-color);">
+            <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                <div><span style="color: var(--text-muted);">รหัสวิชา:</span> {{ section.course.code if section and section.course else '-' }}</div>
+                <div><span style="color: var(--text-muted);">ชื่อรายวิชา (TH/EN):</span> {{ section.course.name_th if section and section.course else '-' }} / {{ section.course.name_en if section and section.course else '-' }}</div>
+                <div><span style="color: var(--text-muted);">จำนวนหน่วยกิต:</span> {{ section.course.credits if section and section.course else '-' }}</div>
+                <div><span style="color: var(--text-muted);">ภาคเรียน/ปีการศึกษา:</span> {{ section.term.semester if section and section.term else '-' }}/{{ section.term.year if section and section.term else '-' }}</div>
+                <div><span style="color: var(--text-muted);">สถานที่เรียน:</span> {{ general.get('location_type', '-') }}</div>
+                <div><span style="color: var(--text-muted);">วันที่จัดทำ/ปรับปรุงล่าสุด:</span> {{ general.get('last_updated', '-') }}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 1.2 & 1.3 -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+            1.2 - 1.3 คำอธิบายและจุดมุ่งหมาย
+        </h3>
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+            <div style="margin-bottom: 1rem;">
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">คำอธิบายรายวิชา (Course Description)</div>
+                <div style="white-space: pre-wrap;">{{ general.get('description', '-') }}</div>
+            </div>
+            <div>
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">จุดมุ่งหมายของรายวิชา (Course Objectives)</div>
+                <div style="white-space: pre-wrap;">{{ general.get('objectives', '-') }}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 1.4 CLO – PLO Mapping (cards) -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+            1.4 CLO – PLO Mapping
+        </h3>
+
+        {% set clo_codes = general.get('clo_code[]', []) %}
+        {% set clo_descs = general.get('clo_desc[]', []) %}
+        {% set clo_plos = general.get('clo_plo[]', []) %}
+        {% set clo_blooms = general.get('clo_bloom[]', []) %}
+
+        {% if clo_codes|length == 0 %}
+        <div style="color: var(--text-muted);">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            {% for i in range(clo_codes|length) %}
+            {% set code = clo_codes[i] %}
+            {% set desc = clo_descs[i] if i < clo_descs|length else '' %}
+            {% set plo = clo_plos[i] if i < clo_plos|length else '' %}
+            {% set bloom = clo_blooms[i] if i < clo_blooms|length else '' %}
+            <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+                <div style="display:flex; justify-content: space-between; align-items:center; gap: 0.75rem;">
+                    <div style="font-weight: 800;">{{ code or '(ไม่ระบุรหัส)' }}</div>
+                    <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">{{ bloom or '-' }}</span>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">รายละเอียด CLO</div>
+                    <div style="white-space: pre-wrap;">{{ desc or '-' }}</div>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">PLO ที่สอดคล้อง</div>
+                    <div style="white-space: pre-wrap;">{{ plo or '-' }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 1.5 Teaching Plan (cards) -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+            1.5 แผนการสอนรายสัปดาห์ (Teaching Plan)
+        </h3>
+
+        {% set plan_topics = general.get('plan_topic[]', []) %}
+        {% set plan_clos = general.get('plan_clo[]', []) %}
+        {% set plan_lectures = general.get('plan_lecture[]', []) %}
+        {% set plan_practices = general.get('plan_practice[]', []) %}
+        {% set plan_medias = general.get('plan_media[]', []) %}
+
+        {% if plan_topics|length == 0 %}
+        <div style="color: var(--text-muted);">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            {% for i in range(plan_topics|length) %}
+            {% set topic = plan_topics[i] %}
+            {% set clo = plan_clos[i] if i < plan_clos|length else '' %}
+            {% set lec = plan_lectures[i] if i < plan_lectures|length else '' %}
+            {% set prac = plan_practices[i] if i < plan_practices|length else '' %}
+            {% set media = plan_medias[i] if i < plan_medias|length else '' %}
+
+            {% if (topic|string)|trim or (clo|string)|trim or (media|string)|trim or (lec|string)|trim or (prac|string)|trim %}
+            <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+                <div style="display:flex; justify-content: space-between; align-items:center; gap: 0.75rem;">
+                    <div style="font-weight: 800;">สัปดาห์ที่ {{ i + 1 }}</div>
+                    <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">CLO: {{ clo or '-' }}</span>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">หัวข้อ/รายละเอียด</div>
+                    <div style="white-space: pre-wrap;">{{ topic or '-' }}</div>
+                </div>
+                <div style="margin-top: 0.75rem; display:flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">บรรยาย: {{ lec or '-' }}</span>
+                    <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">ปฏิบัติ: {{ prac or '-' }}</span>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">กิจกรรม/สื่อ</div>
+                    <div style="white-space: pre-wrap;">{{ media or '-' }}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 1.7 Assessment Plan (cards) -->
+    <section style="margin-bottom: 4rem;">
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+            1.7 แผนการประเมินผล (Assessment Plan)
+        </h3>
+
+        {% set assess_clos = general.get('assess_clo[]', []) %}
+        {% set assess_methods = general.get('assess_method[]', []) %}
+        {% set assess_weeks = general.get('assess_week[]', []) %}
+        {% set assess_ratios = general.get('assess_ratio[]', []) %}
+
+        {% if assess_clos|length == 0 %}
+        <div style="color: var(--text-muted);">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+            {% for i in range(assess_clos|length) %}
+            {% set a_clo = assess_clos[i] %}
+            {% set a_method = assess_methods[i] if i < assess_methods|length else '' %}
+            {% set a_week = assess_weeks[i] if i < assess_weeks|length else '' %}
+            {% set a_ratio = assess_ratios[i] if i < assess_ratios|length else '' %}
+
+            {% if (a_clo|string)|trim or (a_method|string)|trim or (a_week|string)|trim or (a_ratio|string)|trim %}
+            <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+                <div style="display:flex; justify-content: space-between; align-items:center; gap: 0.75rem;">
+                    <div style="font-weight: 800;">CLO: {{ a_clo or '-' }}</div>
+                    <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">สัปดาห์ที่: {{ a_week or '-' }}</span>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">วิธีการประเมิน</div>
+                    <div style="white-space: pre-wrap;">{{ a_method or '-' }}</div>
+                </div>
+                <div style="margin-top: 0.75rem;">
+                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">สัดส่วน (%)</div>
+                    <div>{{ a_ratio or '-' }}</div>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- 1.8 - 1.9 -->
+    <section>
+        <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
+            1.8 - 1.9 ข้อมูลเพิ่มเติม
+        </h3>
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+            <div style="margin-bottom: 1rem;">
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">เอกสารอ้างอิงและตำราหลัก (APA)</div>
+                <div style="white-space: pre-wrap;">{{ general.get('references', '-') }}</div>
+            </div>
+            <div>
+                <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.35rem;">กลยุทธ์การประเมินและการปรับปรุงการสอน</div>
+                <div style="white-space: pre-wrap;">{{ general.get('improvement_strategy', '-') }}</div>
+            </div>
+        </div>
+    </section>
+</div>

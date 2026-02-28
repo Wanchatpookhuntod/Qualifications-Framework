@@ -888,6 +888,225 @@ def edit_tqf3(section_id):
 
         return None
 
+    def _normalize_general_info_for_qtf_format(
+        payload: dict,
+        current_section: Section,
+        current_term: Term,
+    ) -> dict:
+        gi = dict(payload or {})
+
+        def _as_list(value) -> list:
+            if isinstance(value, list):
+                return value
+            if value is None:
+                return []
+            return [value]
+
+        def _ensure_list_len(key: str, length: int, fill: str = "") -> None:
+            arr = gi.get(key)
+            arr = _as_list(arr)
+            if len(arr) < length:
+                arr = arr + [fill] * (length - len(arr))
+            gi[key] = arr
+
+        course = current_section.course if current_section else None
+        program = course.program if course else None
+        faculty = program.faculty if program else None
+
+        # Header fields (keep values persisted via hidden inputs in template)
+        gi.setdefault("university", "มหาวิทยาลัยราชภัฏเทพสตรี")
+        if faculty and faculty.name:
+            gi.setdefault("faculty", faculty.name)
+        if program and program.name:
+            gi.setdefault("program", program.name)
+        if course:
+            if course.code:
+                gi.setdefault("course_code", course.code)
+            if course.name_th:
+                gi.setdefault("course_name", course.name_th)
+            if course.credits is not None:
+                gi.setdefault("credits", str(course.credits))
+            if course.description:
+                gi.setdefault("description", course.description)
+        if current_term:
+            gi.setdefault("semester", str(getattr(current_term, "semester", "") or ""))
+            gi.setdefault("academic_year", str(getattr(current_term, "year", "") or ""))
+
+        # Instructor meta defaults
+        if getattr(current_user, "full_name", None):
+            gi.setdefault("instructor", current_user.full_name)
+
+        # Legacy -> new key alignment
+        if "course_objective" not in gi and "objectives" in gi:
+            gi["course_objective"] = gi.get("objectives")
+        if "objectives" not in gi and "course_objective" in gi:
+            gi["objectives"] = gi.get("course_objective")
+
+        if "location" not in gi and "location_type" in gi:
+            gi["location"] = gi.get("location_type")
+        if "location_type" not in gi and gi.get("location") in {"Onsite", "Online", "Hybrid"}:
+            gi["location_type"] = gi.get("location")
+
+        # CLO mapping table
+        if "clo_text[]" not in gi:
+            if "clo_desc[]" in gi:
+                gi["clo_text[]"] = _as_list(gi.get("clo_desc[]"))
+            elif "clo_code[]" in gi:
+                gi["clo_text[]"] = [""] * len(_as_list(gi.get("clo_code[]")))
+        if "plo[]" not in gi and "clo_plo[]" in gi:
+            gi["plo[]"] = _as_list(gi.get("clo_plo[]"))
+        clo_n = max(
+            len(_as_list(gi.get("clo_text[]"))),
+            len(_as_list(gi.get("plo[]"))),
+            len(_as_list(gi.get("teach_strategy[]"))),
+            len(_as_list(gi.get("assess_strategy[]"))),
+        )
+        if clo_n <= 0:
+            clo_n = 1
+        _ensure_list_len("clo_text[]", clo_n, "")
+        _ensure_list_len("plo[]", clo_n, "")
+        _ensure_list_len("teach_strategy[]", clo_n, "")
+        _ensure_list_len("assess_strategy[]", clo_n, "")
+
+        # Weekly plan table
+        if "week[]" not in gi and "plan_topic[]" in gi:
+            topics = _as_list(gi.get("plan_topic[]"))
+            n = len(topics)
+            gi["week[]"] = [str(i + 1) for i in range(n)]
+            gi["topic[]"] = topics
+            gi["week_clo[]"] = _as_list(gi.get("plan_clo[]"))
+
+            lect = _as_list(gi.get("plan_lecture[]"))
+            prac = _as_list(gi.get("plan_practice[]"))
+            hours: list[str] = []
+            for i in range(n):
+                raw_l = lect[i] if i < len(lect) else ""
+                raw_p = prac[i] if i < len(prac) else ""
+                try:
+                    l = float(str(raw_l).strip() or 0)
+                except Exception:
+                    l = 0.0
+                try:
+                    p = float(str(raw_p).strip() or 0)
+                except Exception:
+                    p = 0.0
+                total = l + p
+                hours.append("" if total == 0 else (str(int(total)) if total.is_integer() else str(total)))
+            gi["hours[]"] = hours
+
+            # Legacy had a single "กิจกรรม/สื่อ" field; map into media[] by default.
+            gi["activities[]"] = [""] * n
+            gi["media[]"] = _as_list(gi.get("plan_media[]"))
+            gi["teacher[]"] = [""] * n
+
+        weekly_n = max(
+            len(_as_list(gi.get("week[]"))),
+            len(_as_list(gi.get("topic[]"))),
+            len(_as_list(gi.get("week_clo[]"))),
+            len(_as_list(gi.get("hours[]"))),
+            len(_as_list(gi.get("activities[]"))),
+            len(_as_list(gi.get("media[]"))),
+            len(_as_list(gi.get("teacher[]"))),
+        )
+        if weekly_n <= 0:
+            weekly_n = 1
+        _ensure_list_len("week[]", weekly_n, "")
+        _ensure_list_len("topic[]", weekly_n, "")
+        _ensure_list_len("week_clo[]", weekly_n, "")
+        _ensure_list_len("hours[]", weekly_n, "")
+        _ensure_list_len("activities[]", weekly_n, "")
+        _ensure_list_len("media[]", weekly_n, "")
+        _ensure_list_len("teacher[]", weekly_n, "")
+
+        # Assessment plan
+        if "assess_activity[]" not in gi and "assess_method[]" in gi:
+            gi["assess_activity[]"] = _as_list(gi.get("assess_method[]"))
+        if "assess_pct[]" not in gi and "assess_ratio[]" in gi:
+            gi["assess_pct[]"] = _as_list(gi.get("assess_ratio[]"))
+        assess_n = max(
+            len(_as_list(gi.get("assess_clo[]"))),
+            len(_as_list(gi.get("assess_activity[]"))),
+            len(_as_list(gi.get("assess_week[]"))),
+            len(_as_list(gi.get("assess_pct[]"))),
+        )
+        if assess_n <= 0:
+            assess_n = 1
+        _ensure_list_len("assess_clo[]", assess_n, "")
+        _ensure_list_len("assess_activity[]", assess_n, "")
+        _ensure_list_len("assess_week[]", assess_n, "")
+        _ensure_list_len("assess_pct[]", assess_n, "")
+
+        # Improvement strategy legacy alignment
+        if "course_improve" not in gi and "improvement_strategy" in gi:
+            gi["course_improve"] = gi.get("improvement_strategy")
+        if "improvement_strategy" not in gi and "course_improve" in gi:
+            gi["improvement_strategy"] = gi.get("course_improve")
+
+        return gi
+
+    def _backfill_legacy_keys_from_qtf_format(form_data: dict) -> None:
+        if not isinstance(form_data, dict):
+            return
+
+        def _as_list(value) -> list:
+            if isinstance(value, list):
+                return value
+            if value is None:
+                return []
+            return [value]
+
+        # CLO
+        clo_texts = _as_list(form_data.get("clo_text[]"))
+        plos = _as_list(form_data.get("plo[]"))
+        if clo_texts:
+            n = len(clo_texts)
+            if "clo_desc[]" not in form_data:
+                form_data["clo_desc[]"] = clo_texts
+            if "clo_plo[]" not in form_data:
+                form_data["clo_plo[]"] = (plos + [""] * (n - len(plos)))[:n]
+            if "clo_code[]" not in form_data:
+                form_data["clo_code[]"] = [f"CLO {i + 1}" for i in range(n)]
+            if "clo_bloom[]" not in form_data:
+                form_data["clo_bloom[]"] = ["Remembering"] * n
+
+        # Weekly plan
+        topics = _as_list(form_data.get("topic[]"))
+        week_clos = _as_list(form_data.get("week_clo[]"))
+        hours = _as_list(form_data.get("hours[]"))
+        activities = _as_list(form_data.get("activities[]"))
+        medias = _as_list(form_data.get("media[]"))
+        if topics:
+            n = len(topics)
+            if "plan_topic[]" not in form_data:
+                form_data["plan_topic[]"] = topics
+            if "plan_clo[]" not in form_data:
+                form_data["plan_clo[]"] = (week_clos + [""] * (n - len(week_clos)))[:n]
+            if "plan_lecture[]" not in form_data:
+                form_data["plan_lecture[]"] = (hours + [""] * (n - len(hours)))[:n]
+            if "plan_practice[]" not in form_data:
+                form_data["plan_practice[]"] = [""] * n
+            if "plan_media[]" not in form_data:
+                plan_media = []
+                for i in range(n):
+                    m = medias[i] if i < len(medias) else ""
+                    a = activities[i] if i < len(activities) else ""
+                    m = (m or "").strip()
+                    a = (a or "").strip()
+                    plan_media.append(m if m else a)
+                form_data["plan_media[]"] = plan_media
+
+        # Assessment plan
+        if "assess_activity[]" in form_data and "assess_method[]" not in form_data:
+            form_data["assess_method[]"] = _as_list(form_data.get("assess_activity[]"))
+        if "assess_pct[]" in form_data and "assess_ratio[]" not in form_data:
+            form_data["assess_ratio[]"] = _as_list(form_data.get("assess_pct[]"))
+
+        # Location compatibility
+        if "location" in form_data and "location_type" not in form_data:
+            loc = (str(form_data.get("location") or "").strip())
+            if loc in {"Onsite", "Online", "Hybrid"}:
+                form_data["location_type"] = loc
+
     tqf3 = TQF3.first_by("section_id", section_id)
     if not tqf3:
         tqf3 = TQF3(section_id=section_id).save()
@@ -906,6 +1125,9 @@ def edit_tqf3(section_id):
             }
             flash("นำข้อมูล มคอ.3 ล่าสุดของรายวิชาเดียวกันมาแสดงให้แล้ว (แก้ไขได้ก่อนบันทึก)", "info")
 
+    if request.method == "GET":
+        tqf3.general_info = _normalize_general_info_for_qtf_format(tqf3.general_info or {}, section, term)
+
     if request.method == "POST":
         if tqf3.status in ["SUBMITTED", "APPROVED"]:
             flash("เอกสารถูกล็อกแล้ว ไม่สามารถแก้ไขได้", "warning")
@@ -918,6 +1140,8 @@ def edit_tqf3(section_id):
             else:
                 if key != "action":
                     data[key] = request.form.get(key)
+
+        _backfill_legacy_keys_from_qtf_format(data)
 
         existing = tqf3.general_info or {}
         existing.update(data)

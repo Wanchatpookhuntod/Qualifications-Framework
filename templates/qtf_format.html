@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>ฟอร์มกรอกข้อมูล มคอ.3 (ประมวลการสอน)</title>
+  <style>
+    :root { --b:#e5e7eb; --t:#111827; --m:#6b7280; }
+    body { font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; color:var(--t); margin:24px; }
+    h1 { font-size: 20px; margin: 0 0 12px; }
+    h2 { font-size: 16px; margin: 18px 0 10px; }
+    .note { color: var(--m); font-size: 13px; margin-bottom: 16px; }
+    .card { border:1px solid var(--b); border-radius:12px; padding:14px; margin:12px 0; }
+    .grid { display:grid; gap:10px; }
+    .grid.two { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid.three { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    label { font-size: 13px; color: var(--m); display:block; margin: 0 0 6px; }
+    input[type="text"], input[type="number"], input[type="tel"], input[type="date"], textarea, select {
+      width:100%; box-sizing:border-box; padding:10px; border:1px solid var(--b); border-radius:10px;
+      outline:none;
+    }
+    textarea { min-height: 90px; resize: vertical; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { border:1px solid var(--b); padding:8px; vertical-align: top; }
+    th { background:#f9fafb; font-size: 13px; text-align:left; color:#374151; }
+    td input, td textarea { border-radius:8px; padding:8px; }
+    .row-actions { display:flex; gap:8px; flex-wrap: wrap; }
+    button {
+      border:1px solid var(--b); background:#fff; padding:8px 10px; border-radius:10px; cursor:pointer;
+    }
+    button.primary { background:#111827; color:#fff; border-color:#111827; }
+    .footer { display:flex; gap:10px; flex-wrap:wrap; margin-top: 12px; }
+    .small { font-size: 12px; color: var(--m); }
+    @media (max-width: 860px) { .grid.two, .grid.three { grid-template-columns: 1fr; } }
+  </style>
+</head>
+
+<body>
+  <h1>ฟอร์มกรอกข้อมูล มคอ.3 (ประมวลการสอนและแผนการจัดการเรียนรู้)</h1>
+  <div class="note">
+    ฟอร์มนี้จัดหัวข้อตามโครงของ มคอ.3 เช่น รหัสวิชา/ชื่อวิชา/หน่วยกิต, CLO/PLO, แผนการสอนรายสัปดาห์, แผนการประเมิน ฯลฯ :contentReference[oaicite:1]{index=1}
+  </div>
+
+  <form id="mko3Form" onsubmit="handleSubmit(event)">
+    <!-- 1) ข้อมูลรายวิชา -->
+    <div class="card">
+      <h2>1) ข้อมูลรายวิชา</h2>
+      <div class="grid three">
+        <div>
+          <label>มหาวิทยาลัย</label>
+          <input type="text" name="university" value="มหาวิทยาลัยราชภัฏเทพสตรี" />
+        </div>
+        <div>
+          <label>คณะ/สำนัก</label>
+          <input type="text" name="faculty" placeholder="เช่น เทคโนโลยีสารสนเทศ" />
+        </div>
+        <div>
+          <label>หลักสูตร</label>
+          <input type="text" name="program" placeholder="เช่น เทคโนโลยีมัลติมีเดีย" />
+        </div>
+      </div>
+
+      <div class="grid three" style="margin-top:10px;">
+        <div>
+          <label>รหัสวิชา</label>
+          <input type="text" name="course_code" placeholder="เช่น วท 6004118" />
+        </div>
+        <div>
+          <label>ชื่อวิชา</label>
+          <input type="text" name="course_name" placeholder="เช่น การออกแบบเกม" />
+        </div>
+        <div>
+          <label>จำนวนหน่วยกิต</label>
+          <input type="number" name="credits" min="0" step="0.5" placeholder="เช่น 3" />
+        </div>
+      </div>
+
+      <div class="grid three" style="margin-top:10px;">
+        <div>
+          <label>ภาคการศึกษา</label>
+          <input type="text" name="semester" placeholder="เช่น 2" />
+        </div>
+        <div>
+          <label>ปีการศึกษา</label>
+          <input type="text" name="academic_year" placeholder="เช่น 2568" />
+        </div>
+        <div>
+          <label>ชั้นปี</label>
+          <input type="text" name="year_level" placeholder="เช่น 2" />
+        </div>
+      </div>
+
+      <div class="grid two" style="margin-top:10px;">
+        <div>
+          <label>คำอธิบายรายวิชา</label>
+          <textarea name="description" placeholder="กรอกคำอธิบายรายวิชา"></textarea>
+        </div>
+        <div class="grid" style="gap:10px;">
+          <div>
+            <label>รายวิชาที่บังคับเรียนก่อน (Pre-requisite)</label>
+            <input type="text" name="prereq" placeholder="ถ้ามี / ถ้าไม่มีใส่ -" />
+          </div>
+          <div>
+            <label>วันที่จัดทำ/ปรับปรุงล่าสุด</label>
+            <input type="date" name="last_updated" />
+          </div>
+        </div>
+      </div>
+
+      <div class="grid two" style="margin-top:10px;">
+        <div>
+          <label>อาจารย์ผู้รับผิดชอบรายวิชา</label>
+          <input type="text" name="course_owner" placeholder="ชื่อ-สกุล" />
+        </div>
+        <div>
+          <label>อาจารย์ผู้สอน</label>
+          <input type="text" name="instructor" placeholder="ชื่อ-สกุล" />
+        </div>
+      </div>
+
+      <div class="grid three" style="margin-top:10px;">
+        <div>
+          <label>ห้องพัก</label>
+          <input type="text" name="office" placeholder="เช่น ชั้น 3 อาคาร 16" />
+        </div>
+        <div>
+          <label>โทรศัพท์</label>
+          <input type="tel" name="phone" placeholder="เช่น 06xxxxxxxx" />
+        </div>
+        <div>
+          <label>สถานที่เรียน</label>
+          <input type="text" name="location" placeholder="เช่น 16/805 หรือ ออนไลน์" />
+        </div>
+      </div>
+
+      <div style="margin-top:10px;">
+        <label>กรณีเรียนภายนอกมหาวิทยาลัย (สถานประกอบการ/ชุมชน/อื่นๆ)</label>
+        <input type="text" name="external_location" placeholder="ถ้ามี" />
+      </div>
+    </div>
+
+    <!-- 2) จุดมุ่งหมาย + ชั่วโมง -->
+    <div class="card">
+      <h2>2) จุดมุ่งหมายของรายวิชา & ภาระงาน</h2>
+      <div>
+        <label>จุดมุ่งหมายของรายวิชา</label>
+        <textarea name="course_objective" placeholder="กรอกจุดมุ่งหมายของรายวิชา"></textarea>
+      </div>
+
+      <div class="grid three" style="margin-top:10px;">
+        <div>
+          <label>ชั่วโมงบรรยาย/ภาค</label>
+          <input type="number" name="lecture_hours" min="0" step="1" placeholder="เช่น 16" />
+        </div>
+        <div>
+          <label>ชั่วโมงปฏิบัติ/ภาคสนาม/ฝึกงาน</label>
+          <input type="number" name="lab_hours" min="0" step="1" placeholder="เช่น 48" />
+        </div>
+        <div>
+          <label>ชั่วโมงศึกษาด้วยตนเอง</label>
+          <input type="number" name="self_hours" min="0" step="1" placeholder="เช่น 80" />
+        </div>
+      </div>
+
+      <div class="grid two" style="margin-top:10px;">
+        <div>
+          <label>ชั่วโมงให้คำปรึกษาต่อสัปดาห์</label>
+          <input type="number" name="consult_hours" min="0" step="0.5" placeholder="เช่น 3" />
+        </div>
+        <div>
+          <label>หมายเหตุ</label>
+          <input type="text" name="hours_note" placeholder="เช่น ช่องทางติดต่อ/เวลานัดหมาย" />
+        </div>
+      </div>
+    </div>
+
+    <!-- 3) CLO/PLO + กลยุทธ์สอน + วัดผล -->
+    <div class="card">
+      <h2>3) CLO/PLO และการวัดประเมิน</h2>
+      <div class="small">เพิ่มแถวได้ตามจำนวน CLO ที่รายวิชารับผิดชอบ</div>
+      <div style="overflow:auto; margin-top:10px;">
+        <table id="cloTable">
+          <thead>
+            <tr>
+              <th style="width:28%;">CLO (ผลลัพธ์รายวิชา)</th>
+              <th style="width:16%;">PLO ที่สอดคล้อง</th>
+              <th style="width:28%;">กลยุทธ์การสอน</th>
+              <th style="width:28%;">กลยุทธ์วัดและประเมินผล</th>
+              <th style="width:84px;">ลบ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><textarea name="clo_text[]" placeholder="เช่น สามารถอธิบายหลักการพื้นฐานในการออกแบบเกม"></textarea></td>
+              <td><input type="text" name="plo[]" placeholder="เช่น PLO4" /></td>
+              <td><input type="text" name="teach_strategy[]" placeholder="เช่น บรรยาย/ฝึกปฏิบัติ" /></td>
+              <td><input type="text" name="assess_strategy[]" placeholder="เช่น สอบปลายภาค/งานในชั้น/โครงงาน" /></td>
+              <td><button type="button" onclick="removeRow(this)">ลบ</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="footer">
+        <button type="button" onclick="addCloRow()">+ เพิ่ม CLO</button>
+      </div>
+    </div>
+
+    <!-- 4) แผนการสอนรายสัปดาห์ -->
+    <div class="card">
+      <h2>4) แผนการสอนรายสัปดาห์</h2>
+      <div class="small">โครงตาราง: สัปดาห์ / หัวข้อ-รายละเอียด / CLOs / ชั่วโมง / กิจกรรม / สื่อ / ผู้สอน :contentReference[oaicite:2]{index=2}</div>
+      <div style="overflow:auto; margin-top:10px;">
+        <table id="weeklyTable">
+          <thead>
+            <tr>
+              <th style="width:90px;">สัปดาห์</th>
+              <th style="min-width:260px;">หัวข้อ / รายละเอียด</th>
+              <th style="width:140px;">CLOs</th>
+              <th style="width:90px;">ชั่วโมง</th>
+              <th style="min-width:220px;">กิจกรรมการเรียนการสอน</th>
+              <th style="min-width:160px;">สื่อที่ใช้</th>
+              <th style="width:140px;">ผู้สอน</th>
+              <th style="width:84px;">ลบ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><input type="text" name="week[]" placeholder="เช่น 1" /></td>
+              <td><textarea name="topic[]" placeholder="กรอกหัวข้อและรายละเอียด"></textarea></td>
+              <td><input type="text" name="week_clo[]" placeholder="เช่น CLO1" /></td>
+              <td><input type="number" name="hours[]" min="0" step="0.5" placeholder="เช่น 4" /></td>
+              <td><textarea name="activities[]" placeholder="เช่น บรรยาย + เดโม + ฝึกปฏิบัติ"></textarea></td>
+              <td><input type="text" name="media[]" placeholder="เช่น สไลด์, Engine" /></td>
+              <td><input type="text" name="teacher[]" placeholder="ชื่อผู้สอน" /></td>
+              <td><button type="button" onclick="removeRow(this)">ลบ</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="footer">
+        <button type="button" onclick="addWeeklyRow()">+ เพิ่มสัปดาห์</button>
+      </div>
+    </div>
+
+    <!-- 5) วิธีจัดการเรียนการสอน (สัดส่วนเวลา) -->
+    <div class="card">
+      <h2>5) วิธีจัดการเรียนการสอน (ร้อยละของเวลา)</h2>
+      <div class="grid three">
+        <div>
+          <label>การบรรยาย (%)</label>
+          <input type="number" name="pct_lecture" min="0" max="100" step="1" />
+        </div>
+        <div>
+          <label>การบรรยายเชิงอภิปราย (%)</label>
+          <input type="number" name="pct_discussion" min="0" max="100" step="1" />
+        </div>
+        <div>
+          <label>กรณีศึกษา (%)</label>
+          <input type="number" name="pct_case" min="0" max="100" step="1" />
+        </div>
+      </div>
+      <div class="grid three" style="margin-top:10px;">
+        <div>
+          <label>การฝึกปฏิบัติ (%)</label>
+          <input type="number" name="pct_practice" min="0" max="100" step="1" />
+        </div>
+        <div>
+          <label>กิจกรรมกลุ่ม (%)</label>
+          <input type="number" name="pct_group" min="0" max="100" step="1" />
+        </div>
+        <div>
+          <label>อื่นๆ (%)</label>
+          <input type="number" name="pct_other" min="0" max="100" step="1" />
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <label>รายละเอียด “อื่นๆ”</label>
+        <input type="text" name="other_detail" placeholder="ระบุถ้ามี" />
+      </div>
+      <div class="small" style="margin-top:8px;">แนะนำให้รวมร้อยละ = 100%</div>
+    </div>
+
+    <!-- 6) แผนการประเมินตาม CLO -->
+    <div class="card">
+      <h2>6) แผนการประเมินตามผลลัพธ์การเรียนรู้ (CLOs)</h2>
+      <div class="small">โครงตาราง: CLO / กิจกรรมประเมิน / กำหนดการ (สัปดาห์) / สัดส่วน (%) :contentReference[oaicite:3]{index=3}</div>
+      <div style="overflow:auto; margin-top:10px;">
+        <table id="assessTable">
+          <thead>
+            <tr>
+              <th style="min-width:240px;">CLO</th>
+              <th style="min-width:240px;">กิจกรรมการประเมิน</th>
+              <th style="width:180px;">กำหนดการ (สัปดาห์)</th>
+              <th style="width:120px;">สัดส่วน (%)</th>
+              <th style="width:84px;">ลบ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><textarea name="assess_clo[]" placeholder="เช่น สามารถอธิบายหลักการพื้นฐานในการออกแบบเกม"></textarea></td>
+              <td><textarea name="assess_activity[]" placeholder="เช่น สอบปลายภาค / งานในชั้น / โครงงาน"></textarea></td>
+              <td><input type="text" name="assess_week[]" placeholder="เช่น สัปดาห์ 1-15 / สัปดาห์สอบปลายภาค" /></td>
+              <td><input type="number" name="assess_pct[]" min="0" max="100" step="1" placeholder="เช่น 30" /></td>
+              <td><button type="button" onclick="removeRow(this)">ลบ</button></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="footer">
+        <button type="button" onclick="addAssessRow()">+ เพิ่มรายการประเมิน</button>
+      </div>
+    </div>
+
+    <!-- 7) เอกสารประกอบ (APA) -->
+    <div class="card">
+      <h2>7) ตำราและเอกสารประกอบ (รูปแบบ APA)</h2>
+      <textarea name="references" placeholder="เช่น Salen, K., & Zimmerman, E. (2003). Rules of Play..."></textarea>
+    </div>
+
+    <!-- 8) การประเมินและปรับปรุงรายวิชา -->
+    <div class="card">
+      <h2>8) การประเมินและปรับปรุงการดำเนินการของรายวิชา</h2>
+      <div class="grid two">
+        <div>
+          <label>กลยุทธ์การประเมินการจัดการเรียนการสอน</label>
+          <textarea name="course_eval_strategy" placeholder="เช่น ประเมินโดยนักศึกษา/ตนเอง/ผลสัมฤทธิ์"></textarea>
+        </div>
+        <div>
+          <label>การปรับปรุงการสอน</label>
+          <textarea name="course_improve" placeholder="เช่น กลไกการปรับปรุง การประชุม การวิจัยในชั้นเรียน"></textarea>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <label>กระบวนการยืนยัน (verification) ผลสัมฤทธิ์และผลลัพธ์การเรียนรู้</label>
+        <textarea name="verification" placeholder="เช่น ยืนยันจากคะแนนสอบปลายภาค งานในชั้น โครงงาน ฯลฯ"></textarea>
+      </div>
+    </div>
+
+    <!-- ส่งออก -->
+    <div class="card">
+      <h2>ส่งออกข้อมูล</h2>
+      <div class="footer">
+        <button class="primary" type="submit">บันทึกเป็น JSON</button>
+        <button type="button" onclick="copyJson()">คัดลอก JSON</button>
+        <button type="button" onclick="resetForm()">ล้างฟอร์ม</button>
+      </div>
+      <div style="margin-top:10px;">
+        <label>ผลลัพธ์ (JSON)</label>
+        <textarea id="output" readonly placeholder="กด “บันทึกเป็น JSON” เพื่อสร้างข้อมูล"></textarea>
+        <div class="small">หมายเหตุ: ไฟล์นี้ทำงานฝั่งเครื่อง (ไม่ส่งข้อมูลขึ้น server)</div>
+      </div>
+    </div>
+  </form>
+
+  <script>
+    function removeRow(btn){
+      const tr = btn.closest('tr');
+      const tbody = tr.parentElement;
+      if(tbody.rows.length <= 1){ alert('ต้องมีอย่างน้อย 1 แถว'); return; }
+      tr.remove();
+    }
+
+    function addCloRow(){
+      const tbody = document.querySelector('#cloTable tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><textarea name="clo_text[]" placeholder="กรอก CLO"></textarea></td>
+        <td><input type="text" name="plo[]" placeholder="เช่น PLO3, PLO5" /></td>
+        <td><input type="text" name="teach_strategy[]" placeholder="เช่น บรรยาย/ฝึกปฏิบัติ" /></td>
+        <td><input type="text" name="assess_strategy[]" placeholder="เช่น งานในชั้น/โครงงาน/สอบ" /></td>
+        <td><button type="button" onclick="removeRow(this)">ลบ</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function addWeeklyRow(){
+      const tbody = document.querySelector('#weeklyTable tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" name="week[]" placeholder="เช่น 2" /></td>
+        <td><textarea name="topic[]" placeholder="กรอกหัวข้อและรายละเอียด"></textarea></td>
+        <td><input type="text" name="week_clo[]" placeholder="เช่น CLO2" /></td>
+        <td><input type="number" name="hours[]" min="0" step="0.5" placeholder="เช่น 4" /></td>
+        <td><textarea name="activities[]" placeholder="กิจกรรมการเรียนการสอน"></textarea></td>
+        <td><input type="text" name="media[]" placeholder="สื่อที่ใช้" /></td>
+        <td><input type="text" name="teacher[]" placeholder="ผู้สอน" /></td>
+        <td><button type="button" onclick="removeRow(this)">ลบ</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function addAssessRow(){
+      const tbody = document.querySelector('#assessTable tbody');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><textarea name="assess_clo[]" placeholder="กรอก CLO"></textarea></td>
+        <td><textarea name="assess_activity[]" placeholder="กิจกรรมการประเมิน"></textarea></td>
+        <td><input type="text" name="assess_week[]" placeholder="เช่น สัปดาห์ที่ 16" /></td>
+        <td><input type="number" name="assess_pct[]" min="0" max="100" step="1" placeholder="เช่น 20" /></td>
+        <td><button type="button" onclick="removeRow(this)">ลบ</button></td>
+      `;
+      tbody.appendChild(tr);
+    }
+
+    function formToJSON(form){
+      const fd = new FormData(form);
+      const obj = {};
+      // คีย์เดี่ยว
+      for (const [k,v] of fd.entries()){
+        if(k.endsWith('[]')) continue;
+        obj[k] = v;
+      }
+      // กลุ่ม array
+      const arrays = {
+        clo_map: { keys: ['clo_text[]','plo[]','teach_strategy[]','assess_strategy[]'], out:'clo_map' },
+        weekly_plan: { keys: ['week[]','topic[]','week_clo[]','hours[]','activities[]','media[]','teacher[]'], out:'weekly_plan' },
+        assessment_plan: { keys: ['assess_clo[]','assess_activity[]','assess_week[]','assess_pct[]'], out:'assessment_plan' }
+      };
+
+      // CLO map
+      const cloTexts = fd.getAll('clo_text[]');
+      const plos = fd.getAll('plo[]');
+      const teach = fd.getAll('teach_strategy[]');
+      const assess = fd.getAll('assess_strategy[]');
+      obj.clo_map = cloTexts.map((_,i)=>({
+        clo_text: cloTexts[i] || '',
+        plo: plos[i] || '',
+        teach_strategy: teach[i] || '',
+        assess_strategy: assess[i] || ''
+      }));
+
+      // Weekly plan
+      const week = fd.getAll('week[]');
+      const topic = fd.getAll('topic[]');
+      const wclo = fd.getAll('week_clo[]');
+      const hrs = fd.getAll('hours[]');
+      const act = fd.getAll('activities[]');
+      const media = fd.getAll('media[]');
+      const teacher = fd.getAll('teacher[]');
+      obj.weekly_plan = week.map((_,i)=>({
+        week: week[i] || '',
+        topic: topic[i] || '',
+        clos: wclo[i] || '',
+        hours: hrs[i] || '',
+        activities: act[i] || '',
+        media: media[i] || '',
+        teacher: teacher[i] || ''
+      }));
+
+      // Assessment plan
+      const aClo = fd.getAll('assess_clo[]');
+      const aAct = fd.getAll('assess_activity[]');
+      const aWeek = fd.getAll('assess_week[]');
+      const aPct = fd.getAll('assess_pct[]');
+      obj.assessment_plan = aClo.map((_,i)=>({
+        clo: aClo[i] || '',
+        activity: aAct[i] || '',
+        week: aWeek[i] || '',
+        percent: aPct[i] || ''
+      }));
+
+      // รวมร้อยละวิธีสอน (ตัวช่วย)
+      const pctKeys = ['pct_lecture','pct_discussion','pct_case','pct_practice','pct_group','pct_other'];
+      const sum = pctKeys.reduce((acc,k)=> acc + (Number(obj[k]||0)), 0);
+      obj._teaching_percent_sum = sum;
+
+      return obj;
+    }
+
+    function handleSubmit(e){
+      e.preventDefault();
+      const form = e.target;
+      const data = formToJSON(form);
+      document.getElementById('output').value = JSON.stringify(data, null, 2);
+    }
+
+    async function copyJson(){
+      const txt = document.getElementById('output').value || '';
+      if(!txt){ alert('ยังไม่มี JSON ให้คัดลอก'); return; }
+      await navigator.clipboard.writeText(txt);
+      alert('คัดลอก JSON แล้ว');
+    }
+
+    function resetForm(){
+      if(!confirm('ล้างฟอร์มทั้งหมด?')) return;
+      document.getElementById('mko3Form').reset();
+      document.getElementById('output').value = '';
+      // รีเซ็ตตารางให้เหลือ 1 แถว
+      resetTableToOneRow('#cloTable');
+      resetTableToOneRow('#weeklyTable');
+      resetTableToOneRow('#assessTable');
+    }
+
+    function resetTableToOneRow(sel){
+      const tbody = document.querySelector(sel + ' tbody');
+      while (tbody.rows.length > 1) tbody.deleteRow(1);
+      // ล้างค่าแถวแรก
+      const inputs = tbody.rows[0].querySelectorAll('input, textarea');
+      inputs.forEach(el => el.value = '');
+    }
+  </script>
+</body>
+</html>

@@ -94,35 +94,55 @@
         {% if plan_topics|length == 0 %}
         <div style="color: var(--text-muted);">(ยังไม่มีข้อมูล)</div>
         {% else %}
-        <div style="display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
-            {% for i in range(plan_topics|length) %}
-            {% set topic = plan_topics[i] %}
-            {% set clo = plan_clos[i] if i < plan_clos|length else '' %}
-            {% set lec = plan_lectures[i] if i < plan_lectures|length else '' %}
-            {% set prac = plan_practices[i] if i < plan_practices|length else '' %}
-            {% set media = plan_medias[i] if i < plan_medias|length else '' %}
+        {% set ns = namespace(has_rows=false) %}
+        <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
+                            <th style="padding: 0.85rem; width: 90px;">สัปดาห์</th>
+                            <th style="padding: 0.85rem;">หัวข้อ/รายละเอียด</th>
+                            <th style="padding: 0.85rem; width: 130px;">CLO</th>
+                            <th style="padding: 0.85rem; width: 120px;">บรรยาย</th>
+                            <th style="padding: 0.85rem; width: 120px;">ปฏิบัติ</th>
+                            <th style="padding: 0.85rem;">กิจกรรม/สื่อ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(plan_topics|length) %}
+                        {% set topic = plan_topics[i] %}
+                        {% set clo = plan_clos[i] if i < plan_clos|length else '' %}
+                        {% set lec = plan_lectures[i] if i < plan_lectures|length else '' %}
+                        {% set prac = plan_practices[i] if i < plan_practices|length else '' %}
+                        {% set media = plan_medias[i] if i < plan_medias|length else '' %}
 
-            {% if (topic|string)|trim or (clo|string)|trim or (media|string)|trim or (lec|string)|trim or (prac|string)|trim %}
-            <div class="glass" style="padding: 1.25rem; border-radius: 1.25rem;">
-                <div style="display:flex; justify-content: space-between; align-items:center; gap: 0.75rem;">
-                    <div style="font-weight: 800;">สัปดาห์ที่ {{ i + 1 }}</div>
-                    <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">CLO: {{ clo or '-' }}</span>
-                </div>
-                <div style="margin-top: 0.75rem;">
-                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">หัวข้อ/รายละเอียด</div>
-                    <div style="white-space: pre-wrap;">{{ topic or '-' }}</div>
-                </div>
-                <div style="margin-top: 0.75rem; display:flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">บรรยาย: {{ lec or '-' }}</span>
-                    <span class="status-badge" style="background: rgba(255,255,255,0.06); color: var(--text-muted);">ปฏิบัติ: {{ prac or '-' }}</span>
-                </div>
-                <div style="margin-top: 0.75rem;">
-                    <div style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.25rem;">กิจกรรม/สื่อ</div>
-                    <div style="white-space: pre-wrap;">{{ media or '-' }}</div>
-                </div>
+                        {% if (topic|string)|trim or (clo|string)|trim or (media|string)|trim or (lec|string)|trim or (prac|string)|trim %}
+                        {% set ns.has_rows = true %}
+                        <tr style="border-bottom: 1px solid var(--border-color); vertical-align: top;">
+                            <td style="padding: 0.85rem; white-space: nowrap; font-weight: 700;">{{ i + 1 }}</td>
+                            <td style="padding: 0.85rem;">
+                                <div style="white-space: pre-wrap;">{{ topic or '-' }}</div>
+                            </td>
+                            <td style="padding: 0.85rem;">
+                                <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">{{ clo or '-' }}</span>
+                            </td>
+                            <td style="padding: 0.85rem;">{{ lec or '-' }}</td>
+                            <td style="padding: 0.85rem;">{{ prac or '-' }}</td>
+                            <td style="padding: 0.85rem;">
+                                <div style="white-space: pre-wrap;">{{ media or '-' }}</div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+
+                        {% if not ns.has_rows %}
+                        <tr>
+                            <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);">(ยังไม่มีข้อมูล)</td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
             </div>
-            {% endif %}
-            {% endfor %}
         </div>
         {% endif %}
     </section>

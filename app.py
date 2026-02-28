@@ -827,9 +827,84 @@ def edit_tqf3(section_id):
         flash("เทอมนี้ยังไม่เปิดให้กรอก มคอ.3", "warning")
         return redirect(url_for("instructor_dashboard"))
 
+    def _is_effectively_empty_payload(payload: dict) -> bool:
+        if not payload:
+            return True
+        for value in payload.values():
+            if value is None:
+                continue
+            if isinstance(value, list):
+                if any((str(v).strip() for v in value if v is not None)):
+                    return False
+            else:
+                if str(value).strip():
+                    return False
+        return True
+
+    def _try_prefill_from_previous_tqf3(current_section: Section, current_term: Term):
+        if not current_section or not current_section.course_id:
+            return None
+
+        current_key = (int(current_term.year or 0), int(current_term.semester or 0)) if current_term else (0, 0)
+
+        candidates = Section.find_by("course_id", current_section.course_id)
+        candidates = [
+            s
+            for s in (candidates or [])
+            if s
+            and s.id
+            and s.id != current_section.id
+            and (s.instructor_id == current_user.id)
+            and (s.status != "locked")
+        ]
+
+        scored = []
+        for s in candidates:
+            t = Term.get(s.term_id) if s.term_id else None
+            key = (int(getattr(t, "year", 0) or 0), int(getattr(t, "semester", 0) or 0))
+            scored.append((key, s, t))
+
+        # Prefer older terms only; if none found (e.g. missing term metadata), fall back to any.
+        older = [row for row in scored if row[0] < current_key]
+        pool = older if older else scored
+        pool.sort(key=lambda row: row[0], reverse=True)
+
+        def _status_rank(st: str) -> int:
+            return {"APPROVED": 3, "SUBMITTED": 2, "RETURNED": 1, "DRAFT": 0}.get(st or "", 0)
+
+        # Iterate in term order, but within same term pick the most reliable doc.
+        for _, s, t in pool:
+            prev = TQF3.first_by("section_id", s.id)
+            if not prev:
+                continue
+            if _is_effectively_empty_payload(prev.general_info or {}):
+                continue
+            return {
+                "section": s,
+                "term": t,
+                "tqf3": prev,
+                "rank": _status_rank(prev.status),
+            }
+
+        return None
+
     tqf3 = TQF3.first_by("section_id", section_id)
     if not tqf3:
         tqf3 = TQF3(section_id=section_id).save()
+
+    prefill_source = None
+    if request.method == "GET" and _is_effectively_empty_payload(tqf3.general_info or {}):
+        src = _try_prefill_from_previous_tqf3(section, term)
+        if src and src.get("tqf3"):
+            # Do not persist automatically; just prefill for this view.
+            tqf3.general_info = {**(src["tqf3"].general_info or {}), **(tqf3.general_info or {})}
+            prefill_source = {
+                "term_year": getattr(src.get("term"), "year", None),
+                "term_semester": getattr(src.get("term"), "semester", None),
+                "section_number": getattr(src.get("section"), "section_number", None),
+                "status": getattr(src.get("tqf3"), "status", None),
+            }
+            flash("นำข้อมูล มคอ.3 ล่าสุดของรายวิชาเดียวกันมาแสดงให้แล้ว (แก้ไขได้ก่อนบันทึก)", "info")
 
     if request.method == "POST":
         if tqf3.status in ["SUBMITTED", "APPROVED"]:
@@ -844,7 +919,9 @@ def edit_tqf3(section_id):
                 if key != "action":
                     data[key] = request.form.get(key)
 
-        tqf3.general_info = data
+        existing = tqf3.general_info or {}
+        existing.update(data)
+        tqf3.general_info = existing
 
         action = request.form.get("action")
         if action == "submit":
@@ -866,6 +943,7 @@ def edit_tqf3(section_id):
         section=section,
         tqf3=tqf3,
         feedbacks=feedbacks,
+        prefill_source=prefill_source,
     )
 
 

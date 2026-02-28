@@ -5,6 +5,20 @@
 {% block content %}
 {% set is_locked = tqf3.status in ['SUBMITTED', 'APPROVED'] %}
 
+{% if prefill_source and not is_locked %}
+<div class="glass" style="padding: 1rem 1.25rem; border-radius: 1rem; margin-bottom: 1.25rem; border: 1px solid rgba(99, 102, 241, 0.25); background: rgba(99, 102, 241, 0.04);">
+    <div style="display:flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <div style="color: var(--text-main);">
+            <div style="font-weight: 800;">มีการดึงข้อมูลเดิมมาเติมให้อัตโนมัติ</div>
+            <div style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">
+                แหล่งข้อมูล: มคอ.3 รายวิชาเดียวกัน{% if prefill_source.term_semester and prefill_source.term_year %} ({{ prefill_source.term_semester }}/{{ prefill_source.term_year }}){% endif %}{% if prefill_source.section_number %} sec {{ prefill_source.section_number }}{% endif %}{% if prefill_source.status %} • สถานะ: {{ prefill_source.status }}{% endif %}
+            </div>
+        </div>
+        <div style="color: var(--text-muted); font-size: 0.875rem;">ตรวจทานแล้วกด “บันทึกฉบับร่าง” ได้เลย</div>
+    </div>
+</div>
+{% endif %}
+
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
     <div>
         <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">

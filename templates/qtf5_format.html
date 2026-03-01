@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>มคอ.5 - ฟอร์มกรอกข้อมูล</title>
+  <style>
+    :root { --b:#1f2937; --g:#e5e7eb; --bg:#f8fafc; --card:#ffffff; }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;color:var(--b);background:var(--bg)}
+    header{background:#111827;color:#fff;padding:16px 20px}
+    header h1{margin:0;font-size:18px}
+    header .sub{opacity:.85;font-size:12px;margin-top:6px;line-height:1.4}
+    main{max-width:1100px;margin:18px auto;padding:0 16px 36px}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0}
+    button{border:1px solid var(--g);background:#fff;padding:8px 12px;border-radius:10px;cursor:pointer}
+    button.primary{background:#111827;color:#fff;border-color:#111827}
+    button.danger{background:#fee2e2;border-color:#fecaca}
+    button:active{transform:translateY(1px)}
+    .card{background:var(--card);border:1px solid var(--g);border-radius:14px;padding:14px;margin:12px 0}
+    .card h2{margin:0 0 10px;font-size:15px}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+    .col-12{grid-column:span 12}
+    .col-8{grid-column:span 8}
+    .col-6{grid-column:span 6}
+    .col-4{grid-column:span 4}
+    .col-3{grid-column:span 3}
+    .col-2{grid-column:span 2}
+    .col-1{grid-column:span 1}
+    label{display:block;font-size:12px;margin:0 0 6px;opacity:.9}
+    input, textarea, select{
+      width:100%;padding:9px 10px;border:1px solid var(--g);border-radius:10px;background:#fff;
+      font-size:13px;outline:none
+    }
+    textarea{min-height:90px;resize:vertical}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    th, td{border:1px solid var(--g);padding:8px;vertical-align:top}
+    th{background:#f3f4f6;text-align:left}
+    .row-actions{display:flex;gap:8px;justify-content:flex-end}
+    .muted{font-size:12px;opacity:.8;line-height:1.45}
+    .signature{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .sigbox{border:1px dashed #cbd5e1;border-radius:12px;padding:10px;min-height:120px}
+    .sigbox small{opacity:.75}
+    @media print{
+      header,.toolbar{display:none !important}
+      body{background:#fff}
+      .card{border-radius:0}
+      button{display:none}
+      input,textarea,select{border:1px solid #d1d5db}
+      a{color:inherit;text-decoration:none}
+      .sigbox{border:1px solid #d1d5db}
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>รายงานผลการดำเนินการจัดการเรียนรู้ของรายวิชา (มคอ.5) — ฟอร์มกรอก</h1>
+  <div class="sub">
+    อ้างอิงโครงสร้างจากเอกสารตัวอย่าง :contentReference[oaicite:1]{index=1}
+    • ใช้ปุ่ม “พิมพ์/บันทึก PDF” เพื่อส่งออก
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <button class="primary" onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+    <button onclick="saveJSON()">บันทึกเป็น JSON</button>
+    <button onclick="loadJSON()">นำเข้า JSON</button>
+    <input id="fileInput" type="file" accept="application/json" style="display:none" />
+    <span class="muted">ทิป: กรอกในเบราว์เซอร์ → Print → Save as PDF</span>
+  </div>
+
+  <!-- 1) ข้อมูลรายวิชา -->
+  <section class="card">
+    <h2>1) ข้อมูลรายวิชา</h2>
+    <div class="grid">
+      <div class="col-3">
+        <label>รหัสวิชา</label>
+        <input name="course_code" placeholder="เช่น วท 6001414" />
+      </div>
+      <div class="col-6">
+        <label>ชื่อวิชา</label>
+        <input name="course_name" placeholder="เช่น เทคโนโลยีผสมความจริงเสมือน" />
+      </div>
+      <div class="col-3">
+        <label>หน่วยกิต</label>
+        <input name="credits" placeholder="เช่น 3" />
+      </div>
+
+      <div class="col-4">
+        <label>คณะ/สำนัก</label>
+        <input name="faculty" placeholder="เช่น เทคโนโลยีสารสนเทศ" />
+      </div>
+      <div class="col-4">
+        <label>หลักสูตร</label>
+        <input name="program" placeholder="เช่น เทคโนโลยีมัลติมีเดีย" />
+      </div>
+      <div class="col-4">
+        <label>วิชาเอก</label>
+        <input name="major" placeholder="(ถ้ามี)" />
+      </div>
+
+      <div class="col-12">
+        <label>คำอธิบายรายวิชา</label>
+        <textarea name="course_desc" placeholder="คัดลอก/พิมพ์คำอธิบายรายวิชา"></textarea>
+      </div>
+
+      <div class="col-12">
+        <label>รายวิชาที่บังคับเรียนก่อน (Pre-requisite)</label>
+        <input name="prereq" placeholder="ถ้าไม่มีให้ใส่ - " />
+      </div>
+
+      <div class="col-2">
+        <label>ภาคการศึกษา</label>
+        <input name="semester" placeholder="เช่น 1" />
+      </div>
+      <div class="col-2">
+        <label>ปีการศึกษา</label>
+        <input name="academic_year" placeholder="เช่น 2568" />
+      </div>
+      <div class="col-2">
+        <label>ชั้นเรียนปีที่</label>
+        <input name="year_level" placeholder="เช่น 3" />
+      </div>
+      <div class="col-6">
+        <label>วันที่จัดทำ/ปรับปรุงครั้งล่าสุด</label>
+        <input name="last_update" placeholder="เช่น 5/6/2567" />
+      </div>
+
+      <div class="col-6">
+        <label>อาจารย์ผู้รับผิดชอบรายวิชา</label>
+        <input name="course_owner" placeholder="ชื่อ-สกุล" />
+      </div>
+      <div class="col-6">
+        <label>อาจารย์ผู้สอน</label>
+        <input name="instructors" placeholder="ชื่อ-สกุล (คั่นด้วย , )" />
+      </div>
+
+      <div class="col-12">
+        <label>รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อน (ถ้ามี)</label>
+        <textarea name="teaching_hours"></textarea>
+      </div>
+      <div class="col-12">
+        <label>หัวข้อที่สอบไม่ครอบคลุมจากแผน (ถ้ามี)</label>
+        <textarea name="uncovered_topics"></textarea>
+      </div>
+      <div class="col-12">
+        <label>ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้</label>
+        <textarea name="during_improve"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2) CLO Table -->
+  <section class="card">
+    <h2>2) การจัดการเรียนรู้และวิธีการประเมินผลตาม CLOs</h2>
+    <div class="muted">
+      ตารางนี้อิงจากแบบฟอร์มตัวอย่างที่มีคอลัมน์: CLOs / กลยุทธ์การสอน / วิธีประเมิน / ผลที่เกิด / แนวทางพัฒนา :contentReference[oaicite:2]{index=2}
+    </div>
+    <div style="margin:10px 0" class="row-actions">
+      <button onclick="addRow('cloTable')">+ เพิ่มแถว CLO</button>
+      <button class="danger" onclick="delRow('cloTable')">ลบแถวสุดท้าย</button>
+    </div>
+    <table id="cloTable">
+      <thead>
+        <tr>
+          <th style="width:16%">CLOs (ผลลัพธ์การเรียนรู้)</th>
+          <th style="width:20%">กลยุทธ์การสอน/วิธีการจัดการเรียนรู้</th>
+          <th style="width:18%">วิธีการประเมินผล</th>
+          <th style="width:14%">ผลที่เกิดกับนักศึกษา</th>
+          <th style="width:32%">แนวทางการพัฒนา/ปรับปรุง</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><textarea name="clo_desc_1" placeholder="เช่น CLO1 ..."></textarea></td>
+          <td><textarea name="clo_teach_1"></textarea></td>
+          <td><textarea name="clo_assess_1"></textarea></td>
+          <td><textarea name="clo_result_1" placeholder="เช่น มากกว่า 80%..."></textarea></td>
+          <td><textarea name="clo_improve_1"></textarea></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 3) สรุปผล + เกรด -->
+  <section class="card">
+    <h2>3) สรุปผลการจัดการเรียนการสอนของรายวิชา</h2>
+    <div class="grid">
+      <div class="col-3">
+        <label>จำนวนนักศึกษาที่ลงทะเบียน</label>
+        <input name="n_registered" placeholder="เช่น 36" />
+      </div>
+      <div class="col-3">
+        <label>จำนวนนักศึกษาที่คงอยู่เมื่อสิ้นสุดภาคการศึกษา</label>
+        <input name="n_remain" placeholder="เช่น 36" />
+      </div>
+      <div class="col-3">
+        <label>จำนวนนักศึกษาที่ถอน (W)</label>
+        <input name="n_withdraw" placeholder="เช่น 0" />
+      </div>
+      <div class="col-3">
+        <label>ปัจจัยที่ทำให้ระดับคะแนนผิดปกติ (ถ้ามี)</label>
+        <input name="grade_abnormal_reason" placeholder="เช่น ไม่ส่งงาน" />
+      </div>
+
+      <div class="col-12">
+        <label>ความคลาดเคลื่อนจากแผนการประเมิน (ถ้ามี)</label>
+        <textarea name="assessment_deviation"></textarea>
+      </div>
+
+      <div class="col-12">
+        <label>กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา</label>
+        <textarea name="verification"></textarea>
+      </div>
+    </div>
+
+    <h3 style="margin:14px 0 8px;font-size:14px">การกระจายของระดับคะแนน (แสดงแยกตามสาขา ถ้ามี)</h3>
+    <div style="margin:10px 0" class="row-actions">
+      <button onclick="addGradeRow()">+ เพิ่มแถวเกรด</button>
+      <button class="danger" onclick="delRow('gradeTable')">ลบแถวสุดท้าย</button>
+      <button onclick="calcPercent()">คำนวณ % อัตโนมัติ</button>
+    </div>
+
+    <table id="gradeTable">
+      <thead>
+        <tr>
+          <th style="width:20%">ระดับคะแนน</th>
+          <th style="width:40%">จำนวนนักศึกษา (คน)</th>
+          <th style="width:40%">คิดเป็นร้อยละ</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- preset rows like the sample, editable -->
+        <tr>
+          <td><input name="g_level_1" value="A" /></td>
+          <td><input name="g_count_1" type="number" min="0" /></td>
+          <td><input name="g_percent_1" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_2" value="B+" /></td>
+          <td><input name="g_count_2" type="number" min="0" /></td>
+          <td><input name="g_percent_2" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_3" value="B" /></td>
+          <td><input name="g_count_3" type="number" min="0" /></td>
+          <td><input name="g_percent_3" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_4" value="C+" /></td>
+          <td><input name="g_count_4" type="number" min="0" /></td>
+          <td><input name="g_percent_4" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_5" value="C" /></td>
+          <td><input name="g_count_5" type="number" min="0" /></td>
+          <td><input name="g_percent_5" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_6" value="D+" /></td>
+          <td><input name="g_count_6" type="number" min="0" /></td>
+          <td><input name="g_percent_6" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_7" value="D" /></td>
+          <td><input name="g_count_7" type="number" min="0" /></td>
+          <td><input name="g_percent_7" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_8" value="F" /></td>
+          <td><input name="g_count_8" type="number" min="0" /></td>
+          <td><input name="g_percent_8" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_9" value="I" /></td>
+          <td><input name="g_count_9" type="number" min="0" /></td>
+          <td><input name="g_percent_9" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_10" value="S" /></td>
+          <td><input name="g_count_10" type="number" min="0" /></td>
+          <td><input name="g_percent_10" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_11" value="U" /></td>
+          <td><input name="g_count_11" type="number" min="0" /></td>
+          <td><input name="g_percent_11" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_12" value="W" /></td>
+          <td><input name="g_count_12" type="number" min="0" /></td>
+          <td><input name="g_percent_12" type="number" step="0.01" min="0" /></td>
+        </tr>
+        <tr>
+          <td><input name="g_level_13" value="M" /></td>
+          <td><input name="g_count_13" type="number" min="0" /></td>
+          <td><input name="g_percent_13" type="number" step="0.01" min="0" /></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 4) ปัญหาและผลกระทบ -->
+  <section class="card">
+    <h2>4) ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้</h2>
+    <div class="muted">ระบุ “ประเด็น” และ “แนวทางการปรับแก้ไข” ตามแบบฟอร์มตัวอย่าง :contentReference[oaicite:3]{index=3}</div>
+    <div style="margin:10px 0" class="row-actions">
+      <button onclick="addRow('issueTable')">+ เพิ่มแถวปัญหา</button>
+      <button class="danger" onclick="delRow('issueTable')">ลบแถวสุดท้าย</button>
+    </div>
+    <table id="issueTable">
+      <thead>
+        <tr>
+          <th style="width:35%">ประเด็น</th>
+          <th style="width:65%">แนวทางการปรับแก้ไข</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><textarea name="issue_1" placeholder="เช่น ด้านทรัพยากร/สิ่งสนับสนุนการเรียนรู้"></textarea></td>
+          <td><textarea name="issue_fix_1"></textarea></td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- 5) การประเมินผลรายวิชา -->
+  <section class="card">
+    <h2>5) การประเมินผลรายวิชา</h2>
+    <div class="grid">
+      <div class="col-12">
+        <label>ข้อวิพากษ์ที่สำคัญจากผลการประเมินโดยนักศึกษา/ผู้เรียน</label>
+        <textarea name="eval_crit"></textarea>
+      </div>
+      <div class="col-12">
+        <label>ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์</label>
+        <textarea name="teacher_comment"></textarea>
+      </div>
+      <div class="col-12">
+        <label>แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
+        <textarea name="improve_plan" placeholder="เช่น ปรับการสอนให้ช้าลง, เพิ่มการปฏิบัติจริงให้มากขึ้น"></textarea>
+      </div>
+      <div class="col-12">
+        <label>ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</label>
+        <textarea name="suggest_to_committee"></textarea>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6) ลงชื่อ -->
+  <section class="card">
+    <h2>6) ลงชื่อ</h2>
+    <div class="signature">
+      <div class="sigbox">
+        <div><b>อาจารย์ผู้สอน</b></div>
+        <small>ลงชื่อ/วันที่</small>
+        <div class="grid" style="margin-top:8px">
+          <div class="col-12"><input name="sig_teacher_name" placeholder="ชื่อ-สกุล" /></div>
+          <div class="col-12"><input name="sig_teacher_date" placeholder="วันที่ .... / .... / ...." /></div>
+        </div>
+      </div>
+      <div class="sigbox">
+        <div><b>อาจารย์ผู้รับผิดชอบรายวิชา</b></div>
+        <small>ลงชื่อ/วันที่</small>
+        <div class="grid" style="margin-top:8px">
+          <div class="col-12"><input name="sig_owner_name" placeholder="ชื่อ-สกุล" /></div>
+          <div class="col-12"><input name="sig_owner_date" placeholder="วันที่ .... / .... / ...." /></div>
+        </div>
+      </div>
+      <div class="sigbox">
+        <div><b>ประธานบริหารหลักสูตร</b></div>
+        <small>ลงชื่อ/วันที่</small>
+        <div class="grid" style="margin-top:8px">
+          <div class="col-12"><input name="sig_head_name" placeholder="ชื่อ-สกุล" /></div>
+          <div class="col-12"><input name="sig_head_date" placeholder="วันที่ .... / .... / ...." /></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <p class="muted">
+    หมายเหตุ: โครงและหัวข้อสอดคล้องกับเอกสารตัวอย่าง มคอ.5 :contentReference[oaicite:4]{index=4}
+  </p>
+</main>
+
+<script>
+  function addRow(tableId){
+    const table = document.getElementById(tableId);
+    const tbody = table.querySelector("tbody");
+    const last = tbody.querySelector("tr:last-child");
+    const clone = last.cloneNode(true);
+
+    // clear values and bump suffix numbers if present
+    clone.querySelectorAll("input, textarea").forEach(el=>{
+      el.value = "";
+      if (el.name){
+        const m = el.name.match(/_(\d+)$/);
+        if (m){
+          const n = parseInt(m[1],10)+1;
+          el.name = el.name.replace(/_(\d+)$/, "_"+n);
+        }
+      }
+    });
+
+    tbody.appendChild(clone);
+  }
+
+  function delRow(tableId){
+    const table = document.getElementById(tableId);
+    const tbody = table.querySelector("tbody");
+    if (tbody.rows.length > 1) tbody.deleteRow(tbody.rows.length - 1);
+  }
+
+  function addGradeRow(){
+    const tbody = document.querySelector("#gradeTable tbody");
+    const idx = tbody.rows.length + 1;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input name="g_level_${idx}" placeholder="เช่น A" /></td>
+      <td><input name="g_count_${idx}" type="number" min="0" /></td>
+      <td><input name="g_percent_${idx}" type="number" step="0.01" min="0" /></td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  function calcPercent(){
+    // total from "คงอยู่" หากมี ไม่งั้นรวมจากแถวเกรด
+    const remain = parseFloat(document.querySelector('[name="n_remain"]').value || "");
+    const rows = Array.from(document.querySelectorAll("#gradeTable tbody tr"));
+    let total = !isNaN(remain) && remain>0 ? remain : 0;
+
+    if (!total){
+      total = rows.reduce((s,r)=>{
+        const c = parseFloat(r.querySelector('input[name^="g_count_"]').value || 0);
+        return s + (isNaN(c)?0:c);
+      },0);
+    }
+    if (!total){ alert("กรุณากรอกจำนวนคงอยู่ หรือจำนวนในตารางเกรดก่อน"); return; }
+
+    rows.forEach(r=>{
+      const cEl = r.querySelector('input[name^="g_count_"]');
+      const pEl = r.querySelector('input[name^="g_percent_"]');
+      const c = parseFloat(cEl.value || 0);
+      const pct = (isNaN(c)?0:c) * 100 / total;
+      pEl.value = (Math.round(pct*100)/100).toFixed(2);
+    });
+  }
+
+  function collect(){
+    const data = {};
+    document.querySelectorAll("input[name], textarea[name], select[name]").forEach(el=>{
+      data[el.name] = el.value;
+    });
+    return data;
+  }
+
+  function apply(data){
+    Object.entries(data||{}).forEach(([k,v])=>{
+      const el = document.querySelector(`[name="${CSS.escape(k)}"]`);
+      if (el) el.value = v;
+    });
+  }
+
+  function saveJSON(){
+    const data = collect();
+    const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "tqf5_form_data.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function loadJSON(){
+    const fi = document.getElementById("fileInput");
+    fi.onchange = async (e)=>{
+      const f = e.target.files?.[0];
+      if (!f) return;
+      const txt = await f.text();
+      try{
+        const data = JSON.parse(txt);
+        apply(data);
+      }catch(err){
+        alert("ไฟล์ JSON ไม่ถูกต้อง");
+      }
+      fi.value = "";
+    };
+    fi.click();
+  }
+</script>
+</body>
+</html>

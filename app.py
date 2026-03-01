@@ -970,34 +970,15 @@ def edit_tqf3(section_id):
 
         # Weekly plan table
         if "week[]" not in gi and "plan_topic[]" in gi:
-            topics = _as_list(gi.get("plan_topic[]"))
-            n = len(topics)
-            gi["week[]"] = [str(i + 1) for i in range(n)]
-            gi["topic[]"] = topics
-            gi["week_clo[]"] = _as_list(gi.get("plan_clo[]"))
-
-            lect = _as_list(gi.get("plan_lecture[]"))
-            prac = _as_list(gi.get("plan_practice[]"))
-            hours: list[str] = []
-            for i in range(n):
-                raw_l = lect[i] if i < len(lect) else ""
-                raw_p = prac[i] if i < len(prac) else ""
-                try:
-                    l = float(str(raw_l).strip() or 0)
-                except Exception:
-                    l = 0.0
-                try:
-                    p = float(str(raw_p).strip() or 0)
-                except Exception:
-                    p = 0.0
-                total = l + p
-                hours.append("" if total == 0 else (str(int(total)) if total.is_integer() else str(total)))
-            gi["hours[]"] = hours
-
-            # Legacy had a single "กิจกรรม/สื่อ" field; map into media[] by default.
-            gi["activities[]"] = [""] * n
-            gi["media[]"] = _as_list(gi.get("plan_media[]"))
-            gi["teacher[]"] = [""] * n
+            # Do not auto-generate multiple weekly rows from curriculum/legacy plan fields.
+            # UX requirement: default to exactly 1 row and let users add rows manually.
+            gi["week[]"] = [""]
+            gi["topic[]"] = [""]
+            gi["week_clo[]"] = [""]
+            gi["hours[]"] = [""]
+            gi["activities[]"] = [""]
+            gi["media[]"] = [""]
+            gi["teacher[]"] = [""]
 
         weekly_n = max(
             len(_as_list(gi.get("week[]"))),
@@ -1017,6 +998,26 @@ def edit_tqf3(section_id):
         _ensure_list_len("activities[]", weekly_n, "")
         _ensure_list_len("media[]", weekly_n, "")
         _ensure_list_len("teacher[]", weekly_n, "")
+
+        # UX: If weekly plan is effectively empty, show only 1 row by default.
+        def _has_any_text(key: str) -> bool:
+            return any((str(v).strip() for v in _as_list(gi.get(key)) if v is not None))
+
+        if weekly_n > 1 and not (
+            _has_any_text("topic[]")
+            or _has_any_text("week_clo[]")
+            or _has_any_text("hours[]")
+            or _has_any_text("activities[]")
+            or _has_any_text("media[]")
+            or _has_any_text("teacher[]")
+        ):
+            gi["week[]"] = [""]
+            gi["topic[]"] = [""]
+            gi["week_clo[]"] = [""]
+            gi["hours[]"] = [""]
+            gi["activities[]"] = [""]
+            gi["media[]"] = [""]
+            gi["teacher[]"] = [""]
 
         # Assessment plan
         if "assess_activity[]" not in gi and "assess_method[]" in gi:
@@ -1125,6 +1126,18 @@ def edit_tqf3(section_id):
             }
             flash("นำข้อมูล มคอ.3 ล่าสุดของรายวิชาเดียวกันมาแสดงให้แล้ว (แก้ไขได้ก่อนบันทึก)", "info")
 
+            # Weekly plan should start with 1 row; users can add rows manually.
+            for key in (
+                "week[]",
+                "topic[]",
+                "week_clo[]",
+                "hours[]",
+                "activities[]",
+                "media[]",
+                "teacher[]",
+            ):
+                tqf3.general_info[key] = [""]
+
     if request.method == "GET":
         tqf3.general_info = _normalize_general_info_for_qtf_format(tqf3.general_info or {}, section, term)
 
@@ -1180,11 +1193,16 @@ def edit_tqf5(section_id):
         flash("คุณไม่มีสิทธิ์เข้าถึงรายวิชานี้", "danger")
         return redirect(url_for("dashboard"))
 
+    # Attach runtime relations for templates
+    section.course = Course.get(section.course_id) if getattr(section, "course_id", None) else None
+    section.term = Term.get(section.term_id) if getattr(section, "term_id", None) else None
+    section.instructor = current_user
+
     if section.status == "locked":
         flash("ระบบถูกล็อกแล้ว ไม่สามารถแก้ไขเอกสารได้", "warning")
         return redirect(url_for("instructor_dashboard"))
 
-    term = Term.get(section.term_id) if section.term_id else None
+    term = section.term
     if (not term) or (not bool(term.is_open_tqf5)):
         flash("เทอมนี้ยังไม่เปิดให้กรอก มคอ.5", "warning")
         return redirect(url_for("instructor_dashboard"))
@@ -1194,13 +1212,316 @@ def edit_tqf5(section_id):
         flash("กรุณาจัดทำ มคอ.3 ให้เรียบร้อยก่อนจัดทำ มคอ.5", "warning")
         return redirect(url_for("instructor_dashboard"))
 
-    if tqf3.status != "APPROVED":
-        flash("ยังไม่สามารถจัดทำ มคอ.5 ได้ (มคอ.3 ยังไม่อนุมัติ)", "warning")
-        return redirect(url_for("instructor_dashboard"))
+    tqf3_is_approved = tqf3.status == "APPROVED"
 
     tqf5 = TQF5.first_by("section_id", section_id)
     if not tqf5:
         tqf5 = TQF5(section_id=section_id, tqf3_id=tqf3.id).save()
+
+    def _normalize_actual_teaching_for_qtf5_format(
+        payload: dict,
+        current_section: Section,
+        current_term: Term,
+        tqf3_doc: TQF3,
+    ) -> tuple[dict, bool]:
+        at = dict(payload or {})
+
+        # Fields intentionally not stored in TQF5
+        for k in ("office", "phone", "room", "online"):
+            at.pop(k, None)
+
+        def _as_list(value) -> list:
+            if isinstance(value, list):
+                return value
+            if value is None:
+                return []
+            return [value]
+
+        def _is_blank(v) -> bool:
+            return str(v or "").strip() == ""
+
+        course = current_section.course if current_section else None
+        program = course.program if course else None
+        faculty = program.faculty if program else None
+
+        prefilled_from_tqf3 = False
+
+        # Header defaults
+        if course:
+            if course.code:
+                at.setdefault("course_code", course.code)
+            if course.name_th:
+                at.setdefault("course_name", course.name_th)
+            if course.credits is not None:
+                at.setdefault("credits", str(course.credits))
+            if getattr(course, "description", None):
+                at.setdefault("course_desc", course.description)
+        if faculty and getattr(faculty, "name", None):
+            at.setdefault("faculty", faculty.name)
+        if program and getattr(program, "name", None):
+            at.setdefault("program", program.name)
+        if current_term:
+            at.setdefault("semester", str(getattr(current_term, "semester", "") or ""))
+            at.setdefault("academic_year", str(getattr(current_term, "year", "") or ""))
+
+        # Legacy -> new key alignment (summary)
+        if "n_registered" not in at and "students_enrolled" in at:
+            at["n_registered"] = at.get("students_enrolled")
+        if "n_remain" not in at and "students_finished" in at:
+            at["n_remain"] = at.get("students_finished")
+        if "n_withdraw" not in at and "students_withdrawn" in at:
+            at["n_withdraw"] = at.get("students_withdrawn")
+        if "grade_abnormal_reason" not in at and "grade_factors" in at:
+            at["grade_abnormal_reason"] = at.get("grade_factors")
+
+        # Legacy -> new key alignment (free text)
+        if "uncovered_topics" not in at and "deviations" in at:
+            at["uncovered_topics"] = at.get("deviations")
+        if "verification" not in at and "verification_method" in at:
+            at["verification"] = at.get("verification_method")
+        if "improve_plan" not in at and "improvement_plan" in at:
+            at["improve_plan"] = at.get("improvement_plan")
+        if "improvement_plan" not in at and "improve_plan" in at:
+            at["improvement_plan"] = at.get("improve_plan")
+
+        # Prefill from TQF3 (only when empty-ish)
+        gi = (tqf3_doc.general_info or {}) if tqf3_doc else {}
+        if gi:
+            if _is_blank(at.get("course_owner")) and gi.get("course_owner"):
+                at["course_owner"] = gi.get("course_owner")
+            if _is_blank(at.get("instructors")) and gi.get("instructor"):
+                at["instructors"] = gi.get("instructor")
+            if _is_blank(at.get("prereq")) and gi.get("prereq"):
+                at["prereq"] = gi.get("prereq")
+            if _is_blank(at.get("year_level")) and gi.get("year_level"):
+                at["year_level"] = gi.get("year_level")
+            if _is_blank(at.get("last_update")) and gi.get("last_updated"):
+                at["last_update"] = gi.get("last_updated")
+
+        # CLO table normalization
+        # New format keys: clo_desc_1..n, clo_teach_1..n, clo_assess_1..n, clo_result_1..n, clo_improve_1..n
+        clo_idx = []
+        for k in at.keys():
+            if k.startswith("clo_desc_"):
+                try:
+                    clo_idx.append(int(k.split("_")[-1]))
+                except Exception:
+                    pass
+
+        if not clo_idx:
+            # Convert from legacy arrays if present
+            legacy_codes = _as_list(at.get("clo_code[]"))
+            legacy_methods = _as_list(at.get("clo_method[]"))
+            legacy_assess = _as_list(at.get("clo_assess[]"))
+            legacy_results = _as_list(at.get("clo_result[]"))
+            if legacy_codes:
+                n = len(legacy_codes)
+                gi_clo_text = _as_list(gi.get("clo_text[]")) or _as_list(gi.get("clo_desc[]"))
+                for i in range(1, n + 1):
+                    desc = gi_clo_text[i - 1] if i - 1 < len(gi_clo_text) else legacy_codes[i - 1]
+                    at[f"clo_desc_{i}"] = desc
+                    at[f"clo_teach_{i}"] = legacy_methods[i - 1] if i - 1 < len(legacy_methods) else ""
+                    at[f"clo_assess_{i}"] = legacy_assess[i - 1] if i - 1 < len(legacy_assess) else ""
+                    at[f"clo_result_{i}"] = legacy_results[i - 1] if i - 1 < len(legacy_results) else ""
+                    at[f"clo_improve_{i}"] = at.get(f"clo_improve_{i}", "")
+            else:
+                # Prefill from TQF3 CLOs if available
+                gi_clo_text = _as_list(gi.get("clo_text[]"))
+                if not gi_clo_text:
+                    gi_clo_text = _as_list(gi.get("clo_desc[]"))
+                if not gi_clo_text:
+                    gi_clo_text = [""]
+
+                gi_teach = _as_list(gi.get("teach_strategy[]"))
+                gi_assess = _as_list(gi.get("assess_strategy[]"))
+                n = max(len(gi_clo_text), 1)
+                for i in range(1, n + 1):
+                    at[f"clo_desc_{i}"] = gi_clo_text[i - 1] if i - 1 < len(gi_clo_text) else ""
+                    at[f"clo_teach_{i}"] = gi_teach[i - 1] if i - 1 < len(gi_teach) else ""
+                    at[f"clo_assess_{i}"] = gi_assess[i - 1] if i - 1 < len(gi_assess) else ""
+                    at[f"clo_result_{i}"] = at.get(f"clo_result_{i}", "")
+                    at[f"clo_improve_{i}"] = at.get(f"clo_improve_{i}", "")
+                if any(not _is_blank(at.get(f"clo_desc_{i}")) for i in range(1, n + 1)):
+                    prefilled_from_tqf3 = True
+
+        # Grade distribution table normalization
+        preset_levels = ["A", "B+", "B", "C+", "C", "D+", "D", "F", "I", "W", "S", "U", "P", "NP", "M"]
+
+        grade_idx = []
+        for k in at.keys():
+            if k.startswith("g_level_") or k.startswith("g_count_") or k.startswith("g_percent_"):
+                try:
+                    grade_idx.append(int(k.split("_")[-1]))
+                except Exception:
+                    pass
+
+        if not grade_idx:
+            # Convert from legacy grade_<level> counts only when it actually has data.
+            legacy_rows = []
+            for lvl in preset_levels:
+                legacy_key = f"grade_{lvl}"
+                if legacy_key in at and not _is_blank(at.get(legacy_key)):
+                    legacy_rows.append((lvl, at.get(legacy_key)))
+
+            if legacy_rows:
+                for i, (lvl, count) in enumerate(legacy_rows, start=1):
+                    at[f"g_level_{i}"] = lvl
+                    at[f"g_count_{i}"] = count
+                    at[f"g_percent_{i}"] = at.get(f"g_percent_{i}", "")
+
+        # Trim trailing blank grade rows (and collapse all-blank to 1 row UI-wise)
+        grade_idx = []
+        for k in at.keys():
+            if k.startswith("g_level_") or k.startswith("g_count_") or k.startswith("g_percent_"):
+                try:
+                    grade_idx.append(int(k.split("_")[-1]))
+                except Exception:
+                    pass
+
+        if grade_idx:
+            max_idx = max(grade_idx)
+
+            # If this looks like an auto-seeded grade list (levels filled, but no numbers anywhere),
+            # collapse it entirely so the UI starts with 1 blank row.
+            seeded_levels_match = True
+            for i, lvl in enumerate(preset_levels, start=1):
+                if str(at.get(f"g_level_{i}") or "").strip() != lvl:
+                    seeded_levels_match = False
+                    break
+
+            any_numbers = False
+            for i in range(1, max_idx + 1):
+                if (not _is_blank(at.get(f"g_count_{i}"))) or (not _is_blank(at.get(f"g_percent_{i}"))):
+                    any_numbers = True
+                    break
+
+            if seeded_levels_match and (not any_numbers):
+                for i in range(1, max_idx + 1):
+                    at.pop(f"g_level_{i}", None)
+                    at.pop(f"g_count_{i}", None)
+                    at.pop(f"g_percent_{i}", None)
+                max_idx = 0
+
+            last_nonblank = 0
+            for i in range(1, max_idx + 1):
+                if (
+                    not _is_blank(at.get(f"g_level_{i}"))
+                    or not _is_blank(at.get(f"g_count_{i}"))
+                    or not _is_blank(at.get(f"g_percent_{i}"))
+                ):
+                    last_nonblank = i
+
+            if last_nonblank <= 0:
+                # All blank: remove all grade keys; template will render 1 empty row.
+                last_nonblank = 0
+
+            for i in range(1, max_idx + 1):
+                if i > last_nonblank:
+                    at.pop(f"g_level_{i}", None)
+                    at.pop(f"g_count_{i}", None)
+                    at.pop(f"g_percent_{i}", None)
+
+        # Issue table normalization
+        issue_idx = []
+        for k in at.keys():
+            if k.startswith("issue_") and (not k.startswith("issue_fix_")):
+                try:
+                    issue_idx.append(int(k.split("_")[-1]))
+                except Exception:
+                    pass
+        if not issue_idx:
+            # If legacy problems exist, seed one row
+            if at.get("problems_fixed") and "issue_1" not in at:
+                at["issue_1"] = at.get("problems_fixed")
+            at.setdefault("issue_1", "")
+            at.setdefault("issue_fix_1", "")
+
+        # Ensure summary fields exist (avoid KeyError in templates)
+        at.setdefault("n_registered", at.get("n_registered", ""))
+        at.setdefault("n_remain", at.get("n_remain", ""))
+        at.setdefault("n_withdraw", at.get("n_withdraw", ""))
+
+        return at, prefilled_from_tqf3
+
+    def _backfill_legacy_keys_from_qtf5_format(form_data: dict) -> None:
+        if not isinstance(form_data, dict):
+            return
+
+        def _to_intish(v):
+            s = str(v or "").strip()
+            return s
+
+        # Summary legacy
+        if "n_registered" in form_data and "students_enrolled" not in form_data:
+            form_data["students_enrolled"] = _to_intish(form_data.get("n_registered"))
+        if "n_remain" in form_data and "students_finished" not in form_data:
+            form_data["students_finished"] = _to_intish(form_data.get("n_remain"))
+        if "n_withdraw" in form_data and "students_withdrawn" not in form_data:
+            form_data["students_withdrawn"] = _to_intish(form_data.get("n_withdraw"))
+        if "grade_abnormal_reason" in form_data and "grade_factors" not in form_data:
+            form_data["grade_factors"] = form_data.get("grade_abnormal_reason")
+
+        # Free text legacy
+        if "uncovered_topics" in form_data and "deviations" not in form_data:
+            form_data["deviations"] = form_data.get("uncovered_topics")
+        if "verification" in form_data and "verification_method" not in form_data:
+            form_data["verification_method"] = form_data.get("verification")
+        if "improve_plan" in form_data and "improvement_plan" not in form_data:
+            form_data["improvement_plan"] = form_data.get("improve_plan")
+
+        # Grade legacy: derive grade_<level> from grade table rows
+        grade_levels = []
+        for k, v in form_data.items():
+            if k.startswith("g_level_"):
+                try:
+                    idx = int(k.split("_")[-1])
+                except Exception:
+                    continue
+                level = str(v or "").strip()
+                count = str(form_data.get(f"g_count_{idx}") or "").strip()
+                if level:
+                    grade_levels.append((idx, level, count))
+        for _, level, count in sorted(grade_levels, key=lambda t: t[0]):
+            if count != "" and f"grade_{level}" not in form_data:
+                form_data[f"grade_{level}"] = count
+
+        # CLO legacy arrays: build clo_code[]/method[]/assess[]/result[] from indexed rows
+        clo_rows = []
+        for k, v in form_data.items():
+            if k.startswith("clo_desc_"):
+                try:
+                    idx = int(k.split("_")[-1])
+                except Exception:
+                    continue
+                clo_rows.append(
+                    (
+                        idx,
+                        str(v or "").strip(),
+                        str(form_data.get(f"clo_teach_{idx}") or "").strip(),
+                        str(form_data.get(f"clo_assess_{idx}") or "").strip(),
+                        str(form_data.get(f"clo_result_{idx}") or "").strip(),
+                    )
+                )
+
+        if clo_rows and "clo_code[]" not in form_data:
+            clo_rows.sort(key=lambda t: t[0])
+            n = len(clo_rows)
+            form_data["clo_code[]"] = [f"CLO {i + 1}" for i in range(n)]
+            form_data["clo_method[]"] = [r[2] for r in clo_rows]
+            form_data["clo_assess[]"] = [r[3] for r in clo_rows]
+            form_data["clo_result[]"] = [r[4] for r in clo_rows]
+
+    prefill_source = None
+    if request.method == "GET":
+        normalized, prefilled = _normalize_actual_teaching_for_qtf5_format(
+            tqf5.actual_teaching or {},
+            section,
+            term,
+            tqf3,
+        )
+        tqf5.actual_teaching = normalized
+        if prefilled:
+            prefill_source = {"source": "TQF3", "tqf3_status": tqf3.status}
 
     if request.method == "POST":
         if tqf5.status in ["SUBMITTED", "APPROVED"]:
@@ -1215,10 +1536,35 @@ def edit_tqf5(section_id):
                 if key != "action":
                     data[key] = request.form.get(key)
 
-        tqf5.actual_teaching = data
+        _backfill_legacy_keys_from_qtf5_format(data)
+
+        # Fields intentionally not stored in TQF5
+        for k in ("office", "phone", "room", "online"):
+            data.pop(k, None)
+
+        existing = tqf5.actual_teaching or {}
+        for k in ("office", "phone", "room", "online"):
+            existing.pop(k, None)
+
+        # Indexed grade table: allow row deletions to persist.
+        # (If a row is deleted in the UI, its keys won't be posted; without clearing,
+        # the old values would remain in `existing` and reappear on reload.)
+        for k in list(existing.keys()):
+            if k.startswith("g_level_") or k.startswith("g_count_") or k.startswith("g_percent_"):
+                existing.pop(k, None)
+            elif k.startswith("grade_") and k not in ("grade_abnormal_reason", "grade_factors"):
+                existing.pop(k, None)
+
+        existing.update(data)
+        tqf5.actual_teaching = existing
 
         action = request.form.get("action")
         if action == "submit":
+            if not tqf3_is_approved:
+                flash("ยังไม่สามารถส่ง มคอ.5 ได้ (มคอ.3 ยังไม่อนุมัติ)", "warning")
+                tqf5.status = "DRAFT" if tqf5.status == "RETURNED" else tqf5.status
+                tqf5.save()
+                return redirect(url_for("edit_tqf5", section_id=section_id))
             tqf5.status = "SUBMITTED"
             tqf5.submitted_at = _utcnow()
             flash("ส่ง มคอ.5 ให้หัวหน้าสาขาเรียบร้อยแล้ว", "success")
@@ -1237,7 +1583,9 @@ def edit_tqf5(section_id):
         section=section,
         tqf5=tqf5,
         tqf3=tqf3,
+        tqf3_is_approved=tqf3_is_approved,
         feedbacks=feedbacks,
+        prefill_source=prefill_source,
     )
 
 

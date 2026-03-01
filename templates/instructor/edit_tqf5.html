@@ -4,6 +4,109 @@
 
 {% block content %}
 {% set is_locked = tqf5.status in ['SUBMITTED', 'APPROVED'] %}
+{% set tqf3_ok = tqf3_is_approved if tqf3_is_approved is defined else (tqf3 and tqf3.status == 'APPROVED') %}
+
+{% if prefill_source and not is_locked %}
+<div class="glass" style="padding: 1rem 1.25rem; border-radius: 1rem; margin-bottom: 1.25rem; border: 1px solid rgba(99, 102, 241, 0.25); background: rgba(99, 102, 241, 0.04);">
+    <div style="display:flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <div style="color: var(--text-main);">
+            <div style="font-weight: 800;">มีการดึงข้อมูลจาก มคอ.3 มาเติมให้อัตโนมัติ</div>
+            <div style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">ตรวจทานแล้วกด “บันทึกฉบับร่าง” ได้เลย</div>
+        </div>
+        {% set src_status = prefill_source.get('tqf3_status') if prefill_source else None %}
+        <div style="color: var(--text-muted); font-size: 0.875rem;">แหล่งข้อมูล: มคอ.3{% if src_status %} (สถานะ: {{ src_status }}){% endif %}</div>
+    </div>
+</div>
+{% endif %}
+
+{% if (not tqf3_ok) and (not is_locked) %}
+<div class="glass" style="padding: 1rem 1.25rem; border-radius: 1rem; margin-bottom: 1.25rem; border: 1px solid rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.06);">
+    <div style="display:flex; justify-content: space-between; gap: 1rem; align-items: center; flex-wrap: wrap;">
+        <div style="color: var(--text-main);">
+            <div style="font-weight: 800;">ยังส่ง มคอ.5 ไม่ได้ในขณะนี้</div>
+            <div style="color: var(--text-muted); font-size: 0.875rem; margin-top: 0.25rem;">คุณยังสามารถกรอกและบันทึกฉบับร่างได้ แต่ปุ่ม “ส่งให้หัวหน้าสาขา” จะใช้งานได้เมื่อ มคอ.3 อนุมัติแล้ว</div>
+        </div>
+        <div style="color: var(--text-muted); font-size: 0.875rem;">สถานะ มคอ.3: {{ tqf3.status if tqf3 else '-' }}</div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    .status-submitted-warn {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--accent-warning);
+    }
+
+    .status-returned {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--accent-danger);
+    }
+
+    .qtf-card {
+        border: 1px solid var(--border-color);
+        border-radius: 1rem;
+        padding: 1.25rem;
+        margin: 1rem 0;
+        background: rgba(30, 41, 59, 0.35);
+    }
+
+    .qtf-card h3 {
+        font-size: 1.05rem;
+        margin: 0 0 0.85rem;
+        color: var(--text-main);
+    }
+
+    .qtf-note {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .qtf-grid {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .qtf-grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .qtf-grid.three {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .qtf-grid.four {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .qtf-table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 900px;
+    }
+
+    .qtf-table th,
+    .qtf-table td {
+        border: 1px solid var(--border-color);
+        padding: 0.75rem;
+        vertical-align: top;
+    }
+
+    .qtf-table th {
+        background: rgba(255, 255, 255, 0.03);
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        text-align: left;
+    }
+
+    @media (max-width: 860px) {
+        .qtf-grid.two,
+        .qtf-grid.three,
+        .qtf-grid.four {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
     <div>
@@ -13,25 +116,24 @@
         </nav>
         <h2>มคอ.5: {{ section.course.code }} {{ section.course.name_th }}</h2>
         <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
-            <span class="status-badge" style="
-                {% if tqf5.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                {% elif tqf5.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                {% elif tqf5.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-            ">สถานะ: {{ tqf5.status }}</span>
+            {% set badge_class = '' %}
+            {% if tqf5.status == 'APPROVED' %}
+                {% set badge_class = 'status-approved' %}
+            {% elif tqf5.status == 'SUBMITTED' %}
+                {% set badge_class = 'status-submitted-warn' %}
+            {% elif tqf5.status == 'RETURNED' %}
+                {% set badge_class = 'status-returned' %}
+            {% else %}
+                {% set badge_class = 'status-draft' %}
+            {% endif %}
+            <span class="status-badge {{ badge_class }}">สถานะ: {{ tqf5.status }}</span>
             {% if is_locked %}
             <span style="color: var(--text-muted); font-size: 0.875rem;">🔒 เอกสารถูกล็อก (Read-Only)</span>
             {% endif %}
         </div>
     </div>
     <div style="display: flex; gap: 1rem;">
-        {% if not is_locked %}
-        <button type="submit" name="action" value="draft" form="tqf5-form" class="btn glass">บันทึกฉบับร่าง</button>
-        <button type="submit" name="action" value="submit" form="tqf5-form" class="btn btn-primary"
-            onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกเพื่อรอการตรวจสอบ')">ส่งให้หัวหน้าสาขา</button>
-        {% else %}
-        <a href="{{ url_for('instructor_dashboard') }}" class="btn glass">ย้อนกลับ</a>
-        {% endif %}
+           <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary" style="color: var(--text-muted);">กลับไป Dashboard</a>
     </div>
 </div>
 
@@ -51,196 +153,365 @@
 </div>
 {% endif %}
 
-<form id="tqf5-form" method="POST" class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
+<form id="tqf5-form" method="POST" class="glass" style="padding: 2rem; border-radius: 1.5rem;">
+    {% set data = tqf5.actual_teaching or {} %}
     <fieldset {% if is_locked %}disabled{% endif %} style="border: none; padding: 0; margin: 0;">
-        <!-- 2.1 ข้อมูลทั่วไป -->
-        <section style="margin-bottom: 4rem;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-                <h3 style="border-left: 4px solid var(--primary-color); padding-left: 1rem; color: var(--text-main);">
-                    2.1 -
-                    2.2 ข้อมูลทั่วไปและสรุปผู้เรียน</h3>
-                <span class="status-badge"
-                    style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">เชื่อมโยงข้อมูลจาก มคอ.3
-                    อัตโนมัติ</span>
-            </div>
+        <!-- 1) ข้อมูลรายวิชา -->
+        <div class="qtf-card" style="border: 2px solid var(--border-color);">
+            {% set gi = tqf3.general_info or {} %}
+                {% set course_owner_val = (data.get('course_owner') or gi.get('course_owner') or '') %}
+                {% set instructors_val = (data.get('instructors') or gi.get('instructor') or (section.instructor.full_name if section and section.instructor else current_user.full_name)) %}
+            <h3 style="display: flex; margin: -35px 35px 0 0; background-color: rgba(26, 36, 54, 1); width: fit-content;">1) ข้อมูลรายวิชา</h3>
 
-            <!-- Info pre-filled from Section/Course/Term -->
-            <div
-                style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; margin-bottom: 2.5rem; background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 1rem; border: 1px dashed var(--border-color);">
-                <div><span style="color: var(--text-muted);">รหัส/ชื่อวิชา:</span> {{ section.course.code }} {{
-                    section.course.name_th }}</div>
-                <div><span style="color: var(--text-muted);">ภาคเรียน/ปีการศึกษา:</span> {{ section.term.semester }}/{{
-                    section.term.year }}</div>
-                <div><span style="color: var(--text-muted);">จำนวนหน่วยกิต:</span> {{ section.course.credits }}</div>
-                <div><span style="color: var(--text-muted);">อาจารย์ผู้สอน:</span> {{ section.instructor.full_name }}
+            <div class="qtf-card" style="background: rgba(44, 59, 84, 0.35);">
+                <div style="display: grid; grid-template-columns: 1.8fr 1fr; align-items: center;">
+                    <div style="margin-top: 0.75rem; display: grid; grid-template-rows: repeat(4, 1fr);">
+                        <div style="min-height: 44px; display:flex; align-items:center;">คณะ{{ data.get('faculty', '') }}</div>
+                        <div style="min-height: 44px; display:flex; align-items:center;">หลักสูตร {{ data.get('program', '') }} </div>
+                        <div style="min-height: 44px; display:flex; align-items:center;">รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) }}</div>
+                        <div>
+                            <div style="min-height: 44px; display:flex; align-items:center;">ผู้สอน {{ instructors_val }}</div>
+                            <input type="hidden" name="instructors" value="{{ instructors_val }}">
+                        </div>
+    
+                    </div>
+                    <div style="margin-top: 0.75rem; display: grid; grid-template-rows: repeat(3, 1fr);">
+                        <div style="min-height: 44px;display:flex; align-items:center; justify-content: left;">ปีการศึกษา {{ data.get('semester', section.term.semester) }} / {{ data.get('academic_year', section.term.year) }} ชั้นปีที่ {{ data.get('year_level', '') }}</div>
+                        <div style="min-height: 44px;display:flex; align-items:center; justify-content: left;">จำนวน {{ data.get('credits', section.course.credits) }} หน่วยกิต</div>
+                        <div style="min-height: 44px;display:flex; align-items:center; justify-content: left;">วันที่จัดทำ/ปรับปรุงครั้งล่าสุด {{ data.get('last_update', '') }}</div>
+                    </div>
                 </div>
+
             </div>
 
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;">
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label>คำอธิบายรายวิชา</label>
+                <textarea name="course_desc" class="form-control" rows="4" placeholder="คัดลอก/พิมพ์คำอธิบายรายวิชา">{{ data.get('course_desc', section.course.description or '') }}</textarea>
+            </div>
+
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อน (ถ้ามี)</label>
+                <textarea name="teaching_hours" class="form-control" rows="3">{{ data.get('teaching_hours', '') }}</textarea>
+            </div>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>หัวข้อที่สอบไม่ครอบคลุมจากแผน (ถ้ามี)</label>
+                <textarea name="uncovered_topics" class="form-control" rows="3">{{ data.get('uncovered_topics', '') }}</textarea>
+            </div>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้</label>
+                <textarea name="during_improve" class="form-control" rows="3">{{ data.get('during_improve', '') }}</textarea>
+            </div>
+        </div>
+
+        <!-- 2) CLO Table -->
+        <div class="qtf-card" style="margin-top: 3rem; border: 2px solid var(--border-color);">
+            <h3 style="display: flex; margin: -35px 35px 0 0; background-color: rgba(26, 36, 54, 1); width: fit-content;">2) การจัดการเรียนรู้และวิธีการประเมินผลตาม CLOs</h3>
+            {% set ns = namespace(clo_idxs=[]) %}
+            {% for k in data.keys() %}
+                {% if k.startswith('clo_desc_') %}
+                    {% set ns.clo_idxs = ns.clo_idxs + [k.split('_')[-1]|int] %}
+                {% endif %}
+            {% endfor %}
+            {% set clo_n = (ns.clo_idxs|max) if ns.clo_idxs else 1 %}
+            {% if clo_n < 1 %}{% set clo_n = 1 %}{% endif %}
+
+            <div style="overflow: auto; margin-top: 1.5rem;">
+                <table id="cloTable" class="qtf-table">
+                    <thead>
+                        <tr>
+                            <th style="width:16%">CLOs (ผลลัพธ์การเรียนรู้)</th>
+                            <th style="width:20%">กลยุทธ์การสอน/วิธีการจัดการเรียนรู้</th>
+                            <th style="width:18%">วิธีการประเมินผล</th>
+                            <th style="width:14%">ผลที่เกิดกับนักศึกษา</th>
+                            <th style="width:32%">แนวทางการพัฒนา/ปรับปรุง</th>
+                            <th style="width:84px">ลบ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(1, clo_n + 1) %}
+                        <tr>
+                            <td><textarea name="clo_desc_{{ i }}" class="form-control" rows="2" placeholder="เช่น CLO1 ...">{{ data.get('clo_desc_' ~ i, '') }}</textarea></td>
+                            <td><textarea name="clo_teach_{{ i }}" class="form-control" rows="2">{{ data.get('clo_teach_' ~ i, '') }}</textarea></td>
+                            <td><textarea name="clo_assess_{{ i }}" class="form-control" rows="2">{{ data.get('clo_assess_' ~ i, '') }}</textarea></td>
+                            <td><textarea name="clo_result_{{ i }}" class="form-control" rows="2" placeholder="เช่น มากกว่า 80%...">{{ data.get('clo_result_' ~ i, '') }}</textarea></td>
+                            <td><textarea name="clo_improve_{{ i }}" class="form-control" rows="2">{{ data.get('clo_improve_' ~ i, '') }}</textarea></td>
+                            <td style="text-align:center;"><button type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">ลบ</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; justify-content: right; margin-top: 0.75rem;">
+                <button style="width: 150px;" type="button" class="btn btn-primary" onclick="addIndexedRow('cloTable')">+ เพิ่มแถว CLO</button>
+            </div>
+        </div>
+
+        <!-- 3) สรุปผล + เกรด -->
+        <div class="qtf-card" style="margin-top: 3rem; border: 2px solid var(--border-color);">
+            <h3 style="display: flex; margin: -35px 35px 0 0; background-color: rgba(26, 36, 54, 1); width: fit-content;">3) สรุปผลการจัดการเรียนการสอนของรายวิชา</h3>
+            <div class="qtf-grid four" style="margin-top: 1.5rem;">
                 <div class="form-group">
-                    <label>จำนวนผู้ลงทะเบียน</label>
-                    <input type="number" name="students_enrolled" class="form-control"
-                        value="{{ tqf5.actual_teaching.get('students_enrolled', 0) }}">
+                    <label>จำนวนนักศึกษาที่ลงทะเบียน</label>
+                    <input type="number" name="n_registered" class="form-control" min="0" step="1" value="{{ data.get('n_registered', '') }}" placeholder="เช่น 36">
                 </div>
                 <div class="form-group">
-                    <label>จำนวนผู้เรียนเมื่อสิ้นสุดภาค</label>
-                    <input type="number" name="students_finished" class="form-control"
-                        value="{{ tqf5.actual_teaching.get('students_finished', 0) }}">
+                    <label>จำนวนนักศึกษาที่คงอยู่เมื่อสิ้นสุดภาคการศึกษา</label>
+                    <input type="number" name="n_remain" class="form-control" min="0" step="1" value="{{ data.get('n_remain', '') }}" placeholder="เช่น 36">
                 </div>
                 <div class="form-group">
-                    <label>จำนวนผู้ถอน (W)</label>
-                    <input type="number" name="students_withdrawn" class="form-control"
-                        value="{{ tqf5.actual_teaching.get('students_withdrawn', 0) }}">
+                    <label>จำนวนนักศึกษาที่ถอน (W)</label>
+                    <input type="number" name="n_withdraw" class="form-control" min="0" step="1" value="{{ data.get('n_withdraw', '') }}" placeholder="เช่น 0">
                 </div>
-            </div>
-        </section>
-
-        <!-- 2.3 & 2.4 -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                2.3 - 2.4 การจัดการเรียนการสอนและปัญหา</h3>
-            <div class="form-group">
-                <label>หัวข้อที่สอนไม่ครอบคลุมตามแผน (ถ้ามี) และสาเหตุ</label>
-                <textarea name="deviations" class="form-control"
-                    rows="3">{{ tqf5.actual_teaching.get('deviations', '') }}</textarea>
-            </div>
-            <div class="form-group">
-                <label>ปัญหาที่พบระหว่างสอน และวิธีการแก้ไข</label>
-                <textarea name="problems_fixed" class="form-control"
-                    rows="4">{{ tqf5.actual_teaching.get('problems_fixed', '') }}</textarea>
-            </div>
-        </section>
-
-        <!-- 2.5 ผลการบรรลุ CLO -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                2.5 ผลการบรรลุ CLO</h3>
-            <table id="clo-table" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem; width: 100px;">รหัส CLO</th>
-                        <th style="padding: 1rem;">วิธีจัดการเรียนรู้ที่ใช้จริง</th>
-                        <th style="padding: 1rem;">วิธีประเมินที่ใช้จริง</th>
-                        <th style="padding: 1rem; width: 150px;">ผลสัมฤทธิ์ (%)</th>
-                        <th style="padding: 1rem; width: 50px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set saved_clo_codes = tqf5.actual_teaching.get('clo_code[]') %}
-                    {% if saved_clo_codes %}
-                    {% set clo_codes = saved_clo_codes %}
-                    {% set clo_methods = tqf5.actual_teaching.get('clo_method[]', ['']*clo_codes|length) %}
-                    {% set clo_assessments = tqf5.actual_teaching.get('clo_assess[]', ['']*clo_codes|length) %}
-                    {% set clo_results = tqf5.actual_teaching.get('clo_result[]', ['']*clo_codes|length) %}
-                    {% else %}
-                    {# Pre-fill from TQF3 #}
-                    {% set clo_codes = tqf3.general_info.get('clo_code[]', ['']) %}
-                    {% set tqf3_assess_clos = tqf3.general_info.get('assess_clo[]', []) %}
-                    {% set tqf3_assess_methods = tqf3.general_info.get('assess_method[]', []) %}
-
-                    {% set clo_methods = ['']*clo_codes|length %}
-                    {% set temp_assessments = [] %}
-                    {% for c_code in clo_codes %}
-                    {% set found_method = '' %}
-                    {% for idx in range(tqf3_assess_clos|length) %}
-                    {% if tqf3_assess_clos[idx]|string == c_code|string %}
-                    {% set found_method = tqf3_assess_methods[idx] %}
-                    {% endif %}
-                    {% endfor %}
-                    {% set temp_assessments = temp_assessments + [found_method] %}
-                    {% endfor %}
-                    {% set clo_assessments = temp_assessments %}
-                    {% set clo_results = ['0']*clo_codes|length %}
-                    {% endif %}
-
-                    {% for i in range(clo_codes|length) %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem;"><input type="text" name="clo_code[]" class="form-control"
-                                value="{{ clo_codes[i] }}" placeholder="CLO 1"></td>
-                        <td style="padding: 1rem;"><input type="text" name="clo_method[]" class="form-control"
-                                value="{{ clo_methods[i] }}"></td>
-                        <td style="padding: 1rem;"><input type="text" name="clo_assess[]" class="form-control"
-                                value="{{ clo_assessments[i] }}"></td>
-                        <td style="padding: 1rem;"><input type="number" name="clo_result[]" class="form-control"
-                                value="{{ clo_results[i] }}"></td>
-                        <td style="padding: 1rem;"><button type="button" class="btn" onclick="removeRow(this)"
-                                style="color: var(--accent-danger);">×</button></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <button type="button" class="btn glass" onclick="addRow('clo-table')"
-                style="margin-top: 1rem; font-size: 0.875rem;">+ เพิ่ม CLO</button>
-        </section>
-
-        <!-- 2.6 Grade Distribution -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                2.6 การกระจายผลการเรียน (Grade Distribution)</h3>
-            <div style="display: grid; grid-template-columns: repeat(10, 1fr); gap: 0.75rem; margin-bottom: 2rem;">
-                {% for grade in ['A', 'B+', 'B', 'C+', 'C', 'D+', 'D', 'F', 'I', 'W'] %}
                 <div class="form-group">
-                    <label style="display: block; text-align: center; font-size: 0.75rem;">{{ grade }}</label>
-                    <input type="number" name="grade_{{ grade }}" class="form-control"
-                        style="text-align: center; padding: 0.5rem;"
-                        value="{{ tqf5.actual_teaching.get('grade_' ~ grade, 0) }}">
+                    <label>ปัจจัยที่ทำให้ระดับคะแนนผิดปกติ (ถ้ามี)</label>
+                    <input type="text" name="grade_abnormal_reason" class="form-control" value="{{ data.get('grade_abnormal_reason', '') }}" placeholder="เช่น ไม่ส่งงาน">
                 </div>
-                {% endfor %}
             </div>
-            <div class="form-group">
-                <label>ปัจจัยที่ทำให้ผลการเรียนผิดปกติ (ถ้ามี)</label>
-                <textarea name="grade_factors" class="form-control"
-                    rows="2">{{ tqf5.actual_teaching.get('grade_factors', '') }}</textarea>
-            </div>
-        </section>
 
-        <!-- 2.7 - 2.9 -->
-        <section>
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                2.7 - 2.9 การทวนสอบและแผนปรับปรุง</h3>
-            <div class="form-group">
-                <label>วิธีการทวนสอบผลสัมฤทธิ์ และหลักฐานที่ใช้</label>
-                <textarea name="verification_method" class="form-control"
-                    rows="3">{{ tqf5.actual_teaching.get('verification_method', '') }}</textarea>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>ความคลาดเคลื่อนจากแผนการประเมิน (ถ้ามี)</label>
+                <textarea name="assessment_deviation" class="form-control" rows="3">{{ data.get('assessment_deviation', '') }}</textarea>
             </div>
-            <div class="form-group">
-                <label>แผนการปรับปรุงรายวิชาและข้อเสนอแนะ</label>
-                <textarea name="improvement_plan" class="form-control"
-                    rows="4">{{ tqf5.actual_teaching.get('improvement_plan', '') }}</textarea>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา</label>
+                <textarea name="verification" class="form-control" rows="3">{{ data.get('verification', '') }}</textarea>
             </div>
-        </section>
+
+            <div style="margin-top: 0.75rem; display:flex; gap: 0.75rem; flex-wrap: wrap; align-items:center;">
+                <div class="qtf-note" style="margin:0;">การกระจายของระดับคะแนน</div>
+            </div>
+
+            {% set ns2 = namespace(grade_idxs=[]) %}
+            {% for k in data.keys() %}
+                {% if k.startswith('g_level_') or k.startswith('g_count_') or k.startswith('g_percent_') %}
+                    {% set ns2.grade_idxs = ns2.grade_idxs + [k.split('_')[-1]|int] %}
+                {% endif %}
+            {% endfor %}
+            {% set grade_n = (ns2.grade_idxs|max) if ns2.grade_idxs else 1 %}
+            {% if grade_n < 1 %}{% set grade_n = 1 %}{% endif %}
+
+            {% set grade_options = ['A','B+','B','C+','C','D+','D','F','I','W','S','U','P','NP','M'] %}
+
+            <div style="overflow: auto; margin-top: 0.75rem;">
+                <table id="gradeTable" class="qtf-table" style="min-width: 720px;">
+                    <thead>
+                        <tr>
+                            <th style="width:20%">ระดับคะแนน</th>
+                            <th style="width:40%">จำนวนนักศึกษา (คน)</th>
+                            <th style="width:30%">คิดเป็นร้อยละ</th>
+                            <th style="width:20%; text-align:center;">จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(1, grade_n + 1) %}
+                        <tr>
+                            <td>
+                                {% set level_val = (data.get('g_level_' ~ i, '') or '') %}
+                                <select name="g_level_{{ i }}" class="form-control">
+                                    <option value="" {% if level_val == '' %}selected{% endif %}>-- เลือก --</option>
+                                    {% for opt in grade_options %}
+                                        <option value="{{ opt }}" {% if level_val == opt %}selected{% endif %}>{{ opt }}</option>
+                                    {% endfor %}
+                                </select>
+                            </td>
+                            <td><input name="g_count_{{ i }}" class="form-control" type="number" min="0" value="{{ data.get('g_count_' ~ i, '') }}" /></td>
+                            <td><input name="g_percent_{{ i }}" class="form-control" type="number" step="0.01" min="0" value="{{ data.get('g_percent_' ~ i, '') }}" /></td>
+                            <td style="text-align:center;"><button name="g_delete_{{ i }}" type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">ลบ</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: right; margin-top: 0.75rem;">
+                <div style=" display: flex; flex-wrap: wrap; justify-content: center;">
+                    <button style="width: 160px; height: 40px;" type="button" class="btn btn-primary" onclick="addGradeRow()">+ เพิ่มแถวเกรด</button></div>
+                <div style=" display: flex; flex-wrap: wrap; justify-content: center;">
+                    <button style="width: 160px; height: 40px;" type="button" class="btn btn-primary" onclick="calcPercent()">คำนวณ % </button></div>
+            </div>
+        </div>
+
+        <!-- 4) ปัญหาและผลกระทบ -->
+        <div class="qtf-card" style="margin-top: 3rem; border: 2px solid var(--border-color);">
+            <h3 style="display: flex; margin: -35px 35px 0 0; background-color: rgba(26, 36, 54, 1); width: fit-content;">4) ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้</h3>
+            {% set ns3 = namespace(issue_idxs=[]) %}
+            {% for k in data.keys() %}
+                {% if k.startswith('issue_') and (not k.startswith('issue_fix_')) %}
+                    {% set ns3.issue_idxs = ns3.issue_idxs + [k.split('_')[-1]|int] %}
+                {% endif %}
+            {% endfor %}
+            {% set issue_n = (ns3.issue_idxs|max) if ns3.issue_idxs else 1 %}
+            {% if issue_n < 1 %}{% set issue_n = 1 %}{% endif %}
+
+            <div style="overflow: auto; margin-top: 1.5rem;">
+                <table id="issueTable" class="qtf-table" style="min-width: 760px;">
+                    <thead>
+                        <tr>
+                            <th style="width:35%">ประเด็น</th>
+                            <th style="width:65%">แนวทางการปรับแก้ไข</th>
+                            <th style="width:84px">ลบ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(1, issue_n + 1) %}
+                        <tr>
+                            <td><textarea name="issue_{{ i }}" class="form-control" rows="2" placeholder="เช่น ด้านทรัพยากร/สิ่งสนับสนุนการเรียนรู้">{{ data.get('issue_' ~ i, '') }}</textarea></td>
+                            <td><textarea name="issue_fix_{{ i }}" class="form-control" rows="2">{{ data.get('issue_fix_' ~ i, '') }}</textarea></td>
+                            <td style="text-align:center;"><button type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">ลบ</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: right; margin-top: 0.75rem;">
+                <button style="width: 150px;" type="button" class="btn btn-primary" onclick="addIndexedRow('issueTable')">+ เพิ่มแถวปัญหา</button>
+            </div>
+        </div>
+
+        <!-- 5) การประเมินผลรายวิชา -->
+        <div class="qtf-card" style="margin-top: 3rem; border: 2px solid var(--border-color);">
+            <h3 style="display: flex; margin: -35px 35px 0 0; background-color: rgba(26, 36, 54, 1); width: fit-content;">5) การประเมินผลรายวิชา</h3>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>ข้อวิพากษ์ที่สำคัญจากผลการประเมินโดยนักศึกษา/ผู้เรียน</label>
+                <textarea name="eval_crit" class="form-control" rows="3">{{ data.get('eval_crit', '') }}</textarea>
+            </div>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์</label>
+                <textarea name="teacher_comment" class="form-control" rows="3">{{ data.get('teacher_comment', '') }}</textarea>
+            </div>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
+                <textarea name="improve_plan" class="form-control" rows="3" placeholder="เช่น ปรับการสอนให้ช้าลง, เพิ่มการปฏิบัติจริงให้มากขึ้น">{{ data.get('improve_plan', data.get('improvement_plan', '')) }}</textarea>
+                <input type="hidden" name="improvement_plan" value="{{ data.get('improve_plan', data.get('improvement_plan', '')) }}">
+            </div>
+            <div class="form-group" style="margin-top: 0.75rem;">
+                <label>ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</label>
+                <textarea name="suggest_to_committee" class="form-control" rows="3">{{ data.get('suggest_to_committee', '') }}</textarea>
+            </div>
+        </div>
+    </fieldset>
+    <div style="display: grid; margin-top: 1.5rem; grid-template-columns: 1fr 0.4fr;">
+        {% if not is_locked %}
+        <div>
+        </div>
+        <div style="display: flex; flex-direction: row; align-items: center; gap: 0.75rem;">
+            <button type="submit" name="action" value="draft" form="tqf5-form" class="btn btn-primary">บันทึกฉบับร่าง</button>
+            <button type="submit" name="action" value="submit" form="tqf5-form" class="btn btn-primary"
+                {% if not tqf3_ok %}disabled title="ต้องรอ มคอ.3 อนุมัติก่อน"{% else %}onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกเพื่อรอการตรวจสอบ')"{% endif %}>ส่งให้หัวหน้าสาขา</button>
+        </div>
+        {% else %}
+            <a href="{{ url_for('instructor_dashboard') }}" class="btn glass">ย้อนกลับ</a>
+        {% endif %}
+    </div>
 </form>
+
+
+
 {% endblock %}
+
+
+
 
 {% block scripts %}
 <script>
-    function addRow(tableId) {
-        const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
-        const firstRow = table.rows[0];
-        const newRow = firstRow.cloneNode(true);
+    function addIndexedRow(tableId) {
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector('tbody');
+        const last = tbody.querySelector('tr:last-child');
+        const clone = last.cloneNode(true);
 
-        // Clear inputs in new row
-        const inputs = newRow.getElementsByTagName('input');
-        for (let i = 0; i < inputs.length; i++) {
-            inputs[i].value = '';
-        }
-
-        table.appendChild(newRow);
+        clone.querySelectorAll('input, textarea, select').forEach((el) => {
+            el.value = '';
+            if (el.name) {
+                const m = el.name.match(/_(\d+)$/);
+                if (m) {
+                    const n = parseInt(m[1], 10) + 1;
+                    el.name = el.name.replace(/_(\d+)$/, '_' + n);
+                }
+            }
+        });
+        tbody.appendChild(clone);
     }
 
-    function removeRow(btn) {
+    function delLastRow(tableId) {
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector('tbody');
+        if (tbody.rows.length > 1) tbody.deleteRow(tbody.rows.length - 1);
+    }
+
+    function removeIndexedRow(btn) {
         const row = btn.closest('tr');
-        const tableBody = row.parentNode;
-        if (tableBody.rows.length > 1) {
+        const tbody = row.parentNode;
+        if (tbody.rows.length > 1) {
             row.remove();
-        } else {
-            const inputs = row.getElementsByTagName('input');
-            for (let i = 0; i < inputs.length; i++) inputs[i].value = '';
+            return;
         }
+
+        row.querySelectorAll('input, textarea, select').forEach((el) => {
+            el.value = '';
+        });
+    }
+
+    function addGradeRow() {
+        const tbody = document.querySelector('#gradeTable tbody');
+        const idx = tbody.rows.length + 1;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>
+                <select name="g_level_${idx}" class="form-control">
+                    <option value="" selected>-- เลือก --</option>
+                    <option value="A">A</option>
+                    <option value="B+">B+</option>
+                    <option value="B">B</option>
+                    <option value="C+">C+</option>
+                    <option value="C">C</option>
+                    <option value="D+">D+</option>
+                    <option value="D">D</option>
+                    <option value="F">F</option>
+                    <option value="I">I</option>
+                    <option value="W">W</option>
+                    <option value="S">S</option>
+                    <option value="U">U</option>
+                    <option value="P">P</option>
+                    <option value="NP">NP</option>
+                    <option value="M">M</option>
+                </select>
+            </td>
+            <td><input name="g_count_${idx}" class="form-control" type="number" min="0" /></td>
+            <td><input name="g_percent_${idx}" class="form-control" type="number" step="0.01" min="0" /></td>
+            <td style="text-align:center;"><button name="g_delete_${idx}" type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">ลบ</button></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function calcPercent() {
+        const remainEl = document.querySelector('[name="n_remain"]');
+        const remain = parseFloat(remainEl ? (remainEl.value || '') : '');
+
+        const rows = Array.from(document.querySelectorAll('#gradeTable tbody tr'));
+        let total = !isNaN(remain) && remain > 0 ? remain : 0;
+
+        if (!total) {
+            total = rows.reduce((sum, r) => {
+                const cEl = r.querySelector('input[name^="g_count_"]');
+                const c = parseFloat((cEl && cEl.value) || 0);
+                return sum + (isNaN(c) ? 0 : c);
+            }, 0);
+        }
+
+        if (!total) {
+            alert('กรุณากรอกจำนวนคงอยู่ หรือจำนวนในตารางเกรดก่อน');
+            return;
+        }
+
+        rows.forEach((r) => {
+            const cEl = r.querySelector('input[name^="g_count_"]');
+            const pEl = r.querySelector('input[name^="g_percent_"]');
+            const c = parseFloat((cEl && cEl.value) || 0);
+            const pct = (isNaN(c) ? 0 : c) * 100 / total;
+            if (pEl) pEl.value = (Math.round(pct * 100) / 100).toFixed(2);
+        });
     }
 </script>
 {% endblock %}

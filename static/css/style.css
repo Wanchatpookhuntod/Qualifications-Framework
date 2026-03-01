@@ -92,7 +92,7 @@ body {
     display: block;
     margin-bottom: 0.5rem;
     color: var(--text-muted);
-    font-size: 0.875rem;
+    font-size: 0.775rem;
 }
 
 .form-control {

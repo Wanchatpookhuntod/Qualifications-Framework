@@ -455,6 +455,49 @@ class TQF5(FirestoreModel):
 
 
 @dataclass
+class HeadTQF5Summary(FirestoreModel):
+    collection_name: ClassVar[str] = "head_tqf5_summaries"
+
+    term_id: str = ""
+    scope_type: str = ""  # department or program
+    scope_id: str = ""
+    head_id: str = ""
+    status: str = "DRAFT"
+    submitted_at: Optional[datetime] = None
+    source_tqf5_ids: List[str] = field(default_factory=list)
+    summary_data: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "term_id": self.term_id,
+            "scope_type": self.scope_type,
+            "scope_id": self.scope_id,
+            "head_id": self.head_id,
+            "status": self.status,
+            "submitted_at": self.submitted_at,
+            "source_tqf5_ids": list(self.source_tqf5_ids or []),
+            "summary_data": self.summary_data,
+        }
+
+    @classmethod
+    def from_dict(cls, doc_id: str, data: Dict[str, Any]) -> "HeadTQF5Summary":
+        source_tqf5_ids = data.get("source_tqf5_ids")
+        if not isinstance(source_tqf5_ids, list):
+            source_tqf5_ids = []
+        return cls(
+            id=doc_id,
+            term_id=(data.get("term_id") or ""),
+            scope_type=(data.get("scope_type") or ""),
+            scope_id=(data.get("scope_id") or ""),
+            head_id=(data.get("head_id") or ""),
+            status=(data.get("status") or "DRAFT"),
+            submitted_at=data.get("submitted_at"),
+            source_tqf5_ids=[str(v) for v in source_tqf5_ids if v],
+            summary_data=data.get("summary_data") or {},
+        )
+
+
+@dataclass
 class Feedback(FirestoreModel):
     collection_name: ClassVar[str] = "feedback"
 

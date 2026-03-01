@@ -1,0 +1,551 @@
+{% extends "base.html" %}
+
+{% block title %}สรุป มคอ.5{% endblock %}
+
+{% block content %}
+{% set summary_data = data or {} %}
+<style>
+    .summary-shell {
+        display: grid;
+        gap: 1.5rem;
+    }
+
+    .summary-hero {
+        padding: 1.5rem;
+        border-radius: 1.5rem;
+        background:
+            radial-gradient(circle at top left, rgba(99, 102, 241, 0.18), transparent 32%),
+            linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.88));
+        border: 1px solid rgba(99, 102, 241, 0.22);
+        
+    }
+
+    .summary-hero-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .summary-kpis {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 0.85rem;
+        margin-top: 1.25rem;
+    }
+
+    .summary-kpi {
+        padding: 0.95rem 1rem;
+        border-radius: 1rem;
+        background: rgba(15, 23, 42, 0.52);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .summary-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
+        gap: 1.5rem;
+        align-items: start;
+    }
+
+    .summary-main,
+    .summary-side {
+        display: grid;
+        gap: 1.25rem;
+    }
+
+    .summary-panel {
+        border-radius: 1.25rem;
+        overflow: hidden;
+    }
+
+    .summary-panel-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.2rem;
+        background: rgba(255, 255, 255, 0.04);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .summary-panel-body {
+        padding: 1rem 1.2rem 1.2rem;
+    }
+
+    .summary-table-wrap {
+        overflow-x: auto;
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+    }
+
+    .summary-table th,
+    .summary-table td {
+        padding: 0.72rem 0.8rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        vertical-align: top;
+    }
+
+    .summary-table th {
+        text-align: left;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        background: rgba(15, 23, 42, 0.5);
+    }
+
+    .summary-table tbody tr:nth-child(even) {
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .summary-empty {
+        padding: 1rem;
+        text-align: center;
+        color: var(--text-muted);
+    }
+
+    .summary-source-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.28rem 0.65rem;
+        border-radius: 999px;
+        font-size: 0.73rem;
+        color: var(--text-muted);
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .summary-side .summary-panel {
+        position: sticky;
+        top: 5rem;
+    }
+
+    .summary-form-grid {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .summary-form-grid.two {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .summary-form-card {
+        padding: 0.95rem;
+        border-radius: 1rem;
+        background: rgba(15, 23, 42, 0.34);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .summary-form-card label {
+        display: block;
+        margin-bottom: 0.4rem;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+    }
+
+    .summary-readonly {
+        white-space: pre-wrap;
+        line-height: 1.7;
+        font-size: 0.95rem;
+    }
+
+    .summary-section-anchor {
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        font-weight: 700;
+    }
+
+    @media (max-width: 1100px) {
+        .summary-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .summary-side .summary-panel {
+            position: static;
+        }
+    }
+
+    @media (max-width: 760px) {
+        .summary-kpis,
+        .summary-form-grid.two {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+
+    @media (max-width: 560px) {
+        .summary-kpis,
+        .summary-form-grid.two {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+{% macro render_table(title, subtitle, columns, rows, row_type='generic', editable=false, prefix='') %}
+<section class=" summary-panel">
+    <div class="summary-panel-head" style="background: none; border-bottom: none;">
+        <div>
+            <div class="summary-section-anchor">{{ title }}</div>
+            {% if subtitle %}<div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">{{ subtitle }}</div>{% endif %}
+        </div>
+        <span class="summary-source-chip">ข้อมูลจากผู้สอน</span>
+    </div>
+    <div class="summary-panel-body">
+        <div class="summary-table-wrap">
+            <table class="summary-table" style="background: none; border: none;">
+                <thead>
+                    <tr>
+                        {% for col in columns %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if rows %}
+                        {% for row in rows %}
+                        <tr>
+                            {% if row_type == 'courses' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                <input type="hidden" name="{{ prefix }}_section_number[]" value="{{ row.section_number }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td>{{ row.section_number }}</td>
+                            <td>{% if editable %}<input class="form-control" name="{{ prefix }}_student_count[]" value="{{ row.student_count }}">{% else %}{{ row.student_count }}{% endif %}</td>
+                            <td>{% if editable %}<input class="form-control" name="{{ prefix }}_instructor_name[]" value="{{ row.instructor_name }}">{% else %}{{ row.instructor_name }}{% endif %}</td>
+                            <td>{% if editable %}<input class="form-control" name="{{ prefix }}_result_score[]" value="{{ row.result_score }}">{% else %}{{ row.result_score }}{% endif %}</td>
+                            {% elif row_type == 'uncovered' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                <input type="hidden" name="{{ prefix }}_section_number[]" value="{{ row.section_number }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td>{{ row.section_number }}</td>
+                            <td style="white-space: pre-wrap;">{% if editable %}<textarea class="form-control" name="{{ prefix }}_detail[]" rows="3">{{ row.detail }}</textarea>{% else %}{{ row.detail }}{% endif %}</td>
+                            {% elif row_type == 'detail3' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                {{ row.course_code }}
+                            </td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                {{ row.course_name }}
+                            </td>
+                            <td style="white-space: pre-wrap;">{% if editable %}<textarea class="form-control" name="{{ prefix }}_detail[]" rows="4">{{ row.detail }}</textarea>{% else %}{{ row.detail }}{% endif %}</td>
+                            {% elif row_type == 'issue' %}
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td style="white-space: pre-wrap;">{% if editable %}<textarea class="form-control" name="{{ prefix }}_issue[]" rows="3">{{ row.issue }}</textarea>{% else %}{{ row.issue }}{% endif %}</td>
+                            <td style="white-space: pre-wrap;">{% if editable %}<textarea class="form-control" name="{{ prefix }}_fix[]" rows="3">{{ row.fix or '' }}</textarea>{% else %}{{ row.fix or '-' }}{% endif %}</td>
+                            {% elif row_type == 'feedback' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td style="white-space: pre-wrap;">{% if editable %}<textarea class="form-control" name="{{ prefix }}_detail[]" rows="4">{{ row.detail }}</textarea>{% else %}{{ row.detail }}{% endif %}</td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="{{ columns|length }}" class="summary-empty">ยังไม่มีข้อมูลจากผู้สอนในหัวข้อนี้</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endmacro %}
+
+<div class="summary-shell">
+    <section class="summary-hero">
+        <div class="summary-hero-top">
+            <div>
+                <a href="{{ back_url }}" style="color: #c7d2fe; font-size: 0.875rem;">← กลับ</a>
+                <h1 style="margin-top: 0.75rem; font-size: 1.55rem; line-height: 1.35;">{{ summary_data.get('report_title', 'สรุป มคอ.5') }}</h1>
+                <div style="margin-top: 0.4rem; color: var(--text-muted);">
+                    {{ summary_data.get('department_name') or summary_data.get('scope_label', '-') }}
+                    {% if summary_data.get('faculty_name') %} | {{ summary_data.get('faculty_name') }}{% endif %}
+                </div>
+                {% if summary_data.get('meeting_text') %}
+                <div style="margin-top: 0.85rem; max-width: 880px; color: #dbeafe; font-size: 0.94rem;">{{ summary_data.get('meeting_text') }}</div>
+                {% endif %}
+            </div>
+            <div style="display:flex; gap: 0.75rem; flex-wrap: wrap; align-items: center;">
+                <span class="status-badge" style="{% if summary.status == 'SUBMITTED' %}background: rgba(16, 185, 129, 0.16); color: #86efac;{% else %}background: rgba(99, 102, 241, 0.16); color: #c7d2fe;{% endif %}">
+                    {{ summary.status }}
+                </span>
+                {% if summary.submitted_at %}
+                <span style="color: var(--text-muted); font-size: 0.85rem;">ส่งเมื่อ {{ summary.submitted_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="summary-kpis">
+            <div class="summary-kpi">
+                <div style="font-size: 0.76rem; color: var(--text-muted);">รายวิชาที่สรุป</div>
+                <div style="font-size: 1.45rem; font-weight: 800;">{{ summary_data.get('courses_count', '0') }}</div>
+            </div>
+            <div class="summary-kpi">
+                <div style="font-size: 0.76rem; color: var(--text-muted);">ผู้สอน</div>
+                <div style="font-size: 1.45rem; font-weight: 800;">{{ summary_data.get('instructors_count', '0') }}</div>
+            </div>
+            <div class="summary-kpi">
+                <div style="font-size: 0.76rem; color: var(--text-muted);">ผู้เรียนทั้งหมด</div>
+                <div style="font-size: 1.45rem; font-weight: 800;">{{ summary_data.get('students_registered_total', '0') }}</div>
+            </div>
+            <div class="summary-kpi">
+                <div style="font-size: 0.76rem; color: var(--text-muted);">คงอยู่ / ถอน</div>
+                <div style="font-size: 1.45rem; font-weight: 800;">{{ summary_data.get('students_remain_total', '0') }} / {{ summary_data.get('students_withdraw_total', '0') }}</div>
+            </div>
+        </div>
+    </section>
+
+    <form id="summary-form" method="POST">
+        <div class="summary-main">
+            <div style="border-radius: 1.25rem; border: 1px solid rgba(255, 255, 255, 0.08); padding: 1rem; background-color: rgba(30, 41, 59, 0.88);">
+                <div style="background: none; border: none;">
+                    {{ render_table(
+                        '1. รายวิชาที่เปิดสอนในภาคการศึกษา',
+                        '',
+                        ['ที่', 'รายวิชา', 'หมู่เรียน', 'ผู้เรียน', 'ผู้สอน', 'ผลการปรับปรุง'],
+                        source_rows,
+                        'courses',
+                        can_edit,
+                        'source_rows'
+                    ) }}
+                </div>
+                <div style="margin-top: 1rem; background: none; ">
+                    {{ render_table(
+                        'หัวข้อที่สอนไม่ครอบคลุมตามแผน',
+                        '',
+                        ['ที่', 'รายวิชา', 'หมู่เรียน', 'หัวข้อที่สอนไม่ครอบคลุมตามแผน'],
+                        summary_data.get('uncovered_topic_rows', []),
+                        'uncovered',
+                        can_edit,
+                        'uncovered_topic_rows'
+                    ) }}
+                </div>
+            </div>
+            <div style="border-radius: 1.25rem; margin-top: 1rem; padding: 1rem; background-color: rgba(30, 41, 59, 0.88);">
+                {{ render_table(
+                    '2. ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้',
+                    '',
+                    ['ที่', 'รหัสวิชา', 'ชื่อวิชา', 'มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้'],
+                    summary_data.get('during_improve_rows', []),
+                    'detail3',
+                    can_edit,
+                    'during_improve_rows'
+                ) }}
+            </div>
+
+            <div style="margin-top: 1rem; background: none;">
+                    {{ render_table(
+                        '3. ผลสัมฤทธิ์ของนักศึกษาในแต่ละวิชา',
+                        '',
+                        ['ที่', 'รหัสวิชา', 'ชื่อวิชา', 'ผลสัมฤทธิ์ของนักศึกษาในแต่ละวิชา'],
+                        summary_data.get('result_rows', []),
+                        'detail3',
+                        can_edit,
+                        'result_rows'
+                    ) }}
+            </div>
+            <div style="margin-top: 1rem; background: none;">
+                    {{ render_table(
+                        '4. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้',
+                        '',
+                        ['รายวิชา', 'ประเด็น', 'แนวทางการปรับแก้ไข'],
+                        summary_data.get('issue_rows', []),
+                        'issue',
+                        can_edit,
+                        'issue_rows'
+                    ) }}
+            </div>
+
+            <div style="margin-top: 1rem; background: none;">
+                    {{ render_table(
+                        '5. ข้อเสนอแนะและการปรับปรุงการจัดการเรียนรู้',
+                        '',
+                        ['ที่', 'รหัสวิชาและชื่อวิชา', 'ข้อเสนอแนะและการปรับปรุงการจัดการเรียนรู้'],
+                        summary_data.get('feedback_rows', []),
+                        'feedback',
+                        can_edit,
+                        'feedback_rows'
+                    ) }}    
+
+            </div>
+
+            <div style="margin-top: 1rem; background: none;">
+                {{ render_table(
+                    '3. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษาในแต่ละวิชา',
+                    '',
+                    ['ที่', 'รหัสวิชา', 'ชื่อวิชา', 'กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา'],
+                    summary_data.get('verification_rows', []),
+                    'detail3',
+                    can_edit,
+                    'verification_rows'
+                ) }}
+                
+            </div>
+
+            <div style="margin-top: 1rem; background: none;">
+                {{ render_table(
+                    '4. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้',
+                    '',
+                    ['รายวิชา', 'ประเด็น', 'แนวทางการปรับแก้ไข'],
+                    summary_data.get('issue_rows', []),
+                    'issue',
+                    can_edit,
+                    'issue_rows'
+                ) }}
+
+            </div>
+
+            <div style="margin-top: 1rem; background: none;">
+                {{ render_table(
+                    '5.1 ข้อวิพากษ์ที่สำคัญจากผลการประเมินโดยนักศึกษา/ผู้เรียน',
+                    '',
+                    ['ที่', 'รหัสวิชาและชื่อวิชา', 'ข้อวิพากษ์ที่สำคัญจากผลการประเมิน'],
+                    summary_data.get('eval_crit_rows', []),
+                    'feedback',
+                    can_edit,
+                    'eval_crit_rows'
+                ) }}
+
+            </div>
+
+            <div style="margin-top: 1rem; background: none;">
+                {{ render_table(
+                    '5.2 ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์',
+                    '',
+                    ['ที่', 'รหัสวิชาและชื่อวิชา', 'ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์'],
+                    summary_data.get('teacher_comment_rows', []),
+                    'feedback',
+                    can_edit,
+                    'teacher_comment_rows'
+                ) }}
+                
+            </div>
+            <div style="margin-top: 1rem; background: none;">
+                {{ render_table(
+                    '5.3 แผนการปรับปรุงการจัดการเรียนรู้ของอาจารย์ผู้สอนรายวิชา',
+                    '',
+                    ['ที่', 'รหัสวิชาและชื่อวิชา', 'แผนการปรับปรุงการจัดการเรียนรู้'],
+                    summary_data.get('improve_plan_rows', []),
+                    'feedback',
+                    can_edit,
+                    'improve_plan_rows'
+                ) }}
+
+            </div>
+            <div style="margin-top: 1rem; background: none;">
+                
+                {{ render_table(
+                    'ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร',
+                    '',
+                    ['ที่', 'รหัสวิชาและชื่อวิชา', 'ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร'],
+                    summary_data.get('committee_suggestion_rows', []),
+                    'feedback',
+                    can_edit,
+                    'committee_suggestion_rows'
+                ) }}
+
+            </div>
+            
+        </div>
+
+        <div class="summary-side" style="margin-top: 1.5rem;">
+            <div class="glass summary-panel">
+                <div class="summary-panel-head">
+                    <div>
+                        <div class="summary-section-anchor">ส่วนของหัวหน้า</div>
+                        <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.2rem;">ตรวจทานข้อมูลจากผู้สอน แล้วแก้ไข/สรุปก่อนส่งฝ่ายวิชาการ</div>
+                    </div>
+                    {% if can_edit %}<span class="summary-source-chip">แก้ไขได้</span>{% endif %}
+                </div>
+                <div class="summary-panel-body">
+                    <div style="margin-bottom: 1rem; padding: 0.85rem 0.95rem; border-radius: 1rem; background: rgba(99, 102, 241, 0.08); color: #dbeafe; font-size: 0.88rem; border: 1px solid rgba(99, 102, 241, 0.16);">
+                        การแก้ไขในหน้านี้จะบันทึกเฉพาะเอกสารสรุปของหัวหน้า และไม่กระทบ มคอ.5 ต้นฉบับของผู้สอน
+                    </div>
+                    <div class="summary-form-grid two">
+                        <div class="summary-form-card">
+                            <label for="faculty_name">คณะ</label>
+                            {% if can_edit %}
+                            <input id="faculty_name" name="faculty_name" class="form-control" value="{{ summary_data.get('faculty_name', '') }}">
+                            {% else %}
+                            <div class="summary-readonly">{{ summary_data.get('faculty_name', '-') }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="summary-form-card">
+                            <label for="program_names">หลักสูตรที่สรุป</label>
+                            {% if can_edit %}
+                            <input id="program_names" name="program_names" class="form-control" value="{{ summary_data.get('program_names', '') }}">
+                            {% else %}
+                            <div class="summary-readonly">{{ summary_data.get('program_names', '-') }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="summary-form-card" style="margin-top: 1rem;">
+                        <label for="meeting_text">ข้อความการประชุม/รับรองรายงาน</label>
+                        {% if can_edit %}
+                        <textarea id="meeting_text" name="meeting_text" class="form-control" rows="3" placeholder="เช่น มีมติการประชุมคณะกรรมการบริหารหลักสูตร ครั้งที่ 1/2568 วันที่ ... เวลา ... น.">{{ summary_data.get('meeting_text', '') }}</textarea>
+                        {% else %}
+                        <div class="summary-readonly">{{ summary_data.get('meeting_text', '-') }}</div>
+                        {% endif %}
+                    </div>
+
+                    {% for field_name, label, rows in [
+                        ('grade_summary', 'สรุปผลการเรียน/การกระจายเกรดภาพรวม', 4),
+                        ('head_conclusion', 'ข้อเสนอแนะสำหรับการปรับปรุงหลักสูตร', 6),
+                        ('head_recommendation', 'ผลการประชุมของคณะกรรมการบริหารหลักสูตร', 6)
+                    ] %}
+                    <div class="summary-form-card" style="margin-top: 1rem;">
+                        <label for="{{ field_name }}">{{ label }}</label>
+                        {% if can_edit %}
+                        <textarea id="{{ field_name }}" name="{{ field_name }}" class="form-control" rows="{{ rows }}">{{ summary_data.get(field_name, '') }}</textarea>
+                        {% else %}
+                        <div class="summary-readonly">{{ summary_data.get(field_name, '-') }}</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+
+                    {% if can_edit %}
+                    <div style="display:grid; gap: 0.75rem; margin-top: 1rem;">
+                        <button type="submit" name="action" value="regenerate" class="btn glass">อัปเดตจากเอกสารผู้สอน</button>
+                        <button type="submit" name="action" value="save" class="btn btn-secondary" style="color: var(--text-muted);">บันทึกร่างของหัวหน้า</button>
+                        <button type="submit" name="action" value="submit" class="btn btn-primary">ส่งฝ่ายวิชาการ</button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

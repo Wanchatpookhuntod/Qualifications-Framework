@@ -26,6 +26,7 @@
     {% if selected_term_id %}
     <div style="margin-bottom: 1.25rem;">
         <a class="btn glass" style="border-color: var(--border-color); color: var(--text-muted);" href="{{ url_for('head_term_documents', term_id=selected_term_id) }}">📄 รวม มคอ. ของเทอมนี้</a>
+        <a class="btn glass" style="border-color: var(--border-color); color: var(--text-muted);" href="{{ url_for('head_tqf5_summary', term_id=selected_term_id) }}">🧾 สรุป มคอ.5 ระดับหัวหน้า</a>
     </div>
     {% endif %}
 

@@ -3,6 +3,7 @@ import os
 import csv
 import io
 import re
+from collections import Counter
 from datetime import datetime
 from functools import wraps
 
@@ -29,6 +30,7 @@ from models import (
     Department,
     Faculty,
     Feedback,
+    HeadTQF5Summary,
     Program,
     Section,
     Term,
@@ -629,6 +631,283 @@ def _is_system_locked() -> bool:
 def users_with_role(role_name: str):
     users = User.find_all()
     return [u for u in users if u.has_role(role_name)]
+
+
+def _get_head_scope(user: User) -> dict:
+    if getattr(user, "department_id", None):
+        department = Department.get(user.department_id)
+        programs = Program.find_by("department_id", user.department_id)
+        return {
+            "scope_type": "department",
+            "scope_id": user.department_id,
+            "scope_label": department.name if department else "สาขา",
+            "program_ids": {p.id for p in programs if p.id},
+        }
+    if getattr(user, "program_id", None):
+        program = Program.get(user.program_id)
+        return {
+            "scope_type": "program",
+            "scope_id": user.program_id,
+            "scope_label": program.name if program else "หลักสูตร",
+            "program_ids": {user.program_id},
+        }
+    return {"scope_type": "", "scope_id": "", "scope_label": "", "program_ids": set()}
+
+
+def _extract_tqf5_issue_lines(actual_teaching: dict) -> list[str]:
+    lines = []
+    for key, value in sorted((actual_teaching or {}).items()):
+        if not key.startswith("issue_") or key.startswith("issue_fix_"):
+            continue
+        idx = key.split("_")[-1]
+        issue = str(value or "").strip()
+        fix = str((actual_teaching or {}).get(f"issue_fix_{idx}") or "").strip()
+        if issue or fix:
+            parts = [p for p in [issue, fix] if p]
+            lines.append(" / ".join(parts))
+    fallback = str((actual_teaching or {}).get("problems_fixed") or "").strip()
+    if fallback and fallback not in lines:
+        lines.append(fallback)
+    return lines
+
+
+def _clean_multiline(value: object) -> str:
+    return str(value or "").strip()
+
+
+def _build_head_tqf5_summary_payload(term: Term, scope: dict, sections: list[Section], tqf5_docs: list[TQF5]) -> dict:
+    sections = sections or []
+    tqf5_docs = tqf5_docs or []
+    instructor_names = set()
+    faculty_names = set()
+    program_names = set()
+    students_registered = 0
+    students_remain = 0
+    students_withdraw = 0
+    grade_counter = Counter()
+    issue_lines = []
+    verification_lines = []
+    student_feedback_lines = []
+    improvement_lines = []
+    teaching_adjustment_lines = []
+    source_rows = []
+    uncovered_topic_rows = []
+    during_improve_rows = []
+    verification_rows = []
+    eval_crit_rows = []
+    teacher_comment_rows = []
+    improve_plan_rows = []
+    committee_suggestion_rows = []
+    issue_rows = []
+
+    tqf5_by_section = {doc.section_id: doc for doc in tqf5_docs if doc.section_id}
+    for section in sections:
+        tqf5 = tqf5_by_section.get(section.id)
+        if not tqf5:
+            continue
+        actual = tqf5.actual_teaching or {}
+        course = getattr(section, "course", None)
+        term_obj = getattr(section, "term", None) or term
+        instructor = getattr(section, "instructor", None)
+        program = course.program if course else None
+        faculty = program.faculty if program else None
+
+        if instructor and instructor.full_name:
+            instructor_names.add(instructor.full_name)
+        if faculty and faculty.name:
+            faculty_names.add(faculty.name)
+        if program and program.name:
+            label = program.name if not program.year else f"{program.name} ({program.year})"
+            program_names.add(label)
+
+        def _to_int(value) -> int:
+            try:
+                text = str(value or "").strip()
+                return int(text) if text else 0
+            except Exception:
+                return 0
+
+        students_registered += _to_int(actual.get("n_registered", actual.get("students_enrolled")))
+        students_remain += _to_int(actual.get("n_remain", actual.get("students_finished")))
+        students_withdraw += _to_int(actual.get("n_withdraw", actual.get("students_withdrawn")))
+
+        for key, value in actual.items():
+            if not key.startswith("g_level_"):
+                continue
+            idx = key.split("_")[-1]
+            level = str(value or "").strip()
+            count = _to_int(actual.get(f"g_count_{idx}"))
+            if level and count:
+                grade_counter[level] += count
+
+        for issue in _extract_tqf5_issue_lines(actual):
+            if issue and issue not in issue_lines:
+                issue_lines.append(issue)
+
+        for source_key, sink in (
+            ("verification", verification_lines),
+            ("verification_method", verification_lines),
+            ("eval_crit", student_feedback_lines),
+            ("teacher_comment", student_feedback_lines),
+            ("improve_plan", improvement_lines),
+            ("improvement_plan", improvement_lines),
+            ("suggest_to_committee", improvement_lines),
+            ("during_improve", teaching_adjustment_lines),
+            ("uncovered_topics", teaching_adjustment_lines),
+            ("assessment_deviation", teaching_adjustment_lines),
+            ("grade_abnormal_reason", teaching_adjustment_lines),
+        ):
+            value = str(actual.get(source_key) or "").strip()
+            if value and value not in sink:
+                sink.append(value)
+
+        source_rows.append(
+            {
+                "section_id": section.id,
+                "tqf5_id": tqf5.id,
+                "course_code": course.code if course else "-",
+                "course_name": course.name_th if course else "-",
+                "section_number": section.section_number or "-",
+                "student_count": _to_int(actual.get("n_registered", actual.get("students_enrolled"))),
+                "instructor_name": instructor.full_name if instructor else "-",
+                "status": tqf5.status,
+                "result_score": (
+                    actual.get("result_score")
+                    or actual.get("course_result")
+                    or actual.get("improvement_result")
+                    or "-"
+                ),
+                "submitted_at": tqf5.submitted_at,
+                "term_label": f"{term_obj.semester}/{term_obj.year}" if term_obj else "-",
+            }
+        )
+
+        uncovered_topics = _clean_multiline(actual.get("uncovered_topics", actual.get("deviations")))
+        if uncovered_topics:
+            uncovered_topic_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "section_number": section.section_number or "-",
+                    "detail": uncovered_topics,
+                }
+            )
+
+        during_improve = _clean_multiline(actual.get("during_improve"))
+        if during_improve:
+            during_improve_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "detail": during_improve,
+                }
+            )
+
+        verification_text = _clean_multiline(actual.get("verification", actual.get("verification_method")))
+        if verification_text:
+            verification_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "detail": verification_text,
+                }
+            )
+
+        eval_crit = _clean_multiline(actual.get("eval_crit"))
+        if eval_crit:
+            eval_crit_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "detail": eval_crit,
+                }
+            )
+
+        teacher_comment = _clean_multiline(actual.get("teacher_comment"))
+        if teacher_comment:
+            teacher_comment_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "detail": teacher_comment,
+                }
+            )
+
+        improve_plan = _clean_multiline(actual.get("improve_plan", actual.get("improvement_plan")))
+        if improve_plan:
+            improve_plan_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "detail": improve_plan,
+                }
+            )
+
+        committee_suggestion = _clean_multiline(actual.get("suggest_to_committee"))
+        if committee_suggestion:
+            committee_suggestion_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "detail": committee_suggestion,
+                }
+            )
+
+        for issue in _extract_tqf5_issue_lines(actual):
+            issue_rows.append(
+                {
+                    "section_id": section.id,
+                    "course_code": course.code if course else "-",
+                    "course_name": course.name_th if course else "-",
+                    "issue": issue.split(" / ")[0] if " / " in issue else issue,
+                    "fix": issue.split(" / ", 1)[1] if " / " in issue else "",
+                }
+            )
+
+    grade_summary_lines = []
+    for level, count in sorted(grade_counter.items()):
+        base = students_remain or students_registered
+        percent = round((count / base) * 100, 2) if base else 0
+        grade_summary_lines.append(f"{level}: {count} คน ({percent}%)")
+
+    return {
+        "report_title": f"สรุปรายงานผลการดำเนินการของรายวิชา (มคอ.5) ภาคการศึกษาที่ {term.semester}/{term.year}",
+        "meeting_text": "",
+        "department_name": scope.get("scope_label") or "",
+        "faculty_name": ", ".join(sorted(faculty_names)),
+        "scope_label": scope.get("scope_label") or "",
+        "program_names": ", ".join(sorted(program_names)),
+        "term_label": f"{term.semester}/{term.year}" if term else "",
+        "courses_count": str(len(source_rows)),
+        "instructors_count": str(len(instructor_names)),
+        "students_registered_total": str(students_registered),
+        "students_remain_total": str(students_remain),
+        "students_withdraw_total": str(students_withdraw),
+        "grade_summary": "\n".join(grade_summary_lines),
+        "issue_summary": "\n".join(f"- {line}" for line in issue_lines),
+        "teaching_adjustment_summary": "\n".join(f"- {line}" for line in teaching_adjustment_lines),
+        "verification_summary": "\n".join(f"- {line}" for line in verification_lines),
+        "student_feedback_summary": "\n".join(f"- {line}" for line in student_feedback_lines),
+        "improvement_plan_summary": "\n".join(f"- {line}" for line in improvement_lines),
+        "head_conclusion": "",
+        "head_recommendation": "",
+        "source_rows": source_rows,
+        "uncovered_topic_rows": uncovered_topic_rows,
+        "during_improve_rows": during_improve_rows,
+        "verification_rows": verification_rows,
+        "issue_rows": issue_rows,
+        "eval_crit_rows": eval_crit_rows,
+        "teacher_comment_rows": teacher_comment_rows,
+        "improve_plan_rows": improve_plan_rows,
+        "committee_suggestion_rows": committee_suggestion_rows,
+    }
 
 
 # --- Routes ---
@@ -1702,6 +1981,166 @@ def _build_tqf_full_parts(tqf_type: str, tqf: object) -> list[dict]:
     return [{"title": title, "pretty": _pretty_json(data)} for title, data in parts]
 
 
+def _find_head_tqf5_summary(term_id: str, scope: dict) -> HeadTQF5Summary | None:
+    rows = HeadTQF5Summary.find_by("term_id", term_id)
+    for row in rows:
+        if row.scope_type == scope.get("scope_type") and row.scope_id == scope.get("scope_id"):
+            return row
+    return None
+
+
+def _get_head_summary_sources(term: Term, scope: dict) -> tuple[list[Section], list[TQF5]]:
+    program_ids = set(scope.get("program_ids") or set())
+    sections = Section.find_by("term_id", term.id)
+    course_ids = {s.course_id for s in sections if s.course_id}
+    courses = [c for c in (Course.get(cid) for cid in course_ids) if c]
+    course_by_id = {c.id: c for c in courses if c.id}
+
+    instructors = users_with_role("instructor")
+    instructor_by_id = {u.id: u for u in instructors if u.id}
+
+    tqf5_docs = [doc for doc in TQF5.find_all() if doc.status in ["SUBMITTED", "APPROVED"]]
+    tqf5_by_section = {doc.section_id: doc for doc in tqf5_docs if doc.section_id}
+
+    scoped_sections = []
+    scoped_tqf5 = []
+    for section in sections:
+        course = course_by_id.get(section.course_id)
+        if not course or not course.program_id or course.program_id not in program_ids:
+            continue
+        tqf5 = tqf5_by_section.get(section.id)
+        if not tqf5:
+            continue
+        section.course = course
+        section.term = term
+        section.instructor = instructor_by_id.get(section.instructor_id)
+        section.tqf5 = tqf5
+        scoped_sections.append(section)
+        scoped_tqf5.append(tqf5)
+
+    scoped_sections.sort(key=lambda s: (s.course.code if s.course else "", s.section_number or ""))
+    return scoped_sections, scoped_tqf5
+
+
+def _upsert_head_tqf5_summary(term: Term, scope: dict, head_user: User, preserve_existing: bool = True) -> HeadTQF5Summary:
+    summary = _find_head_tqf5_summary(term.id, scope)
+    sections, tqf5_docs = _get_head_summary_sources(term, scope)
+    auto_payload = _build_head_tqf5_summary_payload(term, scope, sections, tqf5_docs)
+    source_ids = [doc.id for doc in tqf5_docs if doc.id]
+
+    if not summary:
+        summary = HeadTQF5Summary(
+            term_id=term.id,
+            scope_type=scope.get("scope_type") or "",
+            scope_id=scope.get("scope_id") or "",
+            head_id=head_user.id or "",
+            status="DRAFT",
+            source_tqf5_ids=source_ids,
+            summary_data=auto_payload,
+        ).save()
+    else:
+        existing = dict(summary.summary_data or {})
+        if preserve_existing:
+            for key, value in existing.items():
+                if key in ("head_conclusion", "head_recommendation") and str(value or "").strip():
+                    auto_payload[key] = value
+        summary.head_id = head_user.id or summary.head_id
+        summary.source_tqf5_ids = source_ids
+        summary.summary_data = auto_payload
+        summary.save()
+
+    return summary
+
+
+@app.route("/head/term/<term_id>/tqf5-summary", methods=["GET", "POST"])
+@login_required
+@roles_required("head")
+def head_tqf5_summary(term_id):
+    term = _get_or_404(Term, term_id)
+    scope = _get_head_scope(current_user)
+    if not scope.get("program_ids"):
+        flash("ไม่พบขอบเขตหลักสูตร/สาขาที่รับผิดชอบ", "warning")
+        return redirect(url_for("head_dashboard"))
+
+    summary = _upsert_head_tqf5_summary(term, scope, current_user, preserve_existing=True)
+
+    if request.method == "POST":
+        action = request.form.get("action") or "save"
+        if action == "regenerate":
+            summary = _upsert_head_tqf5_summary(term, scope, current_user, preserve_existing=True)
+            flash("อัปเดตข้อมูลสรุปจาก มคอ.5 ล่าสุดแล้ว", "success")
+            return redirect(url_for("head_tqf5_summary", term_id=term.id))
+
+        data = dict(summary.summary_data or {})
+        editable_fields = [
+            "report_title",
+            "meeting_text",
+            "department_name",
+            "faculty_name",
+            "scope_label",
+            "program_names",
+            "courses_count",
+            "instructors_count",
+            "students_registered_total",
+            "students_remain_total",
+            "students_withdraw_total",
+            "grade_summary",
+            "issue_summary",
+            "teaching_adjustment_summary",
+            "verification_summary",
+            "student_feedback_summary",
+            "improvement_plan_summary",
+            "head_conclusion",
+            "head_recommendation",
+        ]
+        for field_name in editable_fields:
+            if field_name in request.form:
+                data[field_name] = request.form.get(field_name)
+
+        summary.summary_data = data
+        summary.status = "SUBMITTED" if action == "submit" else "DRAFT"
+        if action == "submit":
+            summary.submitted_at = _utcnow()
+            flash("ส่งสรุป มคอ.5 ให้ฝ่ายวิชาการแล้ว", "success")
+        else:
+            flash("บันทึกร่างสรุป มคอ.5 แล้ว", "success")
+        summary.save()
+        return redirect(url_for("head_tqf5_summary", term_id=term.id))
+
+    source_rows = summary.summary_data.get("source_rows") or []
+    return render_template(
+        "head/tqf5_summary.html",
+        term=term,
+        summary=summary,
+        data=summary.summary_data or {},
+        source_rows=source_rows,
+        scope=scope,
+        can_edit=True,
+        back_url=url_for("head_term_documents", term_id=term.id),
+    )
+
+
+@app.route("/academic/head-tqf5-summary/<summary_id>")
+@login_required
+@roles_required("academic")
+def academic_view_head_tqf5_summary(summary_id):
+    summary = _get_or_404(HeadTQF5Summary, summary_id)
+    if summary.status != "SUBMITTED":
+        flash("เอกสารสรุปนี้ยังไม่ได้ส่งให้ฝ่ายวิชาการ", "warning")
+        return redirect(url_for("academic_term_documents", term_id=summary.term_id))
+    term = Term.get(summary.term_id) if summary.term_id else None
+    return render_template(
+        "head/tqf5_summary.html",
+        term=term,
+        summary=summary,
+        data=summary.summary_data or {},
+        source_rows=(summary.summary_data or {}).get("source_rows") or [],
+        scope={"scope_label": (summary.summary_data or {}).get("scope_label") or ""},
+        can_edit=False,
+        back_url=url_for("academic_term_documents", term_id=summary.term_id) if summary.term_id else url_for("academic_dashboard"),
+    )
+
+
 @app.route("/head/review/<tqf_type>/<tqf_id>", methods=["GET", "POST"])
 @login_required
 @roles_required("head")
@@ -2500,6 +2939,10 @@ def academic_term_documents(term_id):
     tqf5_submitted = sum(1 for s in rows if s.tqf5 and s.tqf5.status in ["SUBMITTED", "APPROVED"])
     tqf5_approved = sum(1 for s in rows if s.tqf5 and s.tqf5.status == "APPROVED")
 
+    submitted_head_summaries = [
+        row for row in HeadTQF5Summary.find_by("term_id", term_id) if row.status == "SUBMITTED"
+    ]
+
     return render_template(
         "academic/term_documents.html",
         term=term,
@@ -2513,6 +2956,7 @@ def academic_term_documents(term_id):
             "tqf5_submitted": tqf5_submitted,
             "tqf5_approved": tqf5_approved,
         },
+        submitted_head_summaries=submitted_head_summaries,
         is_system_locked=_is_system_locked(),
     )
 
@@ -2522,6 +2966,7 @@ def academic_term_documents(term_id):
 @roles_required("head")
 def head_term_documents(term_id):
     term = _get_or_404(Term, term_id)
+    scope = _get_head_scope(current_user)
 
     # Head belongs to a department (สาขา) which may have multiple programs.
     program_ids = set()
@@ -2574,6 +3019,7 @@ def head_term_documents(term_id):
     tqf3_approved = sum(1 for s in rows if s.tqf3 and s.tqf3.status == "APPROVED")
     tqf5_submitted = sum(1 for s in rows if s.tqf5 and s.tqf5.status in ["SUBMITTED", "APPROVED"])
     tqf5_approved = sum(1 for s in rows if s.tqf5 and s.tqf5.status == "APPROVED")
+    summary = _find_head_tqf5_summary(term.id, scope) if scope.get("program_ids") else None
 
     return render_template(
         "head/term_documents.html",
@@ -2586,6 +3032,7 @@ def head_term_documents(term_id):
             "tqf5_submitted": tqf5_submitted,
             "tqf5_approved": tqf5_approved,
         },
+        summary=summary,
     )
 
 

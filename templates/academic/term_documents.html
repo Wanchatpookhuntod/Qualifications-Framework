@@ -54,6 +54,32 @@
     </div>
 </div>
 
+<div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 1.5rem;">
+    <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem;">
+        <div>
+            <div style="font-weight: 800;">สรุป มคอ.5 จากหัวหน้าสาขา</div>
+            <div style="color: var(--text-muted); font-size: 0.95rem;">เอกสารสรุปรวมที่หัวหน้าส่งต่อให้ฝ่ายวิชาการ</div>
+        </div>
+        <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">จำนวน {{ submitted_head_summaries|length }} ฉบับ</span>
+    </div>
+    <div style="display:grid; gap: 0.75rem;">
+        {% for row in submitted_head_summaries %}
+        <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap; border: 1px solid var(--border-color); border-radius: 1rem; padding: 0.875rem 1rem;">
+            <div>
+                <div style="font-weight: 700;">{{ (row.summary_data or {}).get('scope_label', 'สรุป มคอ.5') }}</div>
+                <div style="color: var(--text-muted); font-size: 0.875rem;">
+                    {{ (row.summary_data or {}).get('program_names', '-') }}
+                    {% if row.submitted_at %} | ส่งเมื่อ {{ row.submitted_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+                </div>
+            </div>
+            <a class="btn glass" style="color: var(--text-muted);" href="{{ url_for('academic_view_head_tqf5_summary', summary_id=row.id) }}">👁️ เปิดสรุป</a>
+        </div>
+        {% else %}
+        <div style="color: var(--text-muted); font-size: 0.95rem;">ยังไม่มีหัวหน้าส่งสรุป มคอ.5 สำหรับเทอมนี้</div>
+        {% endfor %}
+    </div>
+</div>
+
 <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
     <div style="overflow-x: auto;">
         <table style="width: 100%; border-collapse: collapse;">

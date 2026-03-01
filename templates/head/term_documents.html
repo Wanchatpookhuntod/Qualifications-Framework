@@ -9,6 +9,7 @@
         <h2 style="margin-top: 1rem;">📚 รวม มคอ. ตามเทอม (สำหรับหัวหน้าสาขา)</h2>
         <p style="color: var(--text-muted); margin: 0.25rem 0 0;">เทอม {{ term.semester }}/{{ term.year }} — เปิดดูและอนุมัติได้ตามสิทธิ์ของสาขา</p>
     </div>
+    <a href="{{ url_for('head_tqf5_summary', term_id=term.id) }}" class="btn glass" style="color: var(--text-muted);">🧾 {{ 'แก้ไข' if summary else 'สร้าง' }} สรุป มคอ.5</a>
 </div>
 
 <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 1.5rem;">

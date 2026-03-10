@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>คู่มือ Head — ระบบ TQF</title>
+  <link rel="stylesheet" href="/static/manual/_base.css" />
+  <style>
+    :root { --role-color: #15803d; --role-bg: #dcfce7; }
+    .site-header {
+      background: linear-gradient(135deg, #14532d 0%, #15803d 100%);
+      color: white; padding: 28px 32px 28px;
+    }
+    .site-header .role-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 100px; padding: 4px 14px;
+      font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    }
+    .site-header h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 6px; }
+    .site-header p { font-size: 14px; opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-topbar">
+    <div class="breadcrumb">
+      <a href="/manual">คู่มือการใช้งาน</a> › หัวหน้าสาขา
+    </div>
+    <a href="/head/dashboard" class="btn-back-dashboard">← กลับหน้าหลัก</a>
+  </div>
+  <div class="role-tag">🎓 Head</div>
+  <h1>คู่มือหัวหน้าสาขา</h1>
+  <p>มอบหมายอาจารย์ผู้สอน ตรวจสอบ และอนุมัติเอกสาร มคอ.3 / มคอ.5</p>
+</header>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- TOC -->
+    <aside class="toc">
+      <div class="toc-nav-actions">
+        <a href="/head/dashboard" class="back-link">← กลับหน้าหลัก</a>
+        <a href="/manual" class="alt-link">เลือกบทบาทอื่น</a>
+      </div>
+      <h3>สารบัญ</h3>
+      <ul>
+        <li><a href="#overview"   class="toc-link">ภาพรวม Head</a></li>
+        <li><a href="#dashboard"  class="toc-link">Dashboard</a></li>
+        <li>
+          <a href="#assign"       class="toc-link">มอบหมายอาจารย์</a>
+        </li>
+        <li>
+          <a href="#review"       class="toc-link">ตรวจสอบ/อนุมัติ มคอ.</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#review-tqf3"  class="toc-link">ตรวจสอบ มคอ.3</a></li>
+            <li><a href="#review-tqf5"  class="toc-link">ตรวจสอบ มคอ.5</a></li>
+            <li><a href="#approve"      class="toc-link">อนุมัติ vs ตีกลับ</a></li>
+          </ul></div>
+        </li>
+        <li><a href="#summary"    class="toc-link">รายงานสรุป มคอ.5</a></li>
+        <li><a href="#documents"  class="toc-link">ดูเอกสารทั้งหมด</a></li>
+        <li><a href="#workflow"   class="toc-link">ขั้นตอนภาพรวม</a></li>
+        <li><a href="#account"    class="toc-link">ตั้งค่าบัญชี</a></li>
+        <li><a href="#faq"        class="toc-link">คำถามที่พบบ่อย</a></li>
+      </ul>
+    </aside>
+
+    <main class="content">
+
+      <!-- OVERVIEW -->
+      <section id="overview">
+        <h2 class="section-title">🎓 ภาพรวม Head</h2>
+        <p>หัวหน้าสาขาเป็นผู้ควบคุมคุณภาพเอกสาร มคอ. ในสาขาวิชาที่รับผิดชอบ มีหน้าที่หลัก 3 อย่าง</p>
+        <table>
+          <thead><tr><th>หน้าที่</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td>มอบหมายอาจารย์</td><td>กำหนดอาจารย์ผู้สอนให้กับแต่ละ Section</td></tr>
+            <tr><td>ตรวจสอบและอนุมัติ</td><td>รีวิว มคอ.3 และ มคอ.5 แล้วอนุมัติหรือตีกลับ</td></tr>
+            <tr><td>จัดทำรายงานสรุป</td><td>สรุปภาพรวม มคอ.5 ของทั้งสาขาในแต่ละภาคการศึกษา</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section id="dashboard">
+        <h2 class="section-title">📊 Dashboard</h2>
+        <p>หน้า Dashboard แสดงรายวิชาทั้งหมดในสาขา จัดกลุ่มตามภาคการศึกษา</p>
+        <ul>
+          <li>เห็น <strong>สถานะ มคอ.3 และ มคอ.5</strong> ของแต่ละ Section (DRAFT, SUBMITTED, RETURNED, APPROVED)</li>
+          <li>เห็น <strong>ชื่ออาจารย์</strong> ที่ได้รับมอบหมาย (หรือ "รอการมอบหมาย")</li>
+          <li>มีปุ่มลิงก์ไปยังหน้าตรวจสอบเมื่อเอกสารมีสถานะ SUBMITTED</li>
+          <li>ข้อมูลอัปเดตทุก 30 วินาที</li>
+        </ul>
+        <div class="callout callout-info">
+          💡 ใช้ <strong>dropdown ภาคการศึกษา</strong> ด้านบนเพื่อดูข้อมูลของแต่ละภาค
+        </div>
+      </section>
+
+      <!-- ASSIGN -->
+      <section id="assign">
+        <h2 class="section-title">👩‍🏫 มอบหมายอาจารย์ผู้สอน</h2>
+        <p>ทำหลังจาก Academic เปิดรายวิชา (สร้าง Section) แล้ว</p>
+        <ol class="steps">
+          <li>บน Dashboard เลือก <strong>ภาคการศึกษา</strong> จาก dropdown</li>
+          <li>ในตารางรายวิชา ดูคอลัมน์ <strong>"อาจารย์"</strong></li>
+          <li>เลือก <strong>ชื่ออาจารย์</strong> จาก dropdown ในแถวที่ต้องการ</li>
+          <li>กดปุ่ม <strong>"บันทึก"</strong> — อาจารย์จะเห็น Section นี้บน Dashboard ของตน</li>
+        </ol>
+        <div class="callout callout-warning">
+          ⚠️ Section ที่ยังไม่ได้มอบหมายอาจารย์ จะแสดง <em>"-- รอการมอบหมาย --"</em>
+          อาจารย์จะไม่สามารถเห็นหรือกรอก มคอ. ได้จนกว่าจะมอบหมาย
+        </div>
+      </section>
+
+      <!-- REVIEW -->
+      <section id="review">
+        <h2 class="section-title">✅ ตรวจสอบและอนุมัติเอกสาร มคอ.</h2>
+        <p>เมื่ออาจารย์ส่งเอกสาร สถานะจะเปลี่ยนเป็น <span class="status status-submitted">SUBMITTED</span> และปุ่มตรวจสอบจะปรากฏ</p>
+
+        <hr id="review-tqf3" />
+        <h3 class="sub-title">📄 ตรวจสอบ มคอ.3</h3>
+        <ol class="steps">
+          <li>บน Dashboard กดปุ่ม <strong>"ตรวจสอบ"</strong> ที่แถวของ มคอ.3 ที่มีสถานะ SUBMITTED</li>
+          <li>หน้า Review จะเปิดขึ้น แสดง:
+            <ul>
+              <li>ข้อมูลรายวิชา (รหัส, ชื่อ, ชื่ออาจารย์, หมู่เรียน)</li>
+              <li>จำนวน CLO ที่กำหนด</li>
+              <li>Preview ข้อมูลสำคัญ</li>
+              <li>เนื้อหาเอกสาร มคอ.3 แบบอ่านอย่างเดียว</li>
+            </ul>
+          </li>
+          <li>ตรวจสอบความถูกต้องและครบถ้วน</li>
+          <li>กรอก <strong>ความคิดเห็น/หมายเหตุ</strong> (บังคับกรอก)</li>
+          <li>เลือกการดำเนินการ (ดูหัวข้อถัดไป)</li>
+        </ol>
+
+        <hr id="review-tqf5" />
+        <h3 class="sub-title">📊 ตรวจสอบ มคอ.5</h3>
+        <ol class="steps">
+          <li>บน Dashboard กดปุ่ม <strong>"ตรวจสอบ"</strong> ที่แถวของ มคอ.5 ที่มีสถานะ SUBMITTED</li>
+          <li>หน้า Review จะแสดง:
+            <ul>
+              <li>ข้อมูลรายวิชาและอาจารย์</li>
+              <li>สถิตินักศึกษา (ลงทะเบียน/สำเร็จ/ถอน)</li>
+              <li>การกระจายเกรด</li>
+              <li>ปัญหาที่พบและการปรับปรุง</li>
+              <li>เนื้อหาเอกสาร มคอ.5 แบบอ่านอย่างเดียว</li>
+            </ul>
+          </li>
+          <li>กรอก <strong>ความคิดเห็น</strong> แล้วเลือกการดำเนินการ</li>
+        </ol>
+
+        <hr id="approve" />
+        <h3 class="sub-title">🔘 อนุมัติ vs ตีกลับ</h3>
+        <table>
+          <thead><tr><th>การดำเนินการ</th><th>ผล</th><th>เมื่อไหร่ควรใช้</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>✅ <strong>อนุมัติและรับรอง</strong></td>
+              <td>สถานะเปลี่ยนเป็น <span class="status status-approved">APPROVED</span><br/>เอกสารล็อค แก้ไขไม่ได้</td>
+              <td>เอกสารถูกต้อง ครบถ้วน</td>
+            </tr>
+            <tr>
+              <td>↩️ <strong>ตีกลับเพื่อให้แก้ไข</strong></td>
+              <td>สถานะเปลี่ยนเป็น <span class="status status-returned">RETURNED</span><br/>อาจารย์รับความคิดเห็นและแก้ไขใหม่</td>
+              <td>เอกสารมีข้อผิดพลาด หรือไม่ครบถ้วน</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout callout-warning">
+          ⚠️ ต้องกรอก <strong>ความคิดเห็น</strong> ทุกครั้ง ทั้งเมื่ออนุมัติและตีกลับ เพื่อเป็นหลักฐานการตรวจสอบ
+        </div>
+        <div class="callout callout-danger">
+          🚫 เมื่ออนุมัติ มคอ.3 แล้ว ระบบจะเปิดให้อาจารย์ส่ง มคอ.5 ได้ — ตรวจสอบให้ครบถ้วนก่อนอนุมัติ
+        </div>
+      </section>
+
+      <!-- SUMMARY -->
+      <section id="summary">
+        <h2 class="section-title">📋 รายงานสรุป มคอ.5 ระดับสาขา</h2>
+        <p>เข้าเมนู <strong>Head → สรุป มคอ.5</strong> ของภาคการศึกษาที่ต้องการ</p>
+        <ol class="steps">
+          <li>ระบบรวบรวมข้อมูลจากทุก มคอ.5 ที่ APPROVED ในภาคการศึกษา</li>
+          <li>กรอก <strong>ความเห็นภาพรวมระดับสาขา</strong></li>
+          <li>กรอก <strong>ผลการตรวจสอบ/รับรองระดับสาขา</strong></li>
+          <li>กดปุ่ม <strong>"บันทึก/ส่งรายงานสรุป"</strong></li>
+        </ol>
+        <div class="callout callout-info">
+          💡 รายงานสรุปนี้เป็นเอกสารระดับสาขา ไม่ใช่ระดับรายวิชา ควรทำหลังจาก มคอ.5 ทุกฉบับได้รับการอนุมัติแล้ว
+        </div>
+      </section>
+
+      <!-- DOCUMENTS -->
+      <section id="documents">
+        <h2 class="section-title">📁 ดูเอกสารทั้งหมดในภาคการศึกษา</h2>
+        <p>เข้าเมนู <strong>เอกสารประจำภาค</strong> ในแถวภาคการศึกษา</p>
+        <ul>
+          <li>ดูรายการ มคอ.3 และ มคอ.5 ของทุกรายวิชาในสาขา</li>
+          <li>เห็นสถานะและวันที่ส่ง/อนุมัติ</li>
+          <li>คลิกเพื่อเปิดดูเอกสารฉบับเต็ม</li>
+        </ul>
+      </section>
+
+      <!-- WORKFLOW -->
+      <section id="workflow">
+        <h2 class="section-title">🔄 ขั้นตอนภาพรวม (Head)</h2>
+        <div class="workflow">
+          <div class="wf-step wf-blue">Academic<br/>เปิดรายวิชา</div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step wf-blue">Head<br/>มอบหมายอาจารย์</div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step wf-yellow">อาจารย์<br/>ส่ง มคอ.3</div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step wf-green">Head<br/>อนุมัติ มคอ.3</div>
+        </div>
+        <div class="workflow" style="margin-top: 8px;">
+          <div class="wf-step wf-yellow">อาจารย์<br/>ส่ง มคอ.5</div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step wf-green">Head<br/>อนุมัติ มคอ.5</div>
+          <span class="wf-arrow">→</span>
+          <div class="wf-step wf-green">Head<br/>สรุป มคอ.5</div>
+        </div>
+        <div class="callout callout-info" style="margin-top:16px;">
+          💡 หากตีกลับ: อาจารย์แก้ไข → ส่งใหม่ → Head ตรวจสอบอีกครั้ง (วนซ้ำจนอนุมัติ)
+        </div>
+      </section>
+
+      <!-- ACCOUNT -->
+      <section id="account">
+        <h2 class="section-title">⚙️ ตั้งค่าบัญชี</h2>
+        <ol class="steps">
+          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
+          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>กดปุ่ม <strong>"บันทึก"</strong></li>
+        </ol>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq">
+        <h2 class="section-title">❓ คำถามที่พบบ่อย</h2>
+
+        <h3 class="sub-title">Q: อนุมัติ มคอ.3 ไปแล้ว แต่อยากให้อาจารย์แก้ไขเพิ่มเติม ทำได้ไหม?</h3>
+        <p>ไม่ได้โดยตรง เอกสารที่ APPROVED จะล็อค หากต้องการให้แก้ไขต้องติดต่อ Admin หรือ Academic เพื่อดำเนินการในระดับระบบ</p>
+
+        <h3 class="sub-title">Q: มีอาจารย์ส่ง มคอ.3 แล้วแต่ Head ไม่ได้รับแจ้ง ทำอย่างไร?</h3>
+        <p>ตรวจสอบ Dashboard โดยกรองตามภาคการศึกษา Section ที่สถานะ SUBMITTED จะมีสีเหลือง กดปุ่ม "ตรวจสอบ" ได้เลย</p>
+
+        <h3 class="sub-title">Q: ตีกลับ มคอ.3 ไปแล้ว อาจารย์จะเห็นความคิดเห็นที่กรอกไว้ไหม?</h3>
+        <p>ใช่ อาจารย์จะเห็นความคิดเห็นของ Head ที่ด้านบนของฟอร์ม มคอ.3 เมื่อเปิดหน้าแก้ไข</p>
+
+        <h3 class="sub-title">Q: Head คนหนึ่งดูแลได้กี่สาขา?</h3>
+        <p>ขึ้นอยู่กับการกำหนดสังกัดโดย Admin ถ้า Admin กำหนดสังกัดหลายสาขา Head จะเห็นรายวิชาของทุกสาขาที่สังกัด</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<footer>
+  คู่มือหัวหน้าสาขา (Head) — ระบบ TQF &nbsp;|&nbsp;
+  <a href="/head/dashboard" style="color:inherit;">กลับหน้าหลัก</a> &nbsp;·&nbsp;
+  <a href="/manual" style="color:inherit;">คู่มือบทบาทอื่น</a>
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('.toc-link');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) cur = s.id; });
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+  }, { passive: true });
+</script>
+</body>
+</html>

@@ -3,21 +3,20 @@
 {% block title %}จัดการหลักสูตร - Admin{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="page-header">
     <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('dashboard') }}" style="color: var(--primary-color);">Dashboard</a> /
-            <span style="color: var(--text-muted);">จัดการหลักสูตร</span>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> /
+            <span class="text-muted">จัดการหลักสูตร</span>
         </nav>
         <h2>จัดการหลักสูตร/สาขาวิชา (Programs)</h2>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
-    <!-- Left Column: Add Program -->
-    <div style="display: grid; gap: 1.25rem;">
-        <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-            <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">เพิ่มหลักสูตรใหม่</h3>
+<div class="course-grid">
+    <div class="side-panel">
+        <div class="glass panel">
+            <h3 class="panel-title">เพิ่มหลักสูตรใหม่</h3>
             <form method="POST">
                 <div class="form-group">
                     <label>สาขาวิชาที่สังกัด</label>
@@ -36,69 +35,65 @@
                     <label>ปี (ถ้ามี)</label>
                     <input type="number" name="year" class="form-control" placeholder="เช่น 2569">
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;" {% if not departments %}disabled{% endif %}>บันทึกข้อมูล</button>
+                <button type="submit" class="btn btn-primary w-100" {% if not departments %}disabled{% endif %}>บันทึกข้อมูล</button>
             </form>
         </div>
     </div>
 
-    <!-- Program List -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">รายชื่อหลักสูตรทั้งหมด</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+    <div class="glass panel">
+        <h3 class="panel-title">รายชื่อหลักสูตรทั้งหมด</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
                 <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem;">ชื่อหลักสูตร</th>
-                        <th style="padding: 1rem; width: 90px;">ปี</th>
-                        <th style="padding: 1rem;">สาขา/คณะที่สังกัด</th>
-                        <th style="padding: 1rem; width: 120px; text-align: center;">จำนวนรายวิชา </th>
-                        <th style="padding: 1rem; width: 200px;">จัดการ</th>
+                    <tr>
+                        <th>ชื่อหลักสูตร</th>
+                        <th class="col-90">ปี</th>
+                        <th>สาขา/คณะที่สังกัด</th>
+                        <th class="col-90 text-center">จำนวนรายวิชา</th>
+                        <th class="col-200">จัดการ</th>
+                        <th class="col-80 text-center">ลบ</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for program in programs %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem; font-weight: 500;">{{ program.name }}</td>
-                        <td style="padding: 1rem;">{{ program.year if program.year else '-' }}</td>
-                        <td style="padding: 1rem;">
-                            <div style="font-size: 0.95rem;">{{ department_name_by_id.get(program.department_id) or '-' }}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">{{ faculty_name_by_id.get(program.faculty_id) or '-' }}</div>
+                    <tr>
+                        <td class="fw-bold">{{ program.name }}</td>
+                        <td>{{ program.year if program.year else '-' }}</td>
+                        <td>
+                            <div>{{ department_name_by_id.get(program.department_id) or '-' }}</div>
+                            <div class="text-muted text-xs">{{ faculty_name_by_id.get(program.faculty_id) or '-' }}</div>
                         </td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">
+                        <td class="text-center">
+                            <span class="status-badge role-academic">
                                 {{ course_count_by_program_id.get(program.id) or 0 }}
                             </span>
                         </td>
-                        <td style="padding: 1rem;">
-                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
-                                <!-- Keep the existing curriculum text picker UI (posts back to same page) -->
-                                <form method="POST" action="{{ url_for(request.endpoint) }}" enctype="multipart/form-data" style="margin: 0;">
-                                    <input type="hidden" name="program_id" value="{{ program.id }}">
-                                    <input type="file" id="curriculumText-{{ program.id }}" name="curriculum_text" accept=".txt,.csv,.json" style="display: none;">
-                                    <label for="curriculumText-{{ program.id }}" class="btn glass" data-default-label="เลือกไฟล์หลักสูตร"
-                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--primary-color); border-color: var(--primary-color); cursor: pointer;">
-                                        เลือกไฟล์หลักสูตร
-                                    </label>
-                                    <span class="upload-status" style="display:none; font-size: 0.75rem; color: var(--text-muted);"></span>
-                                    <button type="submit" class="btn glass" data-upload-btn style="display:none; padding: 0.25rem 0.5rem; font-size: 0.75rem;">อัปโหลด</button>
-                                    <button type="button" class="btn glass" data-cancel-btn style="display:none; padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--text-muted);">ยกเลิก</button>
-                                </form>
-
-                                {% if current_user.has_role('admin') or (active_role or current_user.best_role()) == 'admin' %}
-                                <form action="{{ url_for('admin_delete_program', program_id=program.id) }}" method="POST"
-                                    onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้?')" style="margin: 0;">
-                                    <button type="submit" class="btn glass" formnovalidate
-                                        style="padding: 0.25rem 0.5rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">
-                                        ลบ
-                                    </button>
-                                </form>
-                                {% endif %}
-                            </div>
+                        <td>
+                            <form method="POST" action="{{ url_for(request.endpoint) }}" enctype="multipart/form-data" class="program-upload">
+                                <input type="hidden" name="program_id" value="{{ program.id }}">
+                                <input type="file" id="curriculumText-{{ program.id }}" name="curriculum_text" accept=".txt,.csv,.json" hidden>
+                                <label for="curriculumText-{{ program.id }}" class="btn btn-secondary btn-compact col-110" data-file-label>
+                                    เลือกไฟล์
+                                </label>
+                                <span class="file-chip hidden" data-file-chip>
+                                    <span class="file-chip-name" data-file-chip-name></span>
+                                    <button type="button" class="file-chip-cancel" data-cancel-btn aria-label="ยกเลิก">✕</button>
+                                </span>
+                                <button type="submit" class="btn btn-primary btn-compact hidden mt-2" data-upload-btn>อัปโหลด</button>
+                            </form>
+                        </td>
+                        <td class="text-center">
+                            {% if current_user.has_role('admin') or (active_role or current_user.best_role()) == 'admin' %}
+                            <form action="{{ url_for('admin_delete_program', program_id=program.id) }}" method="POST"
+                                onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้?')">
+                                <button type="submit" class="btn btn-outline-danger" formnovalidate>ลบ</button>
+                            </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-muted);">ไม่พบข้อมูลหลักสูตรในระบบ</td>
+                        <td colspan="6" class="empty-state text-center text-muted">ไม่พบข้อมูลหลักสูตรในระบบ</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -112,73 +107,41 @@
 {{ super() }}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const inputs = document.querySelectorAll('input[type="file"][name="curriculum_text"]');
-
-        function resetUploadUI(form) {
+        document.querySelectorAll('form.program-upload').forEach(function (form) {
             const input = form.querySelector('input[type="file"][name="curriculum_text"]');
-            const statusEl = form.querySelector('.upload-status');
-            const uploadBtn = form.querySelector('[data-upload-btn]');
+            if (!input) return;
+
+            const labelEl   = form.querySelector('[data-file-label]');
+            const chipEl    = form.querySelector('[data-file-chip]');
+            const chipName  = form.querySelector('[data-file-chip-name]');
             const cancelBtn = form.querySelector('[data-cancel-btn]');
-            const labelEl = input ? form.querySelector('label[for="' + input.id + '"]') : null;
-
-            if (input) input.value = '';
-            if (statusEl) {
-                statusEl.textContent = '';
-                statusEl.style.display = 'none';
-            }
-            if (uploadBtn) uploadBtn.style.display = 'none';
-            if (cancelBtn) cancelBtn.style.display = 'none';
-            if (labelEl) {
-                labelEl.textContent = labelEl.getAttribute('data-default-label') || 'เลือกไฟล์หลักสูตร';
-            }
-        }
-
-        inputs.forEach(function (input) {
-            const form = input.closest('form');
-            if (!form) return;
-
-            const statusEl = form.querySelector('.upload-status');
             const uploadBtn = form.querySelector('[data-upload-btn]');
-            const cancelBtn = form.querySelector('[data-cancel-btn]');
-            const labelEl = form.querySelector('label[for="' + input.id + '"]');
 
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', function () {
-                    resetUploadUI(form);
-                });
+            function reset() {
+                input.value = '';
+                if (labelEl)   labelEl.classList.remove('hidden');
+                if (chipEl)    chipEl.classList.add('hidden');
+                if (chipName)  chipName.textContent = '';
+                if (uploadBtn) uploadBtn.classList.add('hidden');
             }
 
             input.addEventListener('change', function () {
-                if (!input.files || input.files.length === 0) {
-                    resetUploadUI(form);
-                    return;
-                }
-
+                if (!input.files || input.files.length === 0) { reset(); return; }
                 const filename = input.files[0].name;
-                if (labelEl) {
-                    labelEl.textContent = 'เลือกไฟล์ใหม่';
-                }
-                if (statusEl) {
-                    statusEl.textContent = 'ไฟล์: ' + filename;
-                    statusEl.style.display = 'inline';
-                }
-                if (uploadBtn) uploadBtn.style.display = 'inline';
-                if (cancelBtn) cancelBtn.style.display = 'inline';
+                if (labelEl)   labelEl.classList.add('hidden');
+                if (chipName)  chipName.textContent = filename;
+                if (chipEl)    chipEl.classList.remove('hidden');
+                if (uploadBtn) uploadBtn.classList.remove('hidden');
             });
 
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', reset);
+            }
+
             form.addEventListener('submit', function () {
-                if (statusEl) {
-                    statusEl.textContent = 'กำลังอัปโหลด...';
-                    statusEl.style.display = 'inline';
-                }
-                if (uploadBtn) {
-                    uploadBtn.disabled = true;
-                    uploadBtn.style.opacity = '0.7';
-                }
-                if (cancelBtn) {
-                    cancelBtn.disabled = true;
-                    cancelBtn.style.opacity = '0.7';
-                }
+                if (chipName) chipName.textContent = 'กำลังอัปโหลด…';
+                if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.textContent = 'กำลังอัปโหลด…'; }
+                if (cancelBtn) cancelBtn.disabled = true;
             });
         });
     });

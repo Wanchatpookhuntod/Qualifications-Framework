@@ -3,17 +3,17 @@
 {% block title %}ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: start;">
+<div class="page-header">
     <div>
-        <a href="{{ back_url or url_for('head_dashboard') }}" style="color: var(--primary-color); font-size: 0.875rem;">← {{ back_label or 'กลับไปที่ Dashboard' }}</a>
-        <h2 style="margin-top: 1rem;">ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}:
+        <a href="{{ back_url or url_for('head_dashboard') }}" class="text-muted text-xs">← {{ back_label or 'กลับไปที่ Dashboard' }}</a>
+        <h2>ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}:
             {% if tqf.section and tqf.section.course %}
             {{ tqf.section.course.code }} {{ tqf.section.course.name_th }}
             {% else %}
             (ไม่พบข้อมูลรายวิชา)
             {% endif %}
         </h2>
-        <p style="color: var(--text-muted);">
+        <p class="text-muted">
             อาจารย์ผู้สอน:
             {% if tqf.section and tqf.section.instructor %}
             {{ tqf.section.instructor.full_name }}
@@ -23,63 +23,52 @@
             | Section: {{ tqf.section.section_number if tqf.section else '-' }}
         </p>
     </div>
-    <div style="text-align: right;">
-        <span class="status-badge" style="
-            {% if tqf.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-            {% elif tqf.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-            {% elif tqf.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-            {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-        ">สถานะปัจจุบัน: {{ tqf.status }}</span>
+    <div>
+        <span class="status-badge {% if tqf.status == 'APPROVED' %}status-approved{% elif tqf.status == 'SUBMITTED' %}status-submitted{% elif tqf.status == 'RETURNED' %}status-returned{% else %}role-instructor{% endif %}">สถานะปัจจุบัน: {{ tqf.status }}</span>
     </div>
 </div>
 
-<div class="card-grid" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
+<div class="card-grid aside-layout">
     <!-- Content Preview -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">ข้อมูลที่ส่ง (Preview)</h3>
-        <div
-            style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 1rem; border: 1px dashed var(--border-color);">
+    <div class="glass panel">
+        <h3 class="panel-title text-primary">ข้อมูลที่ส่ง (Preview)</h3>
+        <div class="panel-dashed">
             {% if tqf_type == 'tqf3' %}
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📝
-                    จุดมุ่งหมายและวัตถุประสงค์</h4>
-                <p style="white-space: pre-wrap;">{{ tqf.general_info.get('objectives', 'ไม่ได้ระบุ') }}</p>
+            <div class="preview-block">
+                <h4 class="preview-label">📝 จุดมุ่งหมายและวัตถุประสงค์</h4>
+                <p class="preserve-text">{{ tqf.general_info.get('objectives', 'ไม่ได้ระบุ') }}</p>
             </div>
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📖 คำอธิบายรายวิชา
-                </h4>
-                <p style="white-space: pre-wrap;">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
+            <div class="preview-block">
+                <h4 class="preview-label">📖 คำอธิบายรายวิชา</h4>
+                <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
             </div>
-            <div>
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📊 จำนวน CLO ที่ระบุ
-                </h4>
+            <div class="preview-block">
+                <h4 class="preview-label">📊 จำนวน CLO ที่ระบุ</h4>
                 <p>{{ tqf.general_info.get('clo_code[]', [])|length }} รายการ</p>
             </div>
             {% else %}
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📉 สรุปจำนวนผู้เรียน
-                </h4>
+            <div class="preview-block">
+                <h4 class="preview-label">📉 สรุปจำนวนผู้เรียน</h4>
                 <p>ลงทะเบียน: {{ tqf.actual_teaching.get('students_enrolled', '0') }} | จบ: {{
                     tqf.actual_teaching.get('students_finished', '0') }} | ถอน: {{
                     tqf.actual_teaching.get('students_withdrawn', '0') }}</p>
             </div>
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">⚠️
-                    ปัญหาที่พบและการแก้ไข</h4>
-                <p style="white-space: pre-wrap;">{{ tqf.actual_teaching.get('problems_fixed', 'ไม่มีระบุ') }}</p>
+            <div class="preview-block">
+                <h4 class="preview-label">⚠️ ปัญหาที่พบและการแก้ไข</h4>
+                <p class="preserve-text">{{ tqf.actual_teaching.get('problems_fixed', 'ไม่มีระบุ') }}</p>
             </div>
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">🔍 ผลการทวนสอบ</h4>
-                <p style="white-space: pre-wrap;">{{ tqf.actual_teaching.get('verification_method', 'ไม่มีระบุ') }}</p>
+            <div class="preview-block">
+                <h4 class="preview-label">🔍 ผลการทวนสอบ</h4>
+                <p class="preserve-text">{{ tqf.actual_teaching.get('verification_method', 'ไม่มีระบุ') }}</p>
             </div>
             {% endif %}
 
-            <div style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: center;">
-                <p style="color: var(--text-muted); font-size: 0.8125rem;">* ดูข้อมูลฉบับเต็ม (ตามฟอร์ม) ด้านล่าง</p>
+            <div class="form-footnote text-xs">
+                * ดูข้อมูลฉบับเต็ม (ตามฟอร์ม) ด้านล่าง
             </div>
         </div>
 
-        <div style="margin-top: 1.75rem;">
+        <div class="mt-5">
             {% if tqf_type == 'tqf3' %}
                 {% set section = tqf.section if tqf.section else None %}
                 {% set tqf3 = tqf %}
@@ -94,8 +83,8 @@
 
     {% if can_review %}
     <!-- Review Form -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem; height: fit-content; position: sticky; top: 2rem;">
-        <h3 style="margin-bottom: 1.5rem; color: var(--accent-warning);">ดำเนินการ Step E</h3>
+    <div class="glass panel panel-sticky">
+        <h3 class="panel-title text-warning">ดำเนินการ Step E</h3>
         <form method="POST">
             <div class="form-group">
                 <label for="comment">ข้อเสนอแนะสำหรับการรับรอง / เหตุผลในการตีกลับ</label>
@@ -103,22 +92,20 @@
                     placeholder="เช่น 'ข้อมูลครบถ้วน' หรือ 'กรุณาปรับปรุงหัวข้อ CLO'" required></textarea>
             </div>
 
-            <div style="display: grid; gap: 1rem; margin-top: 1.5rem;">
-                <button type="submit" name="action" value="approve" class="btn btn-primary"
-                    style="background: var(--accent-success); border-color: var(--accent-success); padding: 1rem;">
+            <div class="grid-gap-sm mt-3">
+                <button type="submit" name="action" value="approve" class="btn btn-success">
                     ✅ อนุมัติและรับรอง (Approve)
                 </button>
-                <button type="submit" name="action" value="reject" class="btn glass"
-                    style="border-color: var(--accent-danger); color: var(--accent-danger); padding: 1rem;">
+                <button type="submit" name="action" value="reject" class="btn btn-ghost-danger">
                     ↩️ ตีกลับเพื่อให้แก้ไข (Return)
                 </button>
             </div>
         </form>
     </div>
     {% else %}
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem; height: fit-content; position: sticky; top: 2rem;">
-        <h3 style="margin-bottom: 1rem; color: var(--primary-color);">โหมดอ่านอย่างเดียว</h3>
-        <div style="color: var(--text-muted); font-size: 0.95rem;">ฝ่ายวิชาการสามารถเปิดดูเอกสารได้ แต่ไม่สามารถอนุมัติ/ตีกลับได้</div>
+    <div class="glass panel panel-sticky">
+        <h3 class="panel-title text-primary">โหมดอ่านอย่างเดียว</h3>
+        <div class="text-muted">ฝ่ายวิชาการสามารถเปิดดูเอกสารได้ แต่ไม่สามารถอนุมัติ/ตีกลับได้</div>
     </div>
     {% endif %}
 </div>

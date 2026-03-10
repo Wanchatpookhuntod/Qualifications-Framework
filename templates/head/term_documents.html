@@ -3,105 +3,105 @@
 {% block title %}รวม มคอ. ของเทอม {{ term.semester }}/{{ term.year }}{% endblock %}
 
 {% block content %}
-<div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+<div class="page-header">
     <div>
-        <a href="{{ url_for('head_dashboard', term_id=term.id) }}" style="color: var(--primary-color); font-size: 0.875rem;">← กลับไปที่ Dashboard</a>
-        <h2 style="margin-top: 1rem;">📚 รวม มคอ. ตามเทอม (สำหรับหัวหน้าสาขา)</h2>
-        <p style="color: var(--text-muted); margin: 0.25rem 0 0;">เทอม {{ term.semester }}/{{ term.year }} — เปิดดูและอนุมัติได้ตามสิทธิ์ของสาขา</p>
+        <a href="{{ url_for('head_dashboard', term_id=term.id) }}" class="text-muted text-xs">← กลับไปที่ Dashboard</a>
+        <h2>📚 รวม มคอ. ตามเทอม (สำหรับหัวหน้าสาขา)</h2>
+        <p class="text-muted">เทอม {{ term.semester }}/{{ term.year }} — เปิดดูและอนุมัติได้ตามสิทธิ์ของสาขา</p>
     </div>
-    <a href="{{ url_for('head_tqf5_summary', term_id=term.id) }}" class="btn glass" style="color: var(--text-muted);">🧾 {{ 'แก้ไข' if summary else 'สร้าง' }} สรุป มคอ.5</a>
+    <a href="{{ url_for('head_tqf5_summary', term_id=term.id) }}" class="btn btn-secondary">🧾 {{ 'แก้ไข' if summary else 'สร้าง' }} สรุป มคอ.5</a>
 </div>
 
-<div style="display:grid; grid-template-columns: repeat(5, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
-    <div class="glass" style="padding: 1rem; border-radius: 1rem; text-align: center;">
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">รายวิชาทั้งหมด</div>
-        <div style="font-size: 1.5rem; font-weight: 800;">{{ stats.total }}</div>
+<div class="stat-grid stat-grid-compact">
+    <div class="glass stat-card">
+        <div class="stat-label">รายวิชาทั้งหมด</div>
+        <div class="stat-value">{{ stats.total }}</div>
     </div>
-    <div class="glass" style="padding: 1rem; border-radius: 1rem; text-align: center;">
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">มคอ.3 (ส่งแล้ว)</div>
-        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">{{ stats.tqf3_submitted }}</div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.3 (ส่งแล้ว)</div>
+        <div class="stat-value text-primary">{{ stats.tqf3_submitted }}</div>
     </div>
-    <div class="glass" style="padding: 1rem; border-radius: 1rem; text-align: center;">
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">มคอ.3 (อนุมัติ)</div>
-        <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-success);">{{ stats.tqf3_approved }}</div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.3 (อนุมัติ)</div>
+        <div class="stat-value text-success">{{ stats.tqf3_approved }}</div>
     </div>
-    <div class="glass" style="padding: 1rem; border-radius: 1rem; text-align: center;">
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">มคอ.5 (ส่งแล้ว)</div>
-        <div style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">{{ stats.tqf5_submitted }}</div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.5 (ส่งแล้ว)</div>
+        <div class="stat-value text-primary">{{ stats.tqf5_submitted }}</div>
     </div>
-    <div class="glass" style="padding: 1rem; border-radius: 1rem; text-align: center;">
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">มคอ.5 (อนุมัติ)</div>
-        <div style="font-size: 1.5rem; font-weight: 800; color: var(--accent-success);">{{ stats.tqf5_approved }}</div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.5 (อนุมัติ)</div>
+        <div class="stat-value text-success">{{ stats.tqf5_approved }}</div>
     </div>
 </div>
 
-<div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
+<div class="glass panel">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead>
-                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                    <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
-                    <th style="padding: 1rem;">อาจารย์ผู้สอน</th>
-                    <th style="padding: 1rem;">มคอ.3</th>
-                    <th style="padding: 1rem;">มคอ.5</th>
+                <tr>
+                    <th>รายวิชา / กลุ่ม</th>
+                    <th>อาจารย์ผู้สอน</th>
+                    <th>มคอ.3</th>
+                    <th>มคอ.5</th>
                 </tr>
             </thead>
             <tbody>
                 {% for section in sections %}
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 1rem;">
-                        <div style="font-weight: bold;">{{ section.course.code if section.course else '' }} {{ section.course.name_th if section.course else '' }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}</div>
+                <tr>
+                    <td>
+                        <div class="fw-bold">{{ section.course.code if section.course else '' }} {{ section.course.name_th if section.course else '' }}</div>
+                        <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                     </td>
-                    <td style="padding: 1rem;">
+                    <td>
                         {% if section.instructor %}
-                        <div style="font-weight: 600;">{{ section.instructor.full_name }}</div>
+                        <div class="fw-bold">{{ section.instructor.full_name }}</div>
                         {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">ยังไม่มอบหมายผู้สอน</span>
+                        <span class="text-muted text-xs">ยังไม่มอบหมายผู้สอน</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 1rem;">
+                    <td>
                         {% if section.tqf3 %}
                         {% set s = section.tqf3.status %}
-                        <div style="margin-bottom: 0.5rem;">
+                        <div class="mb-2">
                             {% if s == 'APPROVED' %}
-                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">{{ s }}</span>
+                            <span class="status-badge status-approved">{{ s }}</span>
                             {% elif s == 'SUBMITTED' %}
-                            <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">{{ s }}</span>
+                            <span class="status-badge status-submitted">{{ s }}</span>
                             {% elif s == 'RETURNED' %}
-                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">{{ s }}</span>
+                            <span class="status-badge status-returned">{{ s }}</span>
                             {% else %}
-                            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">{{ s }}</span>
+                            <span class="status-badge role-instructor">{{ s }}</span>
                             {% endif %}
                         </div>
-                        <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" class="btn glass" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>
+                        <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" class="btn btn-secondary btn-compact">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>
                         {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">ยังไม่มีเอกสาร</span>
+                        <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 1rem;">
+                    <td>
                         {% if section.tqf5 %}
                         {% set s = section.tqf5.status %}
-                        <div style="margin-bottom: 0.5rem;">
+                        <div class="mb-2">
                             {% if s == 'APPROVED' %}
-                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">{{ s }}</span>
+                            <span class="status-badge status-approved">{{ s }}</span>
                             {% elif s == 'SUBMITTED' %}
-                            <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">{{ s }}</span>
+                            <span class="status-badge status-submitted">{{ s }}</span>
                             {% elif s == 'RETURNED' %}
-                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">{{ s }}</span>
+                            <span class="status-badge status-returned">{{ s }}</span>
                             {% else %}
-                            <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">{{ s }}</span>
+                            <span class="status-badge role-instructor">{{ s }}</span>
                             {% endif %}
                         </div>
-                        <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" class="btn glass" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>
+                        <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" class="btn btn-secondary btn-compact">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>
                         {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">ยังไม่มีเอกสาร</span>
+                        <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
                         {% endif %}
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">ยังไม่มีรายวิชาเปิดสอนในเทอมนี้</td>
+                    <td colspan="4" class="empty-state text-center text-muted">ยังไม่มีรายวิชาเปิดสอนในเทอมนี้</td>
                 </tr>
                 {% endfor %}
             </tbody>

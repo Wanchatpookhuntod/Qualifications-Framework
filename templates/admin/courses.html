@@ -57,12 +57,12 @@
         <!-- Filter Header -->
         <div class="glass panel-sm course-header">
             <div>
-                <h3 style="font-size: 1.25rem; margin: 0;">ฐานข้อมูลรายวิชาทั้งหมด</h3>
+                <h3 class="mb-0">ฐานข้อมูลรายวิชาทั้งหมด</h3>
                 <div class="muted">แสดงรายวิชาแบบจัดกลุ่มตามหลักสูตร</div>
             </div>
 
             <form method="GET" class="filter-form">
-                <label class="text-muted" style="font-size: 0.875rem;">กรองตามหลักสูตร:</label>
+                <label class="text-muted text-xs mb-0">กรองตามหลักสูตร:</label>
                 <select name="program_id" class="form-control select-inline" onchange="this.form.submit()">
                     <option value="">-- ทั้งหมด --</option>
                     {% for program in programs %}
@@ -114,7 +114,7 @@
             </div>
         </div>
         {% else %}
-        <div class="glass panel" style="text-align: center; color: var(--text-muted);">
+        <div class="glass panel text-center text-muted">
             ไม่พบรายวิชาตามเงื่อนไขที่เลือก
         </div>
         {% endfor %}

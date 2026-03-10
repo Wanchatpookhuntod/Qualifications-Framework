@@ -95,6 +95,39 @@ class FirestoreModel:
         rows = cls.find_by(field_name, value)
         return rows[0] if rows else None
 
+    @classmethod
+    def find_in(cls: Type[T], field_name: str, values: Iterable[Any], *, chunk_size: int = 10) -> List[T]:
+        """Query documents where ``field_name`` is within the provided values.
+
+        Firestore limits ``in`` queries to 10 values per call, so we chunk requests.
+        """
+
+        cleaned: List[str] = []
+        seen = set()
+        for value in values:
+            if value is None:
+                continue
+            string_value = str(value).strip()
+            if not string_value or string_value in seen:
+                continue
+            seen.add(string_value)
+            cleaned.append(string_value)
+
+        if not cleaned:
+            return []
+
+        results: List[T] = []
+        col = cls._col()
+        for idx in range(0, len(cleaned), chunk_size):
+            chunk = cleaned[idx : idx + chunk_size]
+            if FieldFilter is not None:
+                query = col.where(filter=FieldFilter(field_name, "in", chunk))
+            else:  # pragma: no cover - legacy Firestore API
+                query = col.where(field_name, "in", chunk)
+            results.extend(cls.from_dict(doc.id, doc.to_dict() or {}) for doc in query.stream())
+
+        return results
+
 
 @dataclass
 class Faculty(FirestoreModel):
@@ -316,10 +349,6 @@ class Section(FirestoreModel):
     term_id: str = ""
     instructor_id: Optional[str] = None
     section_number: Optional[str] = None
-    # เปิดให้กรอก มคอ.3
-    is_open: bool = False
-    # เปิดให้กรอก มคอ.5 (แยกจาก มคอ.3)
-    is_open_tqf5: bool = False
     status: str = "active"  # active, locked
 
     # Optional runtime caches for template/view usage (not persisted)
@@ -332,25 +361,17 @@ class Section(FirestoreModel):
             "term_id": self.term_id,
             "instructor_id": self.instructor_id,
             "section_number": self.section_number,
-            "is_open": bool(self.is_open),
-            "is_open_tqf5": bool(self.is_open_tqf5),
             "status": self.status,
         }
 
     @classmethod
     def from_dict(cls, doc_id: str, data: Dict[str, Any]) -> "Section":
-        is_open_legacy = bool(data.get("is_open", False))
-        is_open_tqf5 = data.get("is_open_tqf5")
-        if is_open_tqf5 is None:
-            is_open_tqf5 = is_open_legacy
         return cls(
             id=doc_id,
             course_id=(data.get("course_id") or ""),
             term_id=(data.get("term_id") or ""),
             instructor_id=data.get("instructor_id"),
             section_number=data.get("section_number"),
-            is_open=is_open_legacy,
-            is_open_tqf5=bool(is_open_tqf5),
             status=(data.get("status") or "active"),
         )
 

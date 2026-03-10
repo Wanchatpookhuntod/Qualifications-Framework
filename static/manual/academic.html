@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>คู่มือ Academic — ระบบ TQF</title>
+  <link rel="stylesheet" href="/static/manual/_base.css" />
+  <style>
+    :root { --role-color: #6d28d9; --role-bg: #ede9fe; }
+    .site-header {
+      background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
+      color: white; padding: 28px 32px 28px;
+    }
+    .site-header .role-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 100px; padding: 4px 14px;
+      font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    }
+    .site-header h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 6px; }
+    .site-header p { font-size: 14px; opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-topbar">
+    <div class="breadcrumb">
+      <a href="/manual">คู่มือการใช้งาน</a> › ฝ่ายวิชาการ
+    </div>
+    <a href="/academic/dashboard" class="btn-back-dashboard">← กลับหน้าหลัก</a>
+  </div>
+  <div class="role-tag">📋 Academic</div>
+  <h1>คู่มือฝ่ายวิชาการ</h1>
+  <p>ควบคุมภาคการศึกษา, เปิดรายวิชา และเปิด/ปิดรอบการส่ง มคอ.</p>
+</header>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- TOC -->
+    <aside class="toc">
+      <div class="toc-nav-actions">
+        <a href="/academic/dashboard" class="back-link">← กลับหน้าหลัก</a>
+        <a href="/manual" class="alt-link">เลือกบทบาทอื่น</a>
+      </div>
+      <h3>สารบัญ</h3>
+      <ul>
+        <li><a href="#overview"   class="toc-link">ภาพรวม Academic</a></li>
+        <li><a href="#dashboard"  class="toc-link">Dashboard & สถิติ</a></li>
+        <li>
+          <a href="#terms"        class="toc-link">จัดการภาคการศึกษา</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#term-create"  class="toc-link">สร้างภาคการศึกษา</a></li>
+            <li><a href="#term-program" class="toc-link">เพิ่มหลักสูตรเข้าภาค</a></li>
+          </ul></div>
+        </li>
+        <li><a href="#open-course" class="toc-link">เปิดรายวิชา (Section)</a></li>
+        <li>
+          <a href="#tqf-control"  class="toc-link">ควบคุมรอบ มคอ.</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#tqf3-open"  class="toc-link">เปิด/ปิดรอบ มคอ.3</a></li>
+            <li><a href="#tqf5-open"  class="toc-link">เปิด/ปิดรอบ มคอ.5</a></li>
+            <li><a href="#lock-all"   class="toc-link">ล็อกระบบทั้งหมด</a></li>
+          </ul></div>
+        </li>
+        <li><a href="#documents"  class="toc-link">ดูเอกสาร มคอ.</a></li>
+        <li><a href="#workflow"   class="toc-link">ขั้นตอนตลอดภาคเรียน</a></li>
+        <li><a href="#account"    class="toc-link">ตั้งค่าบัญชี</a></li>
+        <li><a href="#faq"        class="toc-link">คำถามที่พบบ่อย</a></li>
+      </ul>
+    </aside>
+
+    <main class="content">
+
+      <!-- OVERVIEW -->
+      <section id="overview">
+        <h2 class="section-title">📋 ภาพรวม Academic</h2>
+        <p>ฝ่ายวิชาการเป็นตัวกลางในการควบคุมกระบวนการทำงานของระบบ TQF ทั้งหมด ตั้งแต่เริ่มต้นจนสิ้นภาคการศึกษา</p>
+        <table>
+          <thead><tr><th>หน้าที่</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td>สร้างภาคการศึกษา</td><td>กำหนดปีการศึกษาและภาค</td></tr>
+            <tr><td>เพิ่มหลักสูตรในภาค</td><td>ระบุหลักสูตรที่เปิดสอนในภาคนั้น</td></tr>
+            <tr><td>เปิดรายวิชา</td><td>สร้าง Section สำหรับแต่ละรายวิชา</td></tr>
+            <tr><td>เปิด/ปิดรอบ มคอ.</td><td>อนุญาตหรือล็อกการส่งเอกสาร มคอ.3 / มคอ.5</td></tr>
+            <tr><td>ดูภาพรวมเอกสาร</td><td>ติดตามสถานะเอกสารทุกรายวิชา</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section id="dashboard">
+        <h2 class="section-title">📊 Dashboard & สถิติ</h2>
+        <p>หน้า Dashboard แสดงภาพรวมของระบบในภาคการศึกษาที่เลือก</p>
+        <ul>
+          <li><strong>จำนวน Section ทั้งหมด</strong> ในภาคการศึกษา</li>
+          <li><strong>อัตราการส่ง มคอ.3</strong> (%) และอัตราการอนุมัติ</li>
+          <li><strong>อัตราการส่ง มคอ.5</strong> (%) และอัตราการอนุมัติ</li>
+          <li><strong>สถานะการล็อกระบบ</strong>: แสดงว่าระบบเปิดหรือปิดรอบอยู่</li>
+        </ul>
+        <div class="callout callout-info">
+          💡 ใช้ <strong>dropdown เลือกภาคการศึกษา</strong> ด้านบนเพื่อดูข้อมูลของแต่ละภาค
+        </div>
+      </section>
+
+      <!-- TERMS -->
+      <section id="terms">
+        <h2 class="section-title">📅 จัดการภาคการศึกษา</h2>
+        <p>เข้าเมนู <strong>Academic → จัดการภาคการศึกษา</strong></p>
+
+        <hr id="term-create" />
+        <h3 class="sub-title">➕ สร้างภาคการศึกษาใหม่</h3>
+        <ol class="steps">
+          <li>กรอก <strong>ปีการศึกษา (พ.ศ.)</strong> เช่น <code>2567</code></li>
+          <li>เลือก <strong>ภาคการศึกษา</strong>:
+            <ul>
+              <li><code>1</code> — ภาคต้น</li>
+              <li><code>2</code> — ภาคปลาย</li>
+              <li><code>3</code> — ภาคฤดูร้อน</li>
+            </ul>
+          </li>
+          <li>กดปุ่ม <strong>"สร้างภาคการศึกษา"</strong></li>
+        </ol>
+
+        <hr id="term-program" />
+        <h3 class="sub-title">📌 เพิ่มหลักสูตรเข้าภาคการศึกษา</h3>
+        <ol class="steps">
+          <li>เลือก <strong>ภาคการศึกษา</strong> ที่ต้องการจาก Dashboard</li>
+          <li>เลือก <strong>หลักสูตร</strong> จาก dropdown (แสดงเฉพาะหลักสูตรที่ยังไม่ได้เพิ่ม)</li>
+          <li>กดปุ่ม <strong>"เพิ่มหลักสูตร"</strong></li>
+        </ol>
+        <div class="callout callout-warning">
+          ⚠️ ลบหลักสูตรออกจากภาคได้เฉพาะเมื่อยังไม่มีรายวิชา (Section) ที่เปิดสอนแล้ว
+        </div>
+      </section>
+
+      <!-- OPEN COURSE -->
+      <section id="open-course">
+        <h2 class="section-title">📂 เปิดรายวิชา (สร้าง Section)</h2>
+        <p>เข้าเมนู <strong>Academic → เปิดรายวิชา</strong></p>
+        <ol class="steps">
+          <li>เลือก <strong>ภาคการศึกษา</strong></li>
+          <li>เลือก <strong>รายวิชา</strong> จาก dropdown (จัดกลุ่มตามหลักสูตร)</li>
+          <li>กรอก <strong>หมู่เรียน (Section Number)</strong> เช่น <code>1</code>, <code>A</code>, <code>001</code></li>
+          <li>กดปุ่ม <strong>"ยืนยันการเปิดรายวิชา"</strong></li>
+        </ol>
+        <div class="callout callout-info">
+          💡 หลังจากสร้าง Section แล้ว <strong>Head</strong> จะต้องมอบหมายอาจารย์ผู้สอนให้กับ Section นั้น
+        </div>
+      </section>
+
+      <!-- TQF CONTROL -->
+      <section id="tqf-control">
+        <h2 class="section-title">🔓 ควบคุมรอบการส่ง มคอ.</h2>
+
+        <hr id="tqf3-open" />
+        <h3 class="sub-title">📄 เปิด/ปิดรอบ มคอ.3</h3>
+        <p>ในหน้า Dashboard ที่แถวของภาคการศึกษา:</p>
+        <ul>
+          <li>กดปุ่ม <strong>"เปิดส่ง มคอ.3"</strong> → อาจารย์ทุกคนสามารถกรอกและส่ง มคอ.3 ได้</li>
+          <li>กดปุ่ม <strong>"ปิดการส่ง มคอ.3"</strong> → อาจารย์ไม่สามารถส่งได้ (แต่ยังบันทึกฉบับร่างได้ถ้ายังไม่ล็อก)</li>
+        </ul>
+        <div class="callout callout-success">
+          ✅ ควรเปิดรอบ มคอ.3 <strong>ต้นภาคการศึกษา</strong> เพื่อให้อาจารย์เตรียมเอกสารก่อนสอน
+        </div>
+
+        <hr id="tqf5-open" />
+        <h3 class="sub-title">📊 เปิด/ปิดรอบ มคอ.5</h3>
+        <ul>
+          <li>กดปุ่ม <strong>"เปิดส่ง มคอ.5"</strong> → อาจารย์สามารถกรอกและส่ง มคอ.5 ได้ (ต้องมี มคอ.3 APPROVED ก่อน)</li>
+          <li>กดปุ่ม <strong>"ปิดการส่ง มคอ.5"</strong> → ล็อกการส่ง</li>
+        </ul>
+        <div class="callout callout-success">
+          ✅ ควรเปิดรอบ มคอ.5 <strong>หลังสิ้นสุดภาคการศึกษา</strong> หลังประกาศผลการศึกษาแล้ว
+        </div>
+
+        <hr id="lock-all" />
+        <h3 class="sub-title">🔒 ล็อกระบบทั้งหมด</h3>
+        <p>กดปุ่ม <strong>"ปิดรอบภาคการศึกษา"</strong> บน Dashboard</p>
+        <ul>
+          <li>ระบบจะยืนยันก่อนดำเนินการ — <em>"ยืนยันการปิดภาคเรียน? เอกสารทั้งหมดจะถูกล็อก..."</em></li>
+          <li>หลังล็อก อาจารย์จะไม่สามารถแก้ไขเอกสารใดๆ ได้</li>
+          <li>กดปุ่ม <strong>"เปิดรอบภาคการศึกษา"</strong> เพื่อยกเลิกการล็อก</li>
+        </ul>
+        <div class="callout callout-danger">
+          🚫 การล็อกระบบมีผลกับ <strong>ทุกภาคการศึกษา</strong> ทุกรายวิชา และทุกอาจารย์
+        </div>
+      </section>
+
+      <!-- DOCUMENTS -->
+      <section id="documents">
+        <h2 class="section-title">📁 ดูเอกสาร มคอ. ทั้งหมด</h2>
+        <p>เข้าเมนู <strong>เอกสาร มคอ.</strong> ในแถวของภาคการศึกษา หรือเมนู <strong>Academic → เอกสารประจำภาค</strong></p>
+        <ul>
+          <li>ดูรายการ มคอ.3 และ มคอ.5 ของทุกรายวิชาในภาคการศึกษา</li>
+          <li>เห็นสถานะ (DRAFT, SUBMITTED, RETURNED, APPROVED) ของแต่ละเอกสาร</li>
+          <li>เห็นวันที่ส่งและอนุมัติ</li>
+        </ul>
+        <div class="callout callout-info">
+          💡 ฝ่ายวิชาการสามารถ <strong>ดูได้อย่างเดียว</strong> ไม่สามารถอนุมัติหรือตีกลับเอกสารได้
+          (สิทธิ์นั้นเป็นของ Head เท่านั้น)
+        </div>
+      </section>
+
+      <!-- WORKFLOW -->
+      <section id="workflow">
+        <h2 class="section-title">🔄 ขั้นตอนตลอดภาคการศึกษา</h2>
+        <ol class="steps">
+          <li><strong>สร้างภาคการศึกษา</strong> ใหม่ (ปีการศึกษา + ภาค)</li>
+          <li><strong>เพิ่มหลักสูตร</strong> ที่เปิดสอนในภาคนั้น</li>
+          <li><strong>เปิดรายวิชา</strong> (สร้าง Section) สำหรับแต่ละรายวิชา</li>
+          <li>รอ <strong>Head มอบหมายอาจารย์</strong> ให้กับแต่ละ Section</li>
+          <li>เมื่อพร้อม <strong>เปิดรอบ มคอ.3</strong> → อาจารย์กรอกและส่ง</li>
+          <li>รอ Head ตรวจสอบ มคอ.3 จนครบ</li>
+          <li>หลังสิ้นภาค <strong>เปิดรอบ มคอ.5</strong> → อาจารย์กรอกและส่ง</li>
+          <li>รอ Head ตรวจสอบ มคอ.5 จนครบ</li>
+          <li><strong>ปิดรอบ</strong> ล็อกเอกสารทั้งหมด</li>
+        </ol>
+      </section>
+
+      <!-- ACCOUNT -->
+      <section id="account">
+        <h2 class="section-title">⚙️ ตั้งค่าบัญชี</h2>
+        <ol class="steps">
+          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
+          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>กดปุ่ม <strong>"บันทึก"</strong></li>
+        </ol>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq">
+        <h2 class="section-title">❓ คำถามที่พบบ่อย</h2>
+
+        <h3 class="sub-title">Q: เปิดรายวิชาซ้ำหมู่เรียนเดิมได้หรือไม่?</h3>
+        <p>ไม่ได้ แต่ละ Section ของรายวิชาเดียวกันในภาคการศึกษาเดียวกันต้องมีหมู่เรียนไม่ซ้ำกัน</p>
+
+        <h3 class="sub-title">Q: ลืมเปิดรอบ มคอ. แล้วอาจารย์แจ้งมา ต้องทำอย่างไร?</h3>
+        <p>กดปุ่ม <strong>"เปิดส่ง มคอ.3"</strong> หรือ <strong>"เปิดส่ง มคอ.5"</strong> ได้ทันที ระบบไม่มีข้อจำกัดด้านเวลา</p>
+
+        <h3 class="sub-title">Q: อยากดูว่ามีอาจารย์กี่คนที่ยังไม่ส่ง มคอ. ดูได้ที่ไหน?</h3>
+        <p>ดูได้จาก Dashboard (สถิติ %) และหน้า เอกสารประจำภาค ซึ่งแสดงสถานะของทุก Section</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<footer>
+  คู่มือฝ่ายวิชาการ (Academic) — ระบบ TQF &nbsp;|&nbsp;
+  <a href="/academic/dashboard" style="color:inherit;">กลับหน้าหลัก</a> &nbsp;·&nbsp;
+  <a href="/manual" style="color:inherit;">คู่มือบทบาทอื่น</a>
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('.toc-link');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) cur = s.id; });
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+  }, { passive: true });
+</script>
+</body>
+</html>

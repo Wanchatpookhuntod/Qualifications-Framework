@@ -6,9 +6,10 @@ import re
 from collections import Counter
 from datetime import datetime
 from functools import wraps
+from typing import Iterable
 
 try:
-    from flask import Flask, abort, flash, redirect, render_template, request, session, url_for
+    from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
 except ModuleNotFoundError as e:  # pragma: no cover
     raise SystemExit(
         "Missing dependency: Flask.\n\n"
@@ -633,6 +634,36 @@ def users_with_role(role_name: str):
     return [u for u in users if u.has_role(role_name)]
 
 
+def _dedupe_ids(values: Iterable[object]) -> list[str]:
+    seen = set()
+    cleaned: list[str] = []
+    for value in values:
+        if value is None:
+            continue
+        string_value = str(value).strip()
+        if not string_value or string_value in seen:
+            continue
+        seen.add(string_value)
+        cleaned.append(string_value)
+    return cleaned
+
+
+def _tqf3_by_section_ids(section_ids: Iterable[str]) -> dict[str, TQF3]:
+    ids = _dedupe_ids(section_ids)
+    if not ids:
+        return {}
+    docs = TQF3.find_in("section_id", ids)
+    return {doc.section_id: doc for doc in docs if doc.section_id}
+
+
+def _tqf5_by_section_ids(section_ids: Iterable[str]) -> dict[str, TQF5]:
+    ids = _dedupe_ids(section_ids)
+    if not ids:
+        return {}
+    docs = TQF5.find_in("section_id", ids)
+    return {doc.section_id: doc for doc in docs if doc.section_id}
+
+
 def _get_head_scope(user: User) -> dict:
     if getattr(user, "department_id", None):
         department = Department.get(user.department_id)
@@ -768,11 +799,11 @@ def _build_head_tqf5_summary_payload(term: Term, scope: dict, sections: list[Sec
                 "course_code": course.code if course else "-",
                 "course_name": course.name_th if course else "-",
                 "section_number": section.section_number or "-",
-                "student_count": _to_int(actual.get("n_registered", actual.get("students_enrolled"))),
                 "instructor_name": instructor.full_name if instructor else "-",
                 "status": tqf5.status,
-                "result_score": (
-                    actual.get("result_score")
+                "assessment_score": (
+                    actual.get("assessment_score")
+                    or actual.get("result_score")
                     or actual.get("course_result")
                     or actual.get("improvement_result")
                     or "-"
@@ -920,6 +951,24 @@ def index():
     return redirect(url_for("login"))
 
 
+@app.route("/manual")
+def user_manual():
+    if current_user.is_authenticated:
+        role = (getattr(current_user, "active_role", None) or current_user.best_role() or "instructor").lower()
+        return redirect(url_for("user_manual_role", role=role))
+    from flask import send_from_directory
+    return send_from_directory("static/manual", "index.html")
+
+
+@app.route("/manual/<role>")
+def user_manual_role(role: str):
+    from flask import send_from_directory, abort
+    allowed = {"admin", "academic", "head", "instructor"}
+    if role not in allowed:
+        abort(404)
+    return send_from_directory("static/manual", f"{role}.html")
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -1061,10 +1110,9 @@ def instructor_dashboard():
         s.course = course_by_id.get(s.course_id)
 
     # Attach TQF docs for templates (status / links)
-    tqf3_docs = TQF3.find_all()
-    tqf5_docs = TQF5.find_all()
-    tqf3_by_section = {d.section_id: d for d in tqf3_docs if d.section_id}
-    tqf5_by_section = {d.section_id: d for d in tqf5_docs if d.section_id}
+    section_ids = [s.id for s in sections if s.id]
+    tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf5_by_section = _tqf5_by_section_ids(section_ids)
     for s in sections:
         s.tqf3 = tqf3_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
@@ -1080,10 +1128,23 @@ def instructor_dashboard():
 
     sections.sort(key=_section_sort_key)
 
+    terms_ordered = sorted(terms, key=lambda t: (-(t.year or 0), -(t.semester or 0)))
+    grouped_by_term = []
+    for t in terms_ordered:
+        if selected_term_id and t.id != selected_term_id:
+            continue
+        t_sections = [s for s in sections if s.term_id == t.id]
+        grouped_by_term.append({
+            "term": t,
+            "tqf3_open": bool(getattr(t, "is_open_tqf3", False)),
+            "tqf5_open": bool(getattr(t, "is_open_tqf5", False)),
+            "sections": t_sections,
+        })
+
     return render_template(
         "instructor/dashboard.html",
-        sections=sections,
-        terms=terms,
+        grouped_by_term=grouped_by_term,
+        terms=terms_ordered,
         selected_term_id=selected_term_id,
     )
 
@@ -1207,6 +1268,8 @@ def edit_tqf3(section_id):
                 gi.setdefault("credits", str(course.credits))
             if course.description:
                 gi.setdefault("description", course.description)
+        if current_section and getattr(current_section, "section_number", None):
+            gi.setdefault("class_group", current_section.section_number)
         if current_term:
             gi.setdefault("semester", str(getattr(current_term, "semester", "") or ""))
             gi.setdefault("academic_year", str(getattr(current_term, "year", "") or ""))
@@ -1563,6 +1626,13 @@ def edit_tqf5(section_id):
         if "improvement_plan" not in at and "improve_plan" in at:
             at["improvement_plan"] = at.get("improve_plan")
 
+        if "assessment_score" not in at:
+            for legacy_key in ("result_score", "course_result", "improvement_result"):
+                value = at.get(legacy_key)
+                if value:
+                    at["assessment_score"] = value
+                    break
+
         # Prefill from TQF3 (only when empty-ish)
         gi = (tqf3_doc.general_info or {}) if tqf3_doc else {}
         if gi:
@@ -1576,6 +1646,12 @@ def edit_tqf5(section_id):
                 at["year_level"] = gi.get("year_level")
             if _is_blank(at.get("last_update")) and gi.get("last_updated"):
                 at["last_update"] = gi.get("last_updated")
+            if _is_blank(at.get("class_group")):
+                fallback_group = gi.get("class_group")
+                if not fallback_group and current_section and getattr(current_section, "section_number", None):
+                    fallback_group = current_section.section_number
+                if fallback_group:
+                    at["class_group"] = fallback_group
 
         # CLO table normalization
         # New format keys: clo_desc_1..n, clo_teach_1..n, clo_assess_1..n, clo_result_1..n, clo_improve_1..n
@@ -1747,6 +1823,8 @@ def edit_tqf5(section_id):
             form_data["verification_method"] = form_data.get("verification")
         if "improve_plan" in form_data and "improvement_plan" not in form_data:
             form_data["improvement_plan"] = form_data.get("improve_plan")
+        if "assessment_score" in form_data and "result_score" not in form_data:
+            form_data["result_score"] = form_data.get("assessment_score")
 
         # Grade legacy: derive grade_<level> from grade table rows
         grade_levels = []
@@ -1908,8 +1986,8 @@ def head_dashboard():
             filtered.append(s)
 
     term_ids = {s.term_id for s in filtered if s.term_id}
-    terms = [t for t in (Term.get(tid) for tid in term_ids) if t]
-    term_by_id = {t.id: t for t in terms if t.id}
+    term_objs = [t for t in (Term.get(tid) for tid in term_ids) if t]
+    term_by_id = {t.id: t for t in term_objs if t.id}
     for s in filtered:
         s.term = term_by_id.get(s.term_id)
 
@@ -1917,10 +1995,9 @@ def head_dashboard():
         filtered = [s for s in filtered if s.term_id == selected_term_id]
 
     # Attach TQF docs for templates (status / review links)
-    tqf3_docs = TQF3.find_all()
-    tqf5_docs = TQF5.find_all()
-    tqf3_by_section = {d.section_id: d for d in tqf3_docs if d.section_id}
-    tqf5_by_section = {d.section_id: d for d in tqf5_docs if d.section_id}
+    section_ids = [s.id for s in filtered if s.id]
+    tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf5_by_section = _tqf5_by_section_ids(section_ids)
     for s in filtered:
         s.tqf3 = tqf3_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
@@ -1935,9 +2012,22 @@ def head_dashboard():
     all_terms = Term.find_all()
     all_terms.sort(key=lambda t: (t.year, t.semester), reverse=True)
 
+    term_objs_ordered = sorted(term_objs, key=lambda t: (-(t.year or 0), -(t.semester or 0)))
+    grouped_by_term = []
+    for t in term_objs_ordered:
+        if selected_term_id and t.id != selected_term_id:
+            continue
+        t_sections = [s for s in filtered if s.term_id == t.id]
+        grouped_by_term.append({
+            "term": t,
+            "tqf3_open": bool(getattr(t, "is_open_tqf3", False)),
+            "tqf5_open": bool(getattr(t, "is_open_tqf5", False)),
+            "sections": t_sections,
+        })
+
     return render_template(
         "head/dashboard.html",
-        sections=filtered,
+        grouped_by_term=grouped_by_term,
         instructors=instructors,
         terms=all_terms,
         selected_term_id=selected_term_id,
@@ -1999,8 +2089,12 @@ def _get_head_summary_sources(term: Term, scope: dict) -> tuple[list[Section], l
     instructors = users_with_role("instructor")
     instructor_by_id = {u.id: u for u in instructors if u.id}
 
-    tqf5_docs = [doc for doc in TQF5.find_all() if doc.status in ["SUBMITTED", "APPROVED"]]
-    tqf5_by_section = {doc.section_id: doc for doc in tqf5_docs if doc.section_id}
+    section_ids = [s.id for s in sections if s.id]
+    tqf5_by_section = {
+        sid: doc
+        for sid, doc in _tqf5_by_section_ids(section_ids).items()
+        if doc.status in ["SUBMITTED", "APPROVED"]
+    }
 
     scoped_sections = []
     scoped_tqf5 = []
@@ -2777,10 +2871,9 @@ def academic_dashboard():
 
     is_system_locked = _is_system_locked()
 
-    tqf3_docs = TQF3.find_all()
-    tqf5_docs = TQF5.find_all()
-    tqf3_by_section = {d.section_id: d for d in tqf3_docs if d.section_id}
-    tqf5_by_section = {d.section_id: d for d in tqf5_docs if d.section_id}
+    section_ids = [s.id for s in sections if s.id]
+    tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf5_by_section = _tqf5_by_section_ids(section_ids)
 
     if total > 0:
         tqf3_submitted = 0
@@ -2850,10 +2943,9 @@ def academic_term_program(term_id, program_id):
     for s in sections:
         s.course = course_by_id.get(s.course_id)
 
-    tqf3_docs = TQF3.find_all()
-    tqf5_docs = TQF5.find_all()
-    tqf3_by_section = {d.section_id: d for d in tqf3_docs if d.section_id}
-    tqf5_by_section = {d.section_id: d for d in tqf5_docs if d.section_id}
+    section_ids = [s.id for s in sections if s.id]
+    tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf5_by_section = _tqf5_by_section_ids(section_ids)
     for s in sections:
         s.tqf3 = tqf3_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
@@ -2870,19 +2962,35 @@ def academic_term_program(term_id, program_id):
         # Runtime attach for templates
         s.instructor = instructor_by_id.get(s.instructor_id)
 
-    courses_grouped = {}
-    for s in sections:
-        label = f"{s.course.code} - {s.course.name_th}" if s.course else ""
-        courses_grouped.setdefault(label, []).append(s)
+    total = len(sections)
+    tqf3_submitted = sum(1 for s in sections if s.tqf3 and s.tqf3.status in ["SUBMITTED", "APPROVED"])
+    tqf3_approved = sum(1 for s in sections if s.tqf3 and s.tqf3.status == "APPROVED")
+    tqf5_submitted = sum(1 for s in sections if s.tqf5 and s.tqf5.status in ["SUBMITTED", "APPROVED"])
+    tqf5_approved = sum(1 for s in sections if s.tqf5 and s.tqf5.status == "APPROVED")
+    stats = {
+        "total": total,
+        "tqf3_submitted": tqf3_submitted,
+        "tqf3_approved": tqf3_approved,
+        "tqf5_submitted": tqf5_submitted,
+        "tqf5_approved": tqf5_approved,
+    }
+
+    # Head TQF5 summaries for this program (scope_type=program)
+    head_summaries = [
+        row for row in HeadTQF5Summary.find_by("term_id", term_id)
+        if row.status == "SUBMITTED" and row.scope_id == program_id
+    ]
 
     return render_template(
         "academic/term_program.html",
         term=term,
         program=program,
         courses=courses,
-        courses_grouped=courses_grouped,
+        sections=sections,
         instructors=instructors,
         is_system_locked=is_system_locked,
+        stats=stats,
+        head_summaries=head_summaries,
     )
 
 
@@ -2907,10 +3015,9 @@ def academic_term_documents(term_id):
     instructors = users_with_role("instructor")
     instructor_by_id = {u.id: u for u in instructors if u.id}
 
-    tqf3_docs = TQF3.find_all()
-    tqf5_docs = TQF5.find_all()
-    tqf3_by_section = {d.section_id: d for d in tqf3_docs if d.section_id}
-    tqf5_by_section = {d.section_id: d for d in tqf5_docs if d.section_id}
+    section_ids = [s.id for s in sections if s.id]
+    tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf5_by_section = _tqf5_by_section_ids(section_ids)
 
     rows = []
     for s in sections:
@@ -2991,10 +3098,9 @@ def head_term_documents(term_id):
     instructors = users_with_role("instructor")
     instructor_by_id = {u.id: u for u in instructors if u.id}
 
-    tqf3_docs = TQF3.find_all()
-    tqf5_docs = TQF5.find_all()
-    tqf3_by_section = {d.section_id: d for d in tqf3_docs if d.section_id}
-    tqf5_by_section = {d.section_id: d for d in tqf5_docs if d.section_id}
+    section_ids = [s.id for s in sections if s.id]
+    tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf5_by_section = _tqf5_by_section_ids(section_ids)
 
     rows = []
     for s in sections:
@@ -3132,7 +3238,6 @@ def academic_bulk_open_courses():
             term_id=term_id,
             section_number=section_number,
             instructor_id=None,
-            is_open=False,
             status="active",
         ).save()
         created += 1
@@ -3223,8 +3328,6 @@ def lock_term():
     for s in sections:
         if s.status == "active":
             s.status = "locked"
-            s.is_open = False
-            s.is_open_tqf5 = False
             s.save()
     flash("ทำการปิดรอบและล็อกเอกสารเรียบร้อยแล้ว", "warning")
     return _safe_redirect_next("academic_dashboard")
@@ -3244,8 +3347,6 @@ def unlock_term():
     for s in sections:
         if s.status in ["active", "locked"]:
             s.status = "active"
-            s.is_open = False
-            s.is_open_tqf5 = False
             s.save()
     flash("ทำการเปิดรอบและปลดล็อกเอกสารเรียบร้อยแล้ว", "success")
     return _safe_redirect_next("academic_dashboard")
@@ -3284,7 +3385,6 @@ def open_course():
                 term_id=term_id,
                 section_number=section_number,
                 instructor_id=None,
-                is_open=False,
                 status="active",
             ).save()
             flash("เปิดรายวิชาสอนเรียบร้อย (รอหัวหน้าสาขามอบหมายผู้สอน)", "success")
@@ -3362,57 +3462,6 @@ def assign_instructor(section_id):
     flash("มอบหมายผู้สอนเรียบร้อย", "success")
     return _safe_redirect_next("head_dashboard")
 
-
-@app.route("/academic/toggle-open-tqf3/<section_id>", methods=["POST"])
-@login_required
-@roles_required("academic")
-def toggle_open_tqf3(section_id):
-    section = _get_or_404(Section, section_id)
-
-    if get_active_role() != "academic":
-        flash("โปรดสลับบทบาทเป็นฝ่ายวิชาการเพื่อดำเนินการ", "warning")
-        return redirect(url_for("dashboard"))
-
-    if _is_system_locked():
-        flash("ระบบถูกล็อกอยู่ ไม่สามารถเปิด/ปิดให้กรอกได้", "warning")
-        return _safe_redirect_next("academic_dashboard")
-
-    # Deprecated: opening is now term-wide. Keep this endpoint to avoid breaking old links.
-    term = _get_or_404(Term, section.term_id)
-    term.is_open_tqf3 = not bool(term.is_open_tqf3)
-    term.save()
-    flash(
-        f"สถานะการเปิดกรอก มคอ.3 (ทั้งเทอม {term.semester}/{term.year}): "
-        f"{'เปิดให้เริ่มกรอก' if term.is_open_tqf3 else 'ปิดห้ามกรอก'}",
-        "info",
-    )
-    return _safe_redirect_next("academic_dashboard")
-
-
-@app.route("/academic/toggle-open-tqf5/<section_id>", methods=["POST"])
-@login_required
-@roles_required("academic")
-def toggle_open_tqf5(section_id):
-    section = _get_or_404(Section, section_id)
-
-    if get_active_role() != "academic":
-        flash("โปรดสลับบทบาทเป็นฝ่ายวิชาการเพื่อดำเนินการ", "warning")
-        return redirect(url_for("dashboard"))
-
-    if _is_system_locked():
-        flash("ระบบถูกล็อกอยู่ ไม่สามารถเปิด/ปิดให้กรอกได้", "warning")
-        return _safe_redirect_next("academic_dashboard")
-
-    # Deprecated: opening is now term-wide. Keep this endpoint to avoid breaking old links.
-    term = _get_or_404(Term, section.term_id)
-    term.is_open_tqf5 = not bool(term.is_open_tqf5)
-    term.save()
-    flash(
-        f"สถานะการเปิดกรอก มคอ.5 (ทั้งเทอม {term.semester}/{term.year}): "
-        f"{'เปิดให้เริ่มกรอก' if term.is_open_tqf5 else 'ปิดห้ามกรอก'}",
-        "info",
-    )
-    return _safe_redirect_next("academic_dashboard")
 
 
 @app.route("/academic/term/<term_id>/toggle-open-tqf3", methods=["POST"])
@@ -3521,6 +3570,20 @@ def seed_firestore():
         created += 1
 
     print(f"Seeded users: {created} created")
+
+
+@app.route("/api/term-statuses")
+@login_required
+def api_term_statuses():
+    """Returns current TQF open/close status for all terms. Used by dashboards for live polling."""
+    terms = Term.find_all()
+    result = {}
+    for t in terms:
+        result[t.id] = {
+            "tqf3": bool(getattr(t, "is_open_tqf3", False)),
+            "tqf5": bool(getattr(t, "is_open_tqf5", False)),
+        }
+    return jsonify(result)
 
 
 if __name__ == "__main__":

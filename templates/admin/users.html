@@ -3,20 +3,20 @@
 {% block title %}จัดการผู้ใช้ - Admin{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="page-header">
     <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('admin_dashboard') }}" style="color: var(--primary-color);">Admin Dashboard</a> /
-            <span style="color: var(--text-muted);">จัดการผู้ใช้</span>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a> /
+            <span class="text-muted">จัดการผู้ใช้</span>
         </nav>
         <h2>จัดการผู้ใช้งานและสิทธิ์ (Users & Roles)</h2>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
+<div class="layout-grid-aside">
     <!-- Add User Form -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">สร้างผู้ใช้ใหม่</h3>
+    <div class="glass glass-card">
+        <h3 class="mb-3">สร้างผู้ใช้ใหม่</h3>
         <form method="POST">
             <div class="form-group">
                 <label>Username</label>
@@ -31,21 +31,21 @@
                 <input type="text" name="full_name" class="form-control" required>
             </div>
             <div class="form-group">
-                <label>บทบาท (Roles) <span style="color: var(--text-muted); font-size: 0.8125rem;">(เลือกได้หลายบทบาท)</span></label>
-                <div style="display: grid; gap: 0.5rem; margin-top: 0.5rem;">
-                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                <label>บทบาท (Roles) <span class="form-note">(เลือกได้หลายบทบาท)</span></label>
+                <div class="grid-gap-sm mt-2">
+                    <label class="form-check-inline">
                         <input type="checkbox" name="roles" value="instructor" checked>
                         อาจารย์ผู้สอน
                     </label>
-                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                    <label class="form-check-inline">
                         <input type="checkbox" name="roles" value="head">
                         หัวหน้าสาขา
                     </label>
-                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                    <label class="form-check-inline">
                         <input type="checkbox" name="roles" value="academic">
                         ฝ่ายวิชาการ
                     </label>
-                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                    <label class="form-check-inline">
                         <input type="checkbox" name="roles" value="admin">
                         Administrator
                     </label>
@@ -81,70 +81,67 @@
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">สร้างบัญชีผู้ใช้</button>
+            <button type="submit" class="btn btn-primary w-100">สร้างบัญชีผู้ใช้</button>
         </form>
     </div>
 
     <!-- User List -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">รายชื่อผู้ใช้ทั้งหมด</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+    <div class="glass glass-card">
+        <h3 class="mb-3">รายชื่อผู้ใช้ทั้งหมด</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
                 <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem;">ชื่อผู้ใช้</th>
-                        <th style="padding: 1rem;">ชื่อ-นามสกุล</th>
-                        <th style="padding: 1rem;">บทบาท</th>
-                        <th style="padding: 1rem;">สังกัด</th>
-                        <th style="padding: 1rem; width: 80px;">จัดการ</th>
+                    <tr>
+                        <th>ชื่อผู้ใช้</th>
+                        <th>ชื่อ-นามสกุล</th>
+                        <th>บทบาท</th>
+                        <th>สังกัด</th>
+                        <th class="col-80">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for user in users %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem; font-family: monospace;">{{ user.username }}</td>
-                        <td style="padding: 1rem;">{{ user.full_name }}</td>
-                        <td style="padding: 1rem;">
-                            {% for r in user.role_names() %}
-                            <span class="status-badge" style="
-                                {% if r == 'admin' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                                {% elif r == 'head' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                                {% elif r == 'academic' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                                {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-                            ">{{ r|upper }}</span>
-                            {% endfor %}
+                    <tr>
+                        <td class="text-mono">{{ user.username }}</td>
+                        <td>{{ user.full_name }}</td>
+                        <td>
+                            <div class="badge-list">
+                                {% for r in user.role_names() %}
+                                <span class="status-badge role-{{ r }}">{{ r|upper }}</span>
+                                {% endfor %}
+                            </div>
 
-                            <details style="margin-top: 0.75rem;">
-                                <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8125rem;">แก้ไขบทบาท</summary>
-                                <form method="POST" action="{{ url_for('admin_update_user_roles', user_id=user.id) }}" style="margin-top: 0.75rem; display:grid; gap:0.5rem;">
-                                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                            <details class="details-block">
+                                <summary class="details-summary">แก้ไขบทบาท</summary>
+                                <form method="POST" action="{{ url_for('admin_update_user_roles', user_id=user.id) }}" class="details-content">
+                                    <label class="form-check-inline">
                                         <input type="checkbox" name="roles" value="instructor" {% if user.has_role('instructor') %}checked{% endif %}>
                                         อาจารย์ผู้สอน
                                     </label>
-                                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                                    <label class="form-check-inline">
                                         <input type="checkbox" name="roles" value="head" {% if user.has_role('head') %}checked{% endif %}>
                                         หัวหน้าสาขา
                                     </label>
-                                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                                    <label class="form-check-inline">
                                         <input type="checkbox" name="roles" value="academic" {% if user.has_role('academic') %}checked{% endif %}>
                                         ฝ่ายวิชาการ
                                     </label>
-                                    <label style="display:flex; align-items:center; gap:0.5rem;">
+                                    <label class="form-check-inline">
                                         <input type="checkbox" name="roles" value="admin" {% if user.has_role('admin') %}checked{% endif %}>
                                         Administrator
                                     </label>
-                                    <button type="submit" class="btn btn-secondary" style="justify-self:start; padding: 0.35rem 0.9rem;">บันทึกบทบาท</button>
+                                    <button type="submit" class="btn btn-secondary btn-compact">บันทึกบทบาท</button>
                                 </form>
                             </details>
                         </td>
-                        <td style="padding: 1rem; font-size: 0.8125rem; color: var(--text-muted);">
+                        <td class="text-muted text-xs">
                             {{ user_affiliation_by_user_id.get(user.id) or 'System' }}
 
-                            <details style="margin-top: 0.75rem;">
-                                <summary style="cursor: pointer; color: var(--text-muted); font-size: 0.8125rem;">แก้ไขสังกัด</summary>
-                                <form method="POST" action="{{ url_for('admin_update_user_affiliation', user_id=user.id) }}" style="margin-top: 0.75rem; display:grid; gap:0.5rem; max-width: 420px;">
-                                    <div class="form-group" style="margin:0;">
-                                        <label style="font-size: 0.8125rem;">คณะที่สังกัด</label>
+                            <details class="details-block">
+                                <summary class="details-summary">แก้ไขสังกัด</summary>
+                                <form method="POST" action="{{ url_for('admin_update_user_affiliation', user_id=user.id) }}" class="details-content">
+                                    <div class="form-group mb-0">
+                                        <label class="text-xs">คณะที่สังกัด</label>
                                         <select name="faculty_id" class="form-control">
                                             <option value="">-- ไม่ระบุ --</option>
                                             {% for faculty in faculties %}
@@ -152,8 +149,8 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-                                    <div class="form-group" style="margin:0;">
-                                        <label style="font-size: 0.8125rem;">สาขาที่สังกัด</label>
+                                    <div class="form-group mb-0">
+                                        <label class="text-xs">สาขาที่สังกัด</label>
                                         <select name="department_id" class="form-control">
                                             <option value="">-- ไม่ระบุ --</option>
                                             {% for dept in departments %}
@@ -163,8 +160,8 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-                                    <div class="form-group" style="margin:0;">
-                                        <label style="font-size: 0.8125rem;">หลักสูตรที่สังกัด</label>
+                                    <div class="form-group mb-0">
+                                        <label class="text-xs">หลักสูตรที่สังกัด</label>
                                         <select name="program_id" class="form-control">
                                             <option value="">-- ไม่ระบุ --</option>
                                             {% for program in programs %}
@@ -175,22 +172,19 @@
                                             {% endfor %}
                                         </select>
                                     </div>
-                                    <button type="submit" class="btn btn-secondary" style="justify-self:start; padding: 0.35rem 0.9rem;">บันทึกสังกัด</button>
+                                    <button type="submit" class="btn btn-secondary btn-compact">บันทึกสังกัด</button>
                                 </form>
                             </details>
                         </td>
 
-                        <td style="padding: 1rem;">
+                        <td>
                             {% if current_user.id != user.id %}
                             <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST"
-                                onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')" style="margin: 0;">
-                                <button type="submit" class="btn glass"
-                                    style="padding: 0.25rem 0.5rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">
-                                    ลบ
-                                </button>
+                                onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')" class="mb-0">
+                                <button type="submit" class="btn btn-outline-danger">ลบ</button>
                             </form>
                             {% else %}
-                            <span style="font-size: 0.75rem; color: var(--text-muted);">-</span>
+                            <span class="text-muted text-xxs">-</span>
                             {% endif %}
                         </td>
                     </tr>

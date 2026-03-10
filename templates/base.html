@@ -16,22 +16,84 @@
 </head>
 <body>
     {% if current_user.is_authenticated %}
+    {% set display_name = current_user.full_name or current_user.username or 'User' %}
+    {% set display_initial = display_name|first|upper %}
     <nav class="navbar glass">
-        <div class="nav-brand">TQF System</div>
-        <div class="nav-user">
-            <span>{{ current_user.full_name }} ({{ active_role or current_user.best_role() }})</span>
-            <a href="{{ url_for('account') }}" class="btn btn-secondary" style="margin-left: 1rem; color: var(--text-muted);">บัญชีของฉัน</a>
-            {% if available_roles and available_roles|length > 1 %}
-            <form method="POST" action="{{ url_for('switch_role') }}" style="display:inline-flex; align-items:center; gap:0.5rem; margin-left: 1rem;">
-                <select name="role" class="form-control" style="height: 2rem; padding: 0.25rem 0.5rem;">
-                    {% for r in available_roles %}
-                    <option value="{{ r }}" {% if r == (active_role or current_user.best_role()) %}selected{% endif %}>{{ r|upper }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; color: var(--text-muted);">สลับบทบาท</button>
-            </form>
-            {% endif %}
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="margin-left: 1rem; color: var(--text-muted);">ออกจากระบบ</a>
+        <div class="nav-inner">
+            <div class="nav-brand">
+                <div class="nav-logo">TQF</div>
+                <div>
+                    <div class="nav-brand-title">TQF System</div>
+                    <div class="nav-brand-subtitle">Thai Qualifications Console</div>
+                </div>
+            </div>
+            <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navActions">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="nav-actions" id="navActions">
+                <div class="nav-session">
+                    <div class="nav-popover" data-nav-popover>
+                        <button
+                            type="button"
+                            class="nav-identity nav-popover-trigger"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                            aria-controls="userPopover"
+                        >
+                        <div class="nav-identity-text">
+                            <div class="nav-user-name">{{ display_name }}</div>
+                            <div class="nav-role-badge">{{ (active_role or current_user.best_role() or 'USER')|upper }}</div>
+                        </div>
+                        <div class="nav-avatar">{{ display_initial }}</div>
+                        </button>
+                        <div class="nav-popover-panel glass" id="userPopover" role="menu" aria-label="เมนูผู้ใช้" hidden>
+                            <div class="nav-menu" role="none">
+                                <a href="{{ url_for('account') }}" class="nav-menu-item" role="menuitem">บัญชีของฉัน</a>
+                                {% set _cur_role = (active_role or current_user.best_role() or 'instructor')|lower %}
+                                <a href="/manual/{{ _cur_role }}" class="nav-menu-item nav-menu-item--manual" role="menuitem" target="_blank">
+                                    คู่มือการใช้งาน
+                                </a>
+
+                                {% if available_roles and available_roles|length > 1 %}
+                                <div class="nav-submenu" role="none">
+                                    <button
+                                        type="button"
+                                        class="nav-menu-item nav-popover-disclosure nav-submenu-trigger"
+                                        role="menuitem"
+                                        aria-expanded="false"
+                                        aria-controls="roleSubmenu"
+                                        aria-haspopup="true"
+                                        data-popover-disclosure
+                                    >
+                                        สลับบทบาท
+                                    </button>
+                                    <div class="nav-submenu-panel glass" id="roleSubmenu" role="menu" aria-label="เลือกบทบาท" hidden>
+                                        {% for r in available_roles %}
+                                        <form method="POST" action="{{ url_for('switch_role') }}" class="nav-submenu-form" role="none">
+                                            <button
+                                                type="submit"
+                                                name="role"
+                                                value="{{ r }}"
+                                                class="nav-menu-item nav-submenu-item {% if r == (active_role or current_user.best_role()) %}is-active{% endif %}"
+                                                role="menuitem"
+                                            >
+                                                {{ r|upper }}
+                                            </button>
+                                        </form>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div class="nav-menu-separator" role="none"></div>
+                                <a href="{{ url_for('logout') }}" class="nav-menu-item" role="menuitem">ออกจากระบบ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
     {% endif %}
@@ -47,6 +109,128 @@
 
         {% block content %}{% endblock %}
     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            function updateButtonPointer(btn, event) {
+                const rect = btn.getBoundingClientRect();
+                const x = ((event.clientX - rect.left) / rect.width) * 100;
+                const y = ((event.clientY - rect.top) / rect.height) * 100;
+                btn.style.setProperty('--mouse-x', x + '%');
+                btn.style.setProperty('--mouse-y', y + '%');
+            }
+
+            document.querySelectorAll('.btn').forEach(function (btn) {
+                btn.addEventListener('pointermove', function (event) {
+                    updateButtonPointer(btn, event);
+                });
+                btn.addEventListener('pointerleave', function () {
+                    btn.style.removeProperty('--mouse-x');
+                    btn.style.removeProperty('--mouse-y');
+                });
+            });
+
+            var navToggle = document.querySelector('.nav-toggle');
+            var navActions = document.getElementById('navActions');
+            if (navToggle && navActions) {
+                navToggle.addEventListener('click', function () {
+                    var isOpen = navActions.classList.toggle('is-open');
+                    navToggle.setAttribute('aria-expanded', isOpen);
+                });
+
+                window.addEventListener('resize', function () {
+                    if (window.innerWidth > 1024) {
+                        navActions.classList.remove('is-open');
+                        navToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            function setupNavPopover(popover) {
+                var trigger = popover.querySelector('.nav-popover-trigger');
+                var panel = popover.querySelector('.nav-popover-panel');
+                if (!trigger || !panel) return;
+
+                function setOpen(isOpen) {
+                    trigger.setAttribute('aria-expanded', String(isOpen));
+                    panel.hidden = !isOpen;
+
+                    if (!isOpen) {
+                        panel.querySelectorAll('[data-popover-disclosure]').forEach(function (btn) {
+                            var controlsId = btn.getAttribute('aria-controls');
+                            if (!controlsId) return;
+                            var controlled = panel.querySelector('#' + CSS.escape(controlsId));
+                            if (!controlled) return;
+                            btn.setAttribute('aria-expanded', 'false');
+                            controlled.hidden = true;
+                        });
+                    }
+                }
+
+                function isOpen() {
+                    return trigger.getAttribute('aria-expanded') === 'true' && panel.hidden === false;
+                }
+
+                trigger.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    setOpen(!isOpen());
+                });
+
+                panel.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                });
+
+                // Disclosure toggles (sub-panels) inside popover
+                panel.querySelectorAll('[data-popover-disclosure]').forEach(function (btn) {
+                    var controlsId = btn.getAttribute('aria-controls');
+                    if (!controlsId) return;
+                    var controlled = panel.querySelector('#' + CSS.escape(controlsId));
+                    if (!controlled) return;
+
+                    btn.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        var nextOpen = btn.getAttribute('aria-expanded') !== 'true';
+
+                        // Close other disclosures
+                        panel.querySelectorAll('[data-popover-disclosure]').forEach(function (otherBtn) {
+                            if (otherBtn === btn) return;
+                            var otherId = otherBtn.getAttribute('aria-controls');
+                            if (!otherId) return;
+                            var otherPanel = panel.querySelector('#' + CSS.escape(otherId));
+                            if (!otherPanel) return;
+                            otherBtn.setAttribute('aria-expanded', 'false');
+                            otherPanel.hidden = true;
+                        });
+
+                        btn.setAttribute('aria-expanded', String(nextOpen));
+                        controlled.hidden = !nextOpen;
+                    });
+                });
+
+                document.addEventListener('click', function () {
+                    if (isOpen()) setOpen(false);
+                });
+
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape' && isOpen()) {
+                        setOpen(false);
+                        trigger.focus();
+                    }
+                });
+
+                // Close after clicking regular links inside the panel
+                panel.querySelectorAll('a[href]').forEach(function (link) {
+                    link.addEventListener('click', function () {
+                        setOpen(false);
+                    });
+                });
+            }
+
+            document.querySelectorAll('[data-nav-popover]').forEach(function (popover) {
+                setupNavPopover(popover);
+            });
+        });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

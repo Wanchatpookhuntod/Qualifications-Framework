@@ -3,157 +3,177 @@
 {% block title %}{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} - {{ term.semester }}/{{ term.year }}{% endblock %}
 
 {% block content %}
-<div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+<div class="page-header">
     <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('academic_dashboard') }}" style="color: var(--primary-color);">Dashboard ฝ่ายวิชาการ</a> /
-            <span style="color: var(--text-muted);">ปีการศึกษา {{ term.semester }}/{{ term.year }}</span> /
-            <span style="color: var(--text-muted);">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</span>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('academic_dashboard') }}">Dashboard ฝ่ายวิชาการ</a> /
+            <span class="text-muted">ปีการศึกษา {{ term.semester }}/{{ term.year }}</span> /
+            <span class="text-muted">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</span>
         </nav>
-        <h2 style="margin: 0;">🎓 {{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</h2>
-        <p style="color: var(--text-muted); margin: 0.25rem 0 0;">ปีการศึกษา {{ term.semester }}/{{ term.year }}</p>
+        <h2>{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</h2>
+        <p class="text-muted mb-0">ปีการศึกษา {{ term.semester }}/{{ term.year }}</p>
     </div>
 
-    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary" style="color: var(--text-muted);">กลับไป Dashboard</a>
+    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
 </div>
 
 {% if not is_system_locked %}
-<div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 1.5rem;">
-    <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
+<div class="glass glass-card-sm mb-5">
+    <div class="flex-between flex-wrap">
         <div>
-            <div style="font-weight: 800;">จัดการรายวิชาในหลักสูตรนี้</div>
-            <div style="color: var(--text-muted); font-size: 0.95rem;">เพิ่ม/แก้ไขรายวิชาเปิดสอนในเทอมนี้</div>
+            <div class="fw-bold">จัดการรายวิชาในหลักสูตรนี้</div>
+            <div class="text-muted text-xs">เพิ่ม/แก้ไขรายวิชาเปิดสอนในเทอมนี้</div>
         </div>
-        <div style="display:flex; gap: 0.75rem; flex-wrap: wrap;">
-            <button type="button" class="btn glass" onclick="openBulkModal()" style="border-color: var(--primary-color); color: var(--primary-color);">+ เพิ่มรายวิชา (หลายวิชา)</button>
-            <button type="button" class="btn glass" onclick="openSingleModal()" style="border-color: var(--primary-color); color: var(--primary-color);">เปิดทีละวิชา</button>
-            <form method="POST" action="{{ url_for('academic_remove_program_from_term') }}" onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้ออกจากเทอม? (ต้องไม่มีรายวิชาที่เปิดสอนแล้ว)')" style="display:inline;">
-                <input type="hidden" name="term_id" value="{{ term.id }}">
-                <input type="hidden" name="program_id" value="{{ program.id }}">
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <button type="submit" class="btn glass" style="border-color: var(--accent-danger); color: var(--accent-danger);">ลบหลักสูตรออกจากเทอม</button>
-            </form>
+        <div class="inline-actions">
+            <button type="button" class="btn btn-secondary" onclick="openBulkModal()">+ เพิ่มรายวิชา (หลายวิชา)</button>
+            <button type="button" class="btn btn-secondary" onclick="openSingleModal()">เปิดทีละวิชา</button>
         </div>
     </div>
-</div>
 
-<div class="glass" style="padding: 1.25rem; border-radius: 1.25rem; margin-bottom: 1.5rem;">
-    <div style="display:flex; justify-content: space-between; align-items:center; gap: 1rem; flex-wrap: wrap;">
+    <div class="flex-between flex-wrap mt-3">
         <div>
-            <div style="font-weight: 800;">เปิดช่วงให้กรอก มคอ. (ทั้งเทอม)</div>
-            <div style="color: var(--text-muted); font-size: 0.95rem;">มีผลกับทุกวิชาในเทอมนี้</div>
         </div>
-        <div style="display:flex; gap: 0.75rem; flex-wrap: wrap;">
-            <form action="{{ url_for('toggle_open_term_tqf3', term_id=term.id) }}" method="POST" style="display:inline;">
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <button type="submit" class="btn glass" style="border-color: var(--primary-color); color: var(--primary-color);">
-                    มคอ.3: {% if term.is_open_tqf3 %}ปิดให้กรอก{% else %}เปิดให้กรอก{% endif %}
-                </button>
-            </form>
-            <form action="{{ url_for('toggle_open_term_tqf5', term_id=term.id) }}" method="POST" style="display:inline;">
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <button type="submit" class="btn glass" style="border-color: var(--primary-color); color: var(--primary-color);">
-                    มคอ.5: {% if term.is_open_tqf5 %}ปิดให้กรอก{% else %}เปิดให้กรอก{% endif %}
-                </button>
-            </form>
+        <div class="inline-actions">
+            <div class="badge-list flex-wrap" style="gap: 0.4rem;">
+                <span class="status-badge {{ 'status-approved' if term.is_open_tqf3 else 'status-returned' }}">มคอ.3: {{ 'เปิด' if term.is_open_tqf3 else 'ปิด' }}</span>
+                <span class="status-badge {{ 'status-approved' if term.is_open_tqf5 else 'status-returned' }}">มคอ.5: {{ 'เปิด' if term.is_open_tqf5 else 'ปิด' }}</span>
+            </div>
         </div>
     </div>
 </div>
 {% endif %}
 
-{% if courses_grouped %}
-{% for course_label, sections in courses_grouped.items() %}
-<div class="glass" style="margin-bottom: 1.5rem; border-radius: 1.25rem; overflow: hidden; border: 1px solid var(--border-color);">
-    <div style="padding: 1rem 1.5rem; background: rgba(99, 102, 241, 0.05); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
-        <h5 style="margin: 0; color: var(--primary-color); display: flex; align-items: center; gap: 0.75rem; font-size: 1.125rem;">
-            <span style="background: var(--primary-color); color: white; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.875rem;">📚</span>
-            {{ course_label }}
-        </h5>
-        <span style="font-size: 0.75rem; color: var(--text-muted);">{{ sections|length }} กลุ่มเรียน</span>
+<div class="stat-grid stat-grid-compact">
+    <div class="glass stat-card">
+        <div class="stat-label">รายวิชาทั้งหมด</div>
+        <div class="stat-value">{{ stats.total }}</div>
     </div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.3 ส่งแล้ว</div>
+        <div class="stat-value text-primary">{{ stats.tqf3_submitted }}</div>
+    </div>
+    <div class="glass stat-card success">
+        <div class="stat-label">มคอ.3 อนุมัติ</div>
+        <div class="stat-value">{{ stats.tqf3_approved }}</div>
+    </div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.5 ส่งแล้ว</div>
+        <div class="stat-value text-primary">{{ stats.tqf5_submitted }}</div>
+    </div>
+    <div class="glass stat-card success">
+        <div class="stat-label">มคอ.5 อนุมัติ</div>
+        <div class="stat-value">{{ stats.tqf5_approved }}</div>
+    </div>
+</div>
 
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
+<div class="glass glass-card-sm mb-5">
+    <div class="flex-between flex-wrap mb-2">
+        <div>
+            <div class="fw-bold">สรุป มคอ.5 จากหัวหน้าสาขา</div>
+            <div class="text-muted text-xs">เอกสารสรุปรวมที่หัวหน้าส่งต่อให้ฝ่ายวิชาการ</div>
+        </div>
+        <span class="status-badge role-instructor">จำนวน {{ head_summaries|length }} ฉบับ</span>
+    </div>
+    <div class="grid-gap-sm">
+        {% for row in head_summaries %}
+        <div class="list-tile">
+            <div>
+                <div class="fw-bold">{{ (row.summary_data or {}).get('scope_label', 'สรุป มคอ.5') }}</div>
+                <div class="text-muted text-xs">
+                    {% if row.submitted_at %}ส่งเมื่อ {{ row.submitted_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+                </div>
+            </div>
+            <a class="btn btn-secondary btn-compact" href="{{ url_for('academic_view_head_tqf5_summary', summary_id=row.id) }}">ดูสรุป</a>
+        </div>
+        {% else %}
+        <div class="text-muted text-xs">ยังไม่มีหัวหน้าส่งสรุป มคอ.5 สำหรับสาขานี้</div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if sections %}
+<div class="glass glass-card-sm mb-5">
+    <div class="table-wrapper">
+        <table class="data-table">
             <thead>
-                <tr style="text-align: left; background: rgba(0,0,0,0.01); border-bottom: 1px solid var(--border-color);">
-                    <th style="padding: 0.875rem 1.5rem; width: 80px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">กลุ่ม</th>
-                    <th style="padding: 0.875rem 1.5rem; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">อาจารย์ผู้สอน</th>
-                    <th style="padding: 0.875rem 1.5rem; width: 130px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">มคอ.3</th>
-                    <th style="padding: 0.875rem 1.5rem; width: 130px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">มคอ.5</th>
-                    <th style="padding: 0.875rem 1.5rem; width: 100px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">สถานะ</th>
-                    <th style="padding: 0.875rem 1.5rem; width: 80px; font-size: 0.8125rem; text-transform: uppercase; color: var(--text-muted);">จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
+                    <tr>
+                        <th>ลำดับ</th>
+                        <th >รายวิชา</th>
+                        <th >ผู้สอน</th>
+                        <th >มคอ.3</th>
+                        <th >มคอ.5</th>
+                        <th >สถานะ</th>
+                        <th>จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
                 {% for section in sections %}
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 1rem 1.5rem; font-weight: 600;">{{ section.section_number }}</td>
-                    <td style="padding: 1rem 1.5rem;">
+                <tr>
+                    <td class="text-center text-muted">{{ loop.index }}</td>
+                    <td>
+                        {% if section.course %}
+                        <div class="fw-bold">{{ section.course.code }}</div>
+                        <div class="text-muted text-xs">{{ section.course.name_th }} (กลุ่ม {{ section.section_number }})</div>
+                        {% else %}
+                        <span class="text-muted text-xs">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
                         {% if section.instructor %}
-                        <div style="font-weight: 600;">{{ section.instructor.full_name }}</div>
+                        <span>{{ section.instructor.full_name }}</span>
                         {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอหัวหน้าสาขามอบหมายผู้สอน</span>
+                        <span class="text-muted text-xs">รอมอบหมาย</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 1rem 1.5rem;">
+                    <td>
                         {% if section.tqf3 %}
-                        {% set s = section.tqf3.status %}
-                        {% if s == 'APPROVED' %}
-                        <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669;">{{ s }}</span>
-                        {% elif s == 'SUBMITTED' %}
-                        <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">{{ s }}</span>
-                        {% elif s == 'RETURNED' %}
-                        <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">{{ s }}</span>
-                        {% else %}
-                        <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: #4f46e5;">{{ s }}</span>
-                        {% endif %}
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.75rem;">รอดำเนินการ</span>
-                        {% endif %}
-
-                        <div style="margin-top: 0.5rem;">
-                            {% if term.is_open_tqf3 %}
-                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 เปิดทั้งเทอม</span>
+                            {% set s3 = section.tqf3.status %}
+                            {% if s3 == 'APPROVED' %}
+                            <span class="status-badge status-approved">{{ s3 }}</span>
+                            {% elif s3 == 'SUBMITTED' %}
+                            <span class="status-badge status-submitted">{{ s3 }}</span>
+                            {% elif s3 == 'RETURNED' %}
+                            <span class="status-badge status-returned">{{ s3 }}</span>
                             {% else %}
-                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 ปิดทั้งเทอม</span>
+                            <span class="status-badge role-instructor">{{ s3 }}</span>
                             {% endif %}
-                        </div>
+                            <div class="mt-1">
+                                <a href="{{ url_for('academic_view_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}?next={{ request.path }}" class="btn btn-secondary btn-compact btn-link  mt-2">ดู</a>
+                            </div>
+                        {% else %}
+                            <span class="text-muted text-xs">-</span>
+                        {% endif %}
                     </td>
-                    <td style="padding: 1rem 1.5rem;">
+                    <td>
                         {% if section.tqf5 %}
-                        {% set s = section.tqf5.status %}
-                        {% if s == 'APPROVED' %}
-                        <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: #059669;">{{ s }}</span>
-                        {% elif s == 'SUBMITTED' %}
-                        <span class="status-badge" style="background: rgba(245, 158, 11, 0.1); color: #d97706;">{{ s }}</span>
-                        {% elif s == 'RETURNED' %}
-                        <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: #dc2626;">{{ s }}</span>
-                        {% else %}
-                        <span class="status-badge" style="background: rgba(99, 102, 241, 0.1); color: #4f46e5;">{{ s }}</span>
-                        {% endif %}
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.75rem;">รอดำเนินการ</span>
-                        {% endif %}
-
-                        <div style="margin-top: 0.5rem;">
-                            {% if term.is_open_tqf5 %}
-                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 เปิดทั้งเทอม</span>
+                            {% set s5 = section.tqf5.status %}
+                            {% if s5 == 'APPROVED' %}
+                            <span class="status-badge status-approved">{{ s5 }}</span>
+                            {% elif s5 == 'SUBMITTED' %}
+                            <span class="status-badge status-submitted">{{ s5 }}</span>
+                            {% elif s5 == 'RETURNED' %}
+                            <span class="status-badge status-returned">{{ s5 }}</span>
                             {% else %}
-                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 ปิดทั้งเทอม</span>
+                            <span class="status-badge role-instructor">{{ s5 }}</span>
                             {% endif %}
-                        </div>
-                    </td>
-                    <td style="padding: 1rem 1.5rem;">
-                        {% if section.status == 'locked' %}
-                        <span style="color: var(--accent-danger); font-size: 0.8125rem;">🔒 ล็อก</span>
+                            <div class="mt-1">
+                                <a href="{{ url_for('academic_view_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}?next={{ request.path }}" class="btn btn-secondary btn-compact btn-link mt-2">ดู</a>
+                            </div>
                         {% else %}
-                        <span style="color: var(--accent-success); font-size: 0.8125rem;">✅ ปกติ</span>
+                            <span class="text-muted text-xs">-</span>
                         {% endif %}
                     </td>
-                    <td style="padding: 1rem 1.5rem;">
+                    <td>
+                        {% if section.status == 'locked' %}
+                        <span class="text-danger text-xs">🔒 ล็อก</span>
+                        {% else %}
+                        <span class="text-success text-xs">✅ ปกติ</span>
+                        {% endif %}
+                    </td>
+                    <td>
                         <form action="{{ url_for('delete_section', section_id=section.id) }}" method="POST" onsubmit="return confirm('ยืนยันการลบรายวิชาที่เปิดสอนนี้?')">
                             <input type="hidden" name="next" value="{{ request.path }}">
-                            <button type="submit" class="btn glass" style="padding: 0.35rem 0.6rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">ลบ</button>
+                            <button type="submit" class="btn btn-outline-danger">ลบ</button>
                         </form>
                     </td>
                 </tr>
@@ -161,92 +181,91 @@
             </tbody>
         </table>
     </div>
+    
 </div>
-{% endfor %}
+
 {% else %}
-<div class="glass" style="padding: 4rem; border-radius: 1.5rem; text-align: center;">
-    <div style="font-size: 3rem; margin-bottom: 1rem;">📁</div>
-    <h3 style="margin: 0 0 0.5rem;">ยังไม่มีรายวิชาเปิดสอนในหลักสูตรนี้</h3>
+
+<div class=”glass empty-card”>
+    <h3>ยังไม่มีรายวิชาเปิดสอนในหลักสูตรนี้</h3>
     {% if not is_system_locked %}
-    <p style="color: var(--text-muted); margin: 0;">กด “เพิ่มรายวิชา” เพื่อเริ่มต้น</p>
+    <p class=”text-muted”>กด “เพิ่มรายวิชา” เพื่อเริ่มต้น</p>
     {% endif %}
 </div>
 {% endif %}
 
-<!-- Bulk add modal -->
-<div id="bulkModal" style="display:none; position:fixed; inset:0; z-index:9999; background: rgba(0,0,0,0.45);">
-    <div class="glass" style="width: min(960px, 96%); margin: 6vh auto; border-radius: 1.25rem; overflow:hidden;">
-        <div style="padding: 1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:flex-start; gap: 1rem; border-bottom: 1px solid var(--border-color);">
+<div id="bulkModal" class="modal">
+    <div class="modal-card">
+        <div class="modal-header">
             <div>
-                <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-color);">เพิ่มรายวิชา (หลายวิชา)</div>
-                <div style="color: var(--text-muted); margin-top: 0.25rem;">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+                <div class="fw-bold">เพิ่มรายวิชา (หลายวิชา)</div>
+                <div class="text-muted text-xs">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
             </div>
-            <button type="button" class="btn glass" onclick="closeBulkModal()" style="padding: 0.45rem 0.8rem;">ปิด</button>
+            <button type="button" class="btn btn-secondary btn-compact" onclick="closeBulkModal()">ปิด</button>
         </div>
-
-        <form method="POST" action="{{ url_for('academic_bulk_open_courses') }}" style="padding: 1.25rem 1.5rem;">
+        <form method="POST" action="{{ url_for('academic_bulk_open_courses') }}" class="modal-body">
             <input type="hidden" name="term_id" value="{{ term.id }}">
             <input type="hidden" name="program_id" value="{{ program.id }}">
             <input type="hidden" name="next" value="{{ request.path }}">
 
-            <div style="display:flex; gap: 1rem; align-items: center; flex-wrap: wrap; margin-bottom: 1rem;">
-                <div style="flex:1; min-width: 240px;">
-                    <input type="text" id="bulkSearch" class="form-control" placeholder="ค้นหารายวิชา (รหัส/ชื่อ)" oninput="filterBulkCourses()">
+            <div class="flex-between flex-wrap mb-2">
+                <div>
+                    <label class="text-muted text-xs">รายวิชา</label>
+                    <input type="text" id="bulkSearch" class="form-control flex-1 min-260" placeholder="ค้นหารายวิชา (รหัส/ชื่อ)" oninput="filterBulkCourses()">
+
                 </div>
-                <div style="min-width: 180px;">
-                    <label style="font-size: 0.8125rem; color: var(--text-muted);">หมู่เรียน</label>
+                <div class="min-160">
+                    <label class="text-muted text-xs">หมู่เรียน</label>
                     <input type="text" name="section_number" class="form-control" value="1">
                 </div>
             </div>
 
-            <div style="max-height: 50vh; overflow:auto; border: 1px solid var(--border-color); border-radius: 1rem;">
-                <table style="width:100%; border-collapse: collapse;">
+            <div class="table-wrapper table-scroll-panel">
+                <table class="data-table data-table--compact w-100">
                     <thead>
-                        <tr style="text-align:left; border-bottom: 1px solid var(--border-color);">
-                            <th style="padding: 0.75rem 1rem; width: 48px;"><input type="checkbox" id="bulkSelectAll" onclick="toggleBulkAll()"></th>
-                            <th style="padding: 0.75rem 1rem;">รหัส</th>
-                            <th style="padding: 0.75rem 1rem;">ชื่อรายวิชา</th>
-                            <th style="padding: 0.75rem 1rem; width: 90px;">หน่วยกิต</th>
+                        <tr>
+                            <th class="col-48"><input type="checkbox" id="bulkSelectAll" onclick="toggleBulkAll()"></th>
+                            <th>รหัส</th>
+                            <th>ชื่อรายวิชา</th>
+                            <th class="col-90">หน่วยกิต</th>
                         </tr>
                     </thead>
                     <tbody id="bulkCourseTbody">
                         {% for c in courses %}
-                        <tr class="bulk-row" data-text="{{ (c.code ~ ' ' ~ c.name_th)|lower }}" style="border-bottom: 1px solid var(--border-color);">
-                            <td style="padding: 0.65rem 1rem;"><input type="checkbox" name="course_ids" value="{{ c.id }}"></td>
-                            <td style="padding: 0.65rem 1rem; font-family: monospace;">{{ c.code }}</td>
-                            <td style="padding: 0.65rem 1rem;">{{ c.name_th }}</td>
-                            <td style="padding: 0.65rem 1rem; color: var(--text-muted);">{{ c.credits }}</td>
+                        <tr class="bulk-row" data-text="{{ (c.code ~ ' ' ~ c.name_th)|lower }}">
+                            <td><input type="checkbox" name="course_ids" value="{{ c.id }}"></td>
+                            <td class="text-mono">{{ c.code }}</td>
+                            <td>{{ c.name_th }}</td>
+                            <td class="text-muted text-xs">{{ c.credits }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
 
-            <div style="display:flex; justify-content:flex-end; gap: 0.75rem; margin-top: 1rem;">
-                <button type="button" class="btn btn-secondary" onclick="closeBulkModal()" style="color: var(--text-muted);">ยกเลิก</button>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeBulkModal()">ยกเลิก</button>
                 <button type="submit" class="btn btn-primary">เพิ่มรายวิชา</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Single add modal -->
-<div id="singleModal" style="display:none; position:fixed; inset:0; z-index:9999; background: rgba(0,0,0,0.45);">
-    <div class="glass" style="width: min(860px, 96%); margin: 8vh auto; border-radius: 1.25rem; overflow:hidden;">
-        <div style="padding: 1.25rem 1.5rem; display:flex; justify-content:space-between; align-items:flex-start; gap: 1rem; border-bottom: 1px solid var(--border-color);">
+<div id="singleModal" class="modal">
+    <div class="modal-card">
+        <div class="modal-header">
             <div>
-                <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-color);">เปิดรายวิชาสอน (ทีละวิชา)</div>
-                <div style="color: var(--text-muted); margin-top: 0.25rem;">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+                <div class="fw-bold">เปิดรายวิชาสอน (ทีละวิชา)</div>
+                <div class="text-muted text-xs">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
             </div>
-            <button type="button" class="btn glass" onclick="closeSingleModal()" style="padding: 0.45rem 0.8rem;">ปิด</button>
+            <button type="button" class="btn btn-secondary btn-compact" onclick="closeSingleModal()">ปิด</button>
         </div>
-
-        <form method="POST" action="{{ url_for('open_course') }}" style="padding: 1.25rem 1.5rem;">
+        <form method="POST" action="{{ url_for('open_course') }}" class="modal-body">
             <input type="hidden" name="term_id" value="{{ term.id }}">
             <input type="hidden" name="next" value="{{ request.path }}">
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <div class="grid-two">
                 <div>
-                    <label style="font-size: 0.8125rem; color: var(--text-muted);">รายวิชา</label>
+                    <label class="text-muted text-xs">รายวิชา</label>
                     <select name="course_id" class="form-control" required>
                         <option value="" disabled selected>-- เลือกรายวิชา --</option>
                         {% for c in courses %}
@@ -255,11 +274,11 @@
                     </select>
                 </div>
                 <div>
-                    <label style="font-size: 0.8125rem; color: var(--text-muted);">หมู่เรียน</label>
+                    <label class="text-muted text-xs">หมู่เรียน</label>
                     <input type="text" name="section_number" class="form-control" value="1">
                 </div>
-                <div style="grid-column: 1 / -1;">
-                    <label style="font-size: 0.8125rem; color: var(--text-muted);">มอบหมายผู้สอน (ถ้ามี)</label>
+                <div class="full-span">
+                    <label class="text-muted text-xs">มอบหมายผู้สอน (ถ้ามี)</label>
                     <select name="instructor_id" class="form-control">
                         <option value="">-- เลือกผู้สอน --</option>
                         {% for ins in instructors %}
@@ -268,8 +287,8 @@
                     </select>
                 </div>
             </div>
-            <div style="display:flex; justify-content:flex-end; gap: 0.75rem; margin-top: 1rem;">
-                <button type="button" class="btn btn-secondary" onclick="closeSingleModal()" style="color: var(--text-muted);">ยกเลิก</button>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeSingleModal()">ยกเลิก</button>
                 <button type="submit" class="btn btn-primary">เปิดรายวิชา</button>
             </div>
         </form>
@@ -301,19 +320,18 @@
     function filterBulkCourses() {
         const q = (document.getElementById('bulkSearch')?.value || '').toLowerCase();
         document.querySelectorAll('#bulkCourseTbody .bulk-row').forEach(tr => {
-            const text = (tr.getAttribute('data-text') || '');
+            const text = tr.getAttribute('data-text') || '';
             tr.style.display = text.includes(q) ? '' : 'none';
         });
     }
     function toggleBulkAll() {
         const all = document.getElementById('bulkSelectAll');
-        const checked = all && all.checked;
+        const checked = Boolean(all && all.checked);
         document.querySelectorAll('#bulkCourseTbody input[type="checkbox"][name="course_ids"]').forEach(cb => {
             cb.checked = checked;
         });
     }
 
-    // close modals on backdrop click
     document.addEventListener('click', function (e) {
         const bulk = document.getElementById('bulkModal');
         if (bulk && bulk.style.display === 'block' && e.target === bulk) closeBulkModal();

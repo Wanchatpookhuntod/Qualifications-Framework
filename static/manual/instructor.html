@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>คู่มือ Instructor — ระบบ TQF</title>
+  <link rel="stylesheet" href="/static/manual/_base.css" />
+  <style>
+    :root { --role-color: #1d4ed8; --role-bg: #dbeafe; }
+    .site-header {
+      background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+      color: white; padding: 28px 32px 28px;
+    }
+    .site-header .role-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 100px; padding: 4px 14px;
+      font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    }
+    .site-header h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 6px; }
+    .site-header p { font-size: 14px; opacity: 0.8; }
+
+    /* Status flow */
+    .status-flow {
+      display: flex; align-items: center; gap: 10px;
+      flex-wrap: wrap; margin: 14px 0;
+    }
+    .sf-item {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      font-size: 12px; color: var(--gray-600);
+    }
+    .sf-arrow { color: var(--gray-400); font-size: 1.3rem; line-height: 1; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-topbar">
+    <div class="breadcrumb">
+      <a href="/manual">คู่มือการใช้งาน</a> › อาจารย์ผู้สอน
+    </div>
+    <a href="/instructor/dashboard" class="btn-back-dashboard">← กลับหน้าหลัก</a>
+  </div>
+  <div class="role-tag">📝 Instructor</div>
+  <h1>คู่มืออาจารย์ผู้สอน</h1>
+  <p>กรอกและส่งเอกสาร มคอ.3 และ มคอ.5 สำหรับรายวิชาที่ได้รับมอบหมาย</p>
+</header>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- TOC -->
+    <aside class="toc">
+      <div class="toc-nav-actions">
+        <a href="/instructor/dashboard" class="back-link">← กลับหน้าหลัก</a>
+        <a href="/manual" class="alt-link">เลือกบทบาทอื่น</a>
+      </div>
+      <h3>สารบัญ</h3>
+      <ul>
+        <li><a href="#overview"   class="toc-link">ภาพรวม Instructor</a></li>
+        <li><a href="#dashboard"  class="toc-link">Dashboard</a></li>
+        <li>
+          <a href="#tqf3"         class="toc-link">มคอ.3</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#tqf3-what"    class="toc-link">มคอ.3 คืออะไร</a></li>
+            <li><a href="#tqf3-fill"    class="toc-link">วิธีกรอก มคอ.3</a></li>
+            <li><a href="#tqf3-submit"  class="toc-link">การส่งและติดตาม</a></li>
+            <li><a href="#tqf3-return"  class="toc-link">เมื่อถูกตีกลับ</a></li>
+          </ul></div>
+        </li>
+        <li>
+          <a href="#tqf5"         class="toc-link">มคอ.5</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#tqf5-what"    class="toc-link">มคอ.5 คืออะไร</a></li>
+            <li><a href="#tqf5-fill"    class="toc-link">วิธีกรอก มคอ.5</a></li>
+            <li><a href="#tqf5-submit"  class="toc-link">การส่งและติดตาม</a></li>
+          </ul></div>
+        </li>
+        <li><a href="#status-guide" class="toc-link">คู่มือสถานะเอกสาร</a></li>
+        <li><a href="#account"    class="toc-link">ตั้งค่าบัญชี</a></li>
+        <li><a href="#faq"        class="toc-link">คำถามที่พบบ่อย</a></li>
+      </ul>
+    </aside>
+
+    <main class="content">
+
+      <!-- OVERVIEW -->
+      <section id="overview">
+        <h2 class="section-title">📝 ภาพรวม Instructor</h2>
+        <p>อาจารย์ผู้สอนมีหน้าที่จัดทำเอกสาร มคอ. 2 ประเภท สำหรับแต่ละรายวิชาที่รับผิดชอบ</p>
+        <table>
+          <thead><tr><th>เอกสาร</th><th>ชื่อเต็ม</th><th>จัดทำเมื่อไหร่</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>มคอ.3</strong></td>
+              <td>รายละเอียดของรายวิชา (Course Specification)</td>
+              <td>ต้นภาคการศึกษา — ก่อนหรือเมื่อเริ่มสอน</td>
+            </tr>
+            <tr>
+              <td><strong>มคอ.5</strong></td>
+              <td>รายงานผลการดำเนินการของรายวิชา (Course Report)</td>
+              <td>หลังสิ้นสุดภาคการศึกษา — หลังประกาศผลแล้ว</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="callout callout-warning">
+          ⚠️ <strong>ต้องได้รับ มคอ.3 ที่ APPROVED ก่อน</strong> จึงจะส่ง มคอ.5 ได้ (บันทึกฉบับร่างได้ก่อน)
+        </div>
+      </section>
+
+      <!-- DASHBOARD -->
+      <section id="dashboard">
+        <h2 class="section-title">📊 Dashboard</h2>
+        <p>หน้า Dashboard แสดงรายวิชาทั้งหมดที่คุณได้รับมอบหมาย จัดกลุ่มตามภาคการศึกษา</p>
+        <ul>
+          <li><strong>ชื่อรายวิชา</strong>, รหัสวิชา, หมู่เรียน, ภาคการศึกษา</li>
+          <li><strong>สถานะ มคอ.3</strong>: DRAFT / SUBMITTED / RETURNED / APPROVED</li>
+          <li><strong>สถานะ มคอ.5</strong>: DRAFT / SUBMITTED / RETURNED / APPROVED</li>
+          <li>วันที่ส่งล่าสุดของแต่ละเอกสาร</li>
+          <li>ปุ่มลิงก์ไปกรอก มคอ.3 และ มคอ.5</li>
+        </ul>
+        <div class="callout callout-info">
+          💡 ถ้าไม่เห็นรายวิชา แปลว่า <strong>Head ยังไม่ได้มอบหมายคุณ</strong> ให้ Section นั้น — ติดต่อหัวหน้าสาขา
+        </div>
+      </section>
+
+      <!-- TQF3 -->
+      <section id="tqf3">
+        <h2 class="section-title">📄 มคอ.3 — รายละเอียดรายวิชา</h2>
+
+        <hr id="tqf3-what" />
+        <h3 class="sub-title">มคอ.3 คืออะไร?</h3>
+        <p>มคอ.3 หรือ <strong>รายละเอียดของรายวิชา (Course Specification)</strong> คือเอกสารที่อธิบายว่ารายวิชานี้จะสอนอะไร อย่างไร และประเมินอย่างไร
+           จัดทำ<strong>ต้นภาคการศึกษา</strong>ก่อนสอน</p>
+
+        <hr id="tqf3-fill" />
+        <h3 class="sub-title">วิธีกรอก มคอ.3</h3>
+        <p>กดปุ่ม <strong>"มคอ.3"</strong> ที่แถวรายวิชาบน Dashboard</p>
+
+        <div class="callout callout-success">
+          ✅ ระบบจะดึงข้อมูลจาก มคอ.3 ที่เคยอนุมัติแล้วของรายวิชาเดิมมาใส่ให้อัตโนมัติ (Pre-fill) ไม่ต้องกรอกใหม่ทุกครั้ง
+        </div>
+
+        <h4>หมวดที่ต้องกรอก</h4>
+        <table>
+          <thead><tr><th>#</th><th>หมวด</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>ข้อมูลรายวิชา</td><td>มหาวิทยาลัย, คณะ, หลักสูตร, รหัสวิชา, ชื่อวิชา (ไทย/อังกฤษ), หน่วยกิต, ชั้นปี, หมู่เรียน, วิชาบังคับก่อน, วันที่ปรับปรุงล่าสุด</td></tr>
+            <tr><td>2</td><td>คำอธิบายรายวิชา</td><td>รายละเอียดเนื้อหาวิชาทั้งภาษาไทยและอังกฤษ</td></tr>
+            <tr><td>3</td><td>CLO — ผลการเรียนรู้</td><td>กำหนด CLO (Course Learning Outcomes) พร้อมรหัสและคำอธิบายแต่ละข้อ</td></tr>
+            <tr><td>4</td><td>การแมป CLO-PLO</td><td>เชื่อมโยง CLO แต่ละข้อกับ PLO (Program Learning Outcomes) ของหลักสูตร</td></tr>
+            <tr><td>5</td><td>แผนการสอน</td><td>วิธีการสอน, โครงร่างเนื้อหา, ตารางสัปดาห์การสอน</td></tr>
+            <tr><td>6</td><td>แผนการประเมิน</td><td>วิธีการประเมินผล, เกณฑ์คะแนน, น้ำหนักคะแนน</td></tr>
+          </tbody>
+        </table>
+
+        <hr id="tqf3-submit" />
+        <h3 class="sub-title">การส่งและติดตามสถานะ</h3>
+        <ol class="steps">
+          <li>กรอกข้อมูลให้ครบ แล้วกดปุ่ม <strong>"บันทึกฉบับร่าง"</strong> เพื่อบันทึกระหว่างกรอก<br/>
+            <em>(สามารถกลับมาแก้ไขได้เรื่อยๆ ขณะที่สถานะยังเป็น DRAFT)</em></li>
+          <li>เมื่อพร้อมส่ง กดปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> — สถานะเปลี่ยนเป็น <span class="status status-submitted">SUBMITTED</span></li>
+          <li>รอหัวหน้าสาขาตรวจสอบ — ติดตามสถานะได้บน Dashboard</li>
+          <li>เมื่อได้รับ <span class="status status-approved">APPROVED</span> เอกสารจะล็อค อ่านได้อย่างเดียว</li>
+        </ol>
+
+        <div class="callout callout-warning">
+          ⚠️ ปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> จะถูก disabled ถ้าฝ่ายวิชาการยังไม่ได้เปิดรอบ มคอ.3
+        </div>
+
+        <hr id="tqf3-return" />
+        <h3 class="sub-title">เมื่อถูกตีกลับ (RETURNED)</h3>
+        <ol class="steps">
+          <li>เปิดหน้า มคอ.3 ของ Section นั้น</li>
+          <li>อ่าน <strong>ความคิดเห็นของหัวหน้าสาขา</strong> ที่แสดงด้านบนฟอร์ม</li>
+          <li>แก้ไขข้อมูลตามที่ระบุในความคิดเห็น</li>
+          <li>กดปุ่ม <strong>"บันทึกฉบับร่าง"</strong> แล้ว <strong>"ส่งให้หัวหน้าสาขา"</strong> อีกครั้ง</li>
+        </ol>
+        <div class="callout callout-info">
+          💡 สามารถส่งซ้ำได้ไม่จำกัดครั้ง จนกว่าหัวหน้าสาขาจะอนุมัติ
+        </div>
+      </section>
+
+      <!-- TQF5 -->
+      <section id="tqf5">
+        <h2 class="section-title">📊 มคอ.5 — รายงานผลการดำเนินการ</h2>
+
+        <hr id="tqf5-what" />
+        <h3 class="sub-title">มคอ.5 คืออะไร?</h3>
+        <p>มคอ.5 หรือ <strong>รายงานผลการดำเนินการของรายวิชา (Course Report)</strong> คือเอกสารที่รายงานว่า
+           สอนไปจริงอย่างไร นักศึกษาบรรลุผลการเรียนรู้แค่ไหน และมีปัญหา/ข้อเสนอแนะอะไร
+           จัดทำ<strong>หลังสิ้นสุดภาคการศึกษา</strong></p>
+
+        <div class="callout callout-danger">
+          🚫 <strong>ต้องมี มคอ.3 ที่ได้รับการ <span class="status status-approved">APPROVED</span> ก่อน</strong> จึงจะส่ง มคอ.5 ได้<br/>
+          (สามารถบันทึกฉบับร่างไว้ก่อนได้ แต่ยังส่งไม่ได้)
+        </div>
+
+        <hr id="tqf5-fill" />
+        <h3 class="sub-title">วิธีกรอก มคอ.5</h3>
+        <p>กดปุ่ม <strong>"มคอ.5"</strong> ที่แถวรายวิชาบน Dashboard</p>
+
+        <div class="callout callout-success">
+          ✅ ข้อมูลรายวิชาและ CLO จะถูกดึงมาจาก มคอ.3 ที่อนุมัติแล้วโดยอัตโนมัติ
+        </div>
+
+        <h4>หมวดที่ต้องกรอก</h4>
+        <table>
+          <thead><tr><th>#</th><th>หมวด</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>ข้อมูลรายวิชา</td><td>ดึงจาก มคอ.3 อัตโนมัติ — ตรวจสอบความถูกต้อง</td></tr>
+            <tr><td>2</td><td>ชั่วโมงสอนจริง</td><td>บันทึกชั่วโมงที่สอนจริงเทียบกับแผนใน มคอ.3 และหมายเหตุความแตกต่าง</td></tr>
+            <tr><td>3</td><td>สถิตินักศึกษา</td><td>จำนวนที่ลงทะเบียน, สอบผ่านและสำเร็จ, ถอน/ลาออก</td></tr>
+            <tr><td>4</td><td>การกระจายเกรด</td><td>จำนวนนักศึกษาที่ได้เกรด A, B+, B, C+, C, D+, D, F</td></tr>
+            <tr><td>5</td><td>ปัญหาและการปรับปรุง</td><td>ปัญหาที่พบระหว่างการสอนและวิธีแก้ไขที่ดำเนินการแล้ว</td></tr>
+            <tr><td>6</td><td>วิธีการตรวจสอบ</td><td>กระบวนการตรวจสอบคุณภาพที่ใช้</td></tr>
+            <tr><td>7</td><td>ผลการบรรลุ CLO</td><td>หลักฐานและข้อมูลที่แสดงว่า CLO แต่ละข้อบรรลุผลหรือไม่</td></tr>
+            <tr><td>8</td><td>ข้อเสนอแนะ</td><td>ข้อเสนอแนะสำหรับภาคการศึกษาถัดไป (ปรับปรุงการสอน, เนื้อหา, การประเมิน)</td></tr>
+          </tbody>
+        </table>
+
+        <hr id="tqf5-submit" />
+        <h3 class="sub-title">การส่งและติดตามสถานะ</h3>
+        <ol class="steps">
+          <li>ตรวจสอบว่า <strong>มคอ.3 ของ Section เดียวกัน</strong> ได้รับ <span class="status status-approved">APPROVED</span> แล้ว</li>
+          <li>กรอกข้อมูลทุกหมวดให้ครบ</li>
+          <li>กดปุ่ม <strong>"บันทึกฉบับร่าง"</strong> เพื่อบันทึกระหว่างกรอก</li>
+          <li>กดปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> — สถานะเปลี่ยนเป็น <span class="status status-submitted">SUBMITTED</span></li>
+          <li>รอหัวหน้าสาขาอนุมัติ</li>
+        </ol>
+        <div class="callout callout-warning">
+          ⚠️ ปุ่มส่งจะ disabled ถ้า: (1) มคอ.3 ยังไม่ APPROVED หรือ (2) ฝ่ายวิชาการยังไม่เปิดรอบ มคอ.5
+        </div>
+      </section>
+
+      <!-- STATUS GUIDE -->
+      <section id="status-guide">
+        <h2 class="section-title">📌 คู่มือสถานะเอกสาร</h2>
+        <table>
+          <thead><tr><th>สถานะ</th><th>ความหมาย</th><th>สิ่งที่ต้องทำ</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="status status-draft">DRAFT</span></td>
+              <td>ฉบับร่าง — กำลังกรอกหรือยังไม่ได้ส่ง</td>
+              <td>กรอกให้ครบแล้วกด "ส่งให้หัวหน้าสาขา"</td>
+            </tr>
+            <tr>
+              <td><span class="status status-submitted">SUBMITTED</span></td>
+              <td>ส่งแล้ว — รอหัวหน้าสาขาตรวจสอบ</td>
+              <td>รอผล — ดูสถานะบน Dashboard</td>
+            </tr>
+            <tr>
+              <td><span class="status status-returned">RETURNED</span></td>
+              <td>ตีกลับ — หัวหน้าสาขาต้องการให้แก้ไข</td>
+              <td>อ่านความคิดเห็น → แก้ไข → ส่งใหม่</td>
+            </tr>
+            <tr>
+              <td><span class="status status-approved">APPROVED</span></td>
+              <td>อนุมัติแล้ว — เอกสารสมบูรณ์</td>
+              <td>ไม่ต้องทำอะไร เอกสารล็อค อ่านอย่างเดียว</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3 class="sub-title">กระบวนการสถานะ มคอ.3</h3>
+        <div class="status-flow">
+          <div class="sf-item">
+            <span class="status status-draft">DRAFT</span>
+            <small>กรอก/แก้ไข</small>
+          </div>
+          <span class="sf-arrow">→</span>
+          <div class="sf-item">
+            <span class="status status-submitted">SUBMITTED</span>
+            <small>ส่งแล้ว</small>
+          </div>
+          <span class="sf-arrow">→</span>
+          <div class="sf-item">
+            <span class="status status-approved">APPROVED</span>
+            <small>อนุมัติ ✅</small>
+          </div>
+        </div>
+        <div class="status-flow" style="margin-top:4px;">
+          <div class="sf-item">
+            <span class="status status-submitted">SUBMITTED</span>
+          </div>
+          <span class="sf-arrow">→</span>
+          <div class="sf-item">
+            <span class="status status-returned">RETURNED</span>
+            <small>ตีกลับ</small>
+          </div>
+          <span class="sf-arrow">→</span>
+          <div class="sf-item">
+            <span class="status status-submitted">SUBMITTED</span>
+            <small>ส่งใหม่</small>
+          </div>
+          <span class="sf-arrow">→</span>
+          <div class="sf-item">
+            <span class="status status-approved">APPROVED</span>
+            <small>อนุมัติ ✅</small>
+          </div>
+        </div>
+      </section>
+
+      <!-- ACCOUNT -->
+      <section id="account">
+        <h2 class="section-title">⚙️ ตั้งค่าบัญชี</h2>
+        <ol class="steps">
+          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
+          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>กดปุ่ม <strong>"บันทึก"</strong></li>
+        </ol>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq">
+        <h2 class="section-title">❓ คำถามที่พบบ่อย</h2>
+
+        <h3 class="sub-title">Q: ทำไมไม่เห็นรายวิชาบน Dashboard?</h3>
+        <ul>
+          <li>หัวหน้าสาขายังไม่ได้มอบหมายคุณให้กับ Section — ติดต่อหัวหน้าสาขา</li>
+          <li>ฝ่ายวิชาการยังไม่ได้เปิดรายวิชา (สร้าง Section) — ติดต่อฝ่ายวิชาการ</li>
+        </ul>
+
+        <h3 class="sub-title">Q: ปุ่มส่ง มคอ. เป็นสีเทา กดไม่ได้?</h3>
+        <ul>
+          <li>ฝ่ายวิชาการยังไม่ได้เปิดรอบ มคอ.3 หรือ มคอ.5</li>
+          <li>สำหรับ มคอ.5: มคอ.3 ยังไม่ได้รับ <span class="status status-approved">APPROVED</span></li>
+          <li>เอกสารอยู่ในสถานะ SUBMITTED หรือ APPROVED อยู่แล้ว</li>
+        </ul>
+
+        <h3 class="sub-title">Q: ส่ง มคอ.3 ไปแล้ว อยากแก้ไข ทำได้ไหม?</h3>
+        <p>ไม่ได้ ขณะที่สถานะ SUBMITTED เอกสารจะล็อค — ต้องรอให้หัวหน้าสาขาตีกลับ (RETURNED) ก่อน จึงจะแก้ไขได้</p>
+
+        <h3 class="sub-title">Q: ถูกตีกลับ ความคิดเห็นของหัวหน้าอยู่ที่ไหน?</h3>
+        <p>เมื่อสถานะเป็น RETURNED ให้เปิดหน้า มคอ.3 หรือ มคอ.5 ความคิดเห็นจะแสดงอยู่ <strong>ด้านบนสุดของฟอร์ม</strong></p>
+
+        <h3 class="sub-title">Q: ลืมรหัสผ่าน ต้องทำอย่างไร?</h3>
+        <p>ติดต่อ <strong>Admin</strong> ของระบบเพื่อให้รีเซ็ตรหัสผ่านให้</p>
+
+        <h3 class="sub-title">Q: บันทึกฉบับร่างบ่อยแค่ไหนดี?</h3>
+        <p>แนะนำให้กด <strong>"บันทึกฉบับร่าง"</strong> ทุกครั้งที่กรอกเสร็จแต่ละหมวด เพื่อป้องกันข้อมูลสูญหาย</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<footer>
+  คู่มืออาจารย์ผู้สอน (Instructor) — ระบบ TQF &nbsp;|&nbsp;
+  <a href="/instructor/dashboard" style="color:inherit;">กลับหน้าหลัก</a> &nbsp;·&nbsp;
+  <a href="/manual" style="color:inherit;">คู่มือบทบาทอื่น</a>
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('.toc-link');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) cur = s.id; });
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+  }, { passive: true });
+</script>
+</body>
+</html>

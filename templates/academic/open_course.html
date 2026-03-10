@@ -3,25 +3,24 @@
 {% block title %}เปิดรายวิชาสอน - ฝ่ายวิชาการ{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="page-header">
     <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('academic_dashboard') }}" style="color: var(--primary-color);">Dashboard</a> /
-            <span style="color: var(--text-muted);">เปิดรายวิชาสอน</span>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('academic_dashboard') }}">Dashboard</a> /
+            <span class="text-muted">เปิดรายวิชาสอน</span>
         </nav>
         <h2>เปิดรายวิชาในภาคการศึกษา (Course Offering)</h2>
     </div>
 </div>
 
-<div class="glass" style="max-width: 700px; padding: 3rem; border-radius: 2rem; margin: 0 auto;">
-    <h3 style="margin-bottom: 2.5rem; text-align: center; color: var(--primary-color);">📝
-        ขั้นตอนการเปิดรายวิชาในภาคเรียน</h3>
+<div class="glass glass-form">
+    <h3 class="text-center text-primary mb-3">📝 ขั้นตอนการเปิดรายวิชาในภาคเรียน</h3>
 
     <form method="POST">
         <!-- 1. Term Selection -->
-        <div class="form-group" style="margin-bottom: 2rem;">
-            <label style="font-weight: 600; display: block; margin-bottom: 0.75rem;">1. เลือกปีการศึกษา/ภาคเรียน</label>
-            <select name="term_id" class="form-control" required style="padding: 0.75rem;">
+        <div class="form-group form-section">
+            <label class="step-label">1. เลือกปีการศึกษา/ภาคเรียน</label>
+            <select name="term_id" class="form-control" required>
                 {% for term in terms %}
                 <option value="{{ term.id }}" {% if selected_term_id==term.id %}selected{% endif %}>
                     ภาคเรียนที่ {{ term.semester }} ปีการศึกษา {{ term.year }}
@@ -31,14 +30,12 @@
         </div>
 
         <!-- 2. Course Selection (Grouped by Program) -->
-        <div class="form-group" style="margin-bottom: 2rem;">
-            <label style="font-weight: 600; display: block; margin-bottom: 0.75rem;">2. เลือกรายวิชา
-                (แยกตามหลักสูตร)</label>
-            <select name="course_id" class="form-control" required style="padding: 0.75rem;">
+        <div class="form-group form-section">
+            <label class="step-label">2. เลือกรายวิชา (แยกตามหลักสูตร)</label>
+            <select name="course_id" class="form-control" required>
                 <option value="">-- กรุณาเลือกรายวิชา --</option>
                 {% for prog_id, prog_data in grouped_courses.items() %}
-                <optgroup label="📂 {{ prog_data.name }}" {% if selected_program_id==prog_id
-                    %}style="background: rgba(99, 102, 241, 0.05);" {% endif %}>
+                <optgroup label="📂 {{ prog_data.name }}">
                     {% for course in prog_data.courses %}
                     <option value="{{ course.id }}">{{ course.code }} - {{ course.name_th }}</option>
                     {% endfor %}
@@ -47,22 +44,17 @@
             </select>
         </div>
 
-        <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 2.5rem;">
-            <!-- 3. Section Number -->
-            <div class="form-group">
-                <label style="font-weight: 600; display: block; margin-bottom: 0.75rem;">3. ระบุกลุ่ม (Section)</label>
-                <input type="text" name="section_number" class="form-control" value="1" placeholder="เช่น 1" required
-                    style="padding: 0.75rem;">
-            </div>
+        <!-- 3. Section Number -->
+        <div class="form-group form-section">
+            <label class="step-label">3. ระบุกลุ่ม (Section)</label>
+            <input type="text" name="section_number" class="form-control" value="1" placeholder="เช่น 1" required>
         </div>
 
-        <div style="margin-top: 3rem;">
-            <button type="submit" class="btn btn-primary"
-                style="width: 100%; padding: 1.25rem; font-size: 1.125rem; border-radius: 1rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);">
+        <div class="mt-4">
+            <button type="submit" class="btn btn-primary btn-xl">
                 ✅ ยืนยันการเปิดรายวิชา
             </button>
-            <p
-                style="margin-top: 1.5rem; font-size: 0.8125rem; color: var(--text-muted); text-align: center; border-top: 1px solid var(--border-color); padding-top: 1rem;">
+            <p class="form-footnote">
                 * หัวหน้าสาขาวิชาเป็นผู้มอบหมายอาจารย์ผู้สอน (ฝ่ายวิชาการเปิดรายวิชาเท่านั้น)
             </p>
         </div>

@@ -3,21 +3,20 @@
 {% block title %}จัดการปีการศึกษา - ฝ่ายวิชาการ{% endblock %}
 
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+<div class="page-header">
     <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('academic_dashboard') }}" style="color: var(--primary-color);">Dashboard</a> /
-            <span style="color: var(--text-muted);">จัดการปีการศึกษา</span>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('academic_dashboard') }}">Dashboard</a> /
+            <span class="text-muted">จัดการปีการศึกษา</span>
         </nav>
         <h2>จัดการปีการศึกษา/ภาคเรียน</h2>
     </div>
-    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary" style="color: var(--text-muted);">กลับไป Dashboard</a>
+    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 2fr; gap: 2rem;">
-    <!-- Add Term Form -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem; align-self: start;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">+ เพิ่มปีการศึกษาใหม่</h3>
+<div class="course-grid">
+    <div class="glass panel">
+        <h3 class="panel-title">+ เพิ่มปีการศึกษาใหม่</h3>
         <form method="POST">
             <div class="form-group">
                 <label>ปีการศึกษา (พ.ศ.)</label>
@@ -32,48 +31,38 @@
                     <option value="3">3 (ฤดูร้อน)</option>
                 </select>
             </div>
-            <div style="margin-top: 2rem;">
-                <button type="submit" class="btn btn-primary" style="width: 100%;">บันทึกข้อมูล</button>
-            </div>
+            <button type="submit" class="btn btn-primary w-100 mt-3">บันทึกข้อมูล</button>
         </form>
     </div>
 
-    <!-- Terms List -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">ปีการศึกษาที่มีในระบบ</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
+    <div class="glass panel">
+        <h3 class="panel-title">ปีการศึกษาที่มีในระบบ</h3>
+        <div class="table-wrapper">
+            <table class="data-table">
                 <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem;">ภาคเรียน/ปีการศึกษา</th>
-                        <th style="padding: 1rem;">สถานะ</th>
-                        <th style="padding: 1rem; width: 80px;">จัดการ</th>
+                    <tr>
+                        <th>ภาคเรียน/ปีการศึกษา</th>
+                        <th>สถานะ</th>
+                        <th class="col-80">จัดการ</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for term in terms %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem; font-weight: bold;">
-                            {{ term.semester }}/{{ term.year }}
+                    <tr>
+                        <td class="fw-bold">{{ term.semester }}/{{ term.year }}</td>
+                        <td>
+                            <span class="status-badge status-approved">พร้อมใช้งาน</span>
                         </td>
-                        <td style="padding: 1rem;">
-                            <span class="status-badge"
-                                style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">พร้อมใช้งาน</span>
-                        </td>
-                        <td style="padding: 1rem;">
+                        <td>
                             <form action="{{ url_for('delete_term', term_id=term.id) }}" method="POST"
                                 onsubmit="return confirm('ยืนยันการลบปีการศึกษานี้?')">
-                                <button type="submit" class="btn glass"
-                                    style="padding: 0.35rem 0.6rem; color: var(--accent-danger); border-color: var(--accent-danger); font-size: 0.75rem;">
-                                    ลบ
-                                </button>
+                                <button type="submit" class="btn btn-outline-danger">ลบ</button>
                             </form>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="2" style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                            ไม่พบข้อมูลปีการศึกษา</td>
+                        <td colspan="3" class="empty-state text-center text-muted">ไม่พบข้อมูลปีการศึกษา</td>
                     </tr>
                     {% endfor %}
                 </tbody>

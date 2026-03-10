@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>คู่มือ Admin — ระบบ TQF</title>
+  <link rel="stylesheet" href="/static/manual/_base.css" />
+  <style>
+    :root { --role-color: #b45309; --role-bg: #fef3c7; }
+    .site-header {
+      background: linear-gradient(135deg, #92400e 0%, #b45309 100%);
+      color: white; padding: 28px 32px 28px;
+    }
+    .site-header .role-tag {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 100px; padding: 4px 14px;
+      font-size: 13px; font-weight: 700; margin-bottom: 10px;
+    }
+    .site-header h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 6px; }
+    .site-header p { font-size: 14px; opacity: 0.8; }
+  </style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-topbar">
+    <div class="breadcrumb">
+      <a href="/manual">คู่มือการใช้งาน</a> › ผู้ดูแลระบบ
+    </div>
+    <a href="/admin/dashboard" class="btn-back-dashboard">← กลับหน้าหลัก</a>
+  </div>
+  <div class="role-tag">👑 Admin</div>
+  <h1>คู่มือผู้ดูแลระบบ</h1>
+  <p>จัดการโครงสร้างข้อมูลพื้นฐาน: ผู้ใช้, คณะ, หลักสูตร, รายวิชา</p>
+</header>
+
+<div class="container">
+  <div class="layout">
+
+    <!-- TOC -->
+    <aside class="toc">
+      <div class="toc-nav-actions">
+        <a href="/admin/dashboard" class="back-link">← กลับหน้าหลัก</a>
+        <a href="/manual" class="alt-link">เลือกบทบาทอื่น</a>
+      </div>
+      <h3>สารบัญ</h3>
+      <ul>
+        <li><a href="#overview"   class="toc-link">ภาพรวม Admin</a></li>
+        <li><a href="#login"      class="toc-link">การเข้าสู่ระบบ</a></li>
+        <li>
+          <a href="#users"        class="toc-link">จัดการผู้ใช้งาน</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#user-add"    class="toc-link">เพิ่มผู้ใช้ใหม่</a></li>
+            <li><a href="#user-edit"   class="toc-link">แก้ไข/ลบผู้ใช้</a></li>
+          </ul></div>
+        </li>
+        <li>
+          <a href="#faculties"    class="toc-link">จัดการคณะ/ภาควิชา</a>
+        </li>
+        <li>
+          <a href="#programs"     class="toc-link">จัดการหลักสูตร</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#program-add"    class="toc-link">เพิ่มหลักสูตร</a></li>
+            <li><a href="#program-import" class="toc-link">นำเข้าจากไฟล์</a></li>
+          </ul></div>
+        </li>
+        <li><a href="#courses"    class="toc-link">จัดการรายวิชา</a></li>
+        <li><a href="#account"    class="toc-link">ตั้งค่าบัญชี</a></li>
+        <li><a href="#faq"        class="toc-link">คำถามที่พบบ่อย</a></li>
+      </ul>
+    </aside>
+
+    <main class="content">
+
+      <!-- OVERVIEW -->
+      <section id="overview">
+        <h2 class="section-title">👑 ภาพรวม Admin</h2>
+        <p>Admin คือผู้ดูแลระบบที่มีสิทธิ์สูงสุด ทำหน้าที่ตั้งค่าโครงสร้างข้อมูลพื้นฐานให้ระบบพร้อมใช้งาน ก่อนที่บทบาทอื่นจะเริ่มดำเนินการได้</p>
+        <table>
+          <thead><tr><th>หน้าที่</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td>จัดการผู้ใช้</td><td>สร้าง/แก้ไข/ลบบัญชีผู้ใช้ทุกบทบาท</td></tr>
+            <tr><td>จัดการคณะ</td><td>สร้างคณะวิชาและภาควิชา/สาขาวิชา</td></tr>
+            <tr><td>จัดการหลักสูตร</td><td>สร้างหลักสูตรและนำเข้ารายวิชาจากไฟล์</td></tr>
+            <tr><td>จัดการรายวิชา</td><td>เพิ่ม/ลบรายวิชาในแต่ละหลักสูตร</td></tr>
+          </tbody>
+        </table>
+        <div class="callout callout-info">
+          💡 Admin ควรตั้งค่าโครงสร้างข้อมูล (คณะ → หลักสูตร → รายวิชา → ผู้ใช้) ก่อนที่ Academic จะสร้างภาคการศึกษา
+        </div>
+      </section>
+
+      <!-- LOGIN -->
+      <section id="login">
+        <h2 class="section-title">🔐 การเข้าสู่ระบบ</h2>
+        <ol class="steps">
+          <li>เปิดเบราว์เซอร์แล้วไปที่ URL ของระบบ</li>
+          <li>กรอก <strong>ชื่อผู้ใช้</strong> และ <strong>รหัสผ่าน</strong> แล้วกด <strong>"เข้าสู่ระบบ"</strong></li>
+          <li>ระบบนำไปยัง <strong>Admin Dashboard</strong> โดยอัตโนมัติ</li>
+        </ol>
+        <div class="callout callout-info">
+          💡 ผู้ใช้ที่มีหลายบทบาทสามารถสลับบทบาทได้ โดยคลิกรูปโปรไฟล์ที่มุมขวาบน แล้วเลือก <strong>"สลับบทบาท"</strong>
+        </div>
+      </section>
+
+      <!-- USERS -->
+      <section id="users">
+        <h2 class="section-title">👤 จัดการผู้ใช้งาน</h2>
+        <p>เข้าเมนู <strong>Admin → จัดการผู้ใช้งาน</strong></p>
+
+        <hr id="user-add" />
+        <h3 class="sub-title">➕ เพิ่มผู้ใช้ใหม่</h3>
+        <ol class="steps">
+          <li>กรอก <strong>ชื่อผู้ใช้ (Username)</strong> — ใช้สำหรับล็อกอิน ไม่สามารถซ้ำกันได้</li>
+          <li>กรอก <strong>รหัสผ่าน</strong> — ระบบเข้ารหัสอัตโนมัติ</li>
+          <li>กรอก <strong>ชื่อ-นามสกุล</strong></li>
+          <li>ติ๊กเลือก <strong>บทบาท</strong> ที่ต้องการ (เลือกได้หลายบทบาทพร้อมกัน):
+            <ul>
+              <li><code>instructor</code> — อาจารย์ผู้สอน</li>
+              <li><code>head</code> — หัวหน้าสาขา</li>
+              <li><code>academic</code> — ฝ่ายวิชาการ</li>
+              <li><code>admin</code> — ผู้ดูแลระบบ</li>
+            </ul>
+          </li>
+          <li>เลือก <strong>สังกัด</strong>: คณะ / ภาควิชา / หลักสูตร (ถ้ามี)</li>
+          <li>กดปุ่ม <strong>"บันทึกข้อมูล"</strong></li>
+        </ol>
+
+        <hr id="user-edit" />
+        <h3 class="sub-title">✏️ แก้ไขและลบผู้ใช้</h3>
+        <ul>
+          <li>คลิกที่แถวผู้ใช้ในตารางเพื่อ <strong>ขยายรายละเอียด</strong></li>
+          <li>เลือก <strong>แก้ไขบทบาท</strong> หรือ <strong>แก้ไขสังกัด</strong> แล้วกด "บันทึก"</li>
+          <li>กดปุ่ม <strong>"ลบ"</strong> เพื่อลบผู้ใช้ออกจากระบบ</li>
+        </ul>
+        <div class="callout callout-danger">
+          🚫 ไม่สามารถลบบัญชีของตัวเองได้
+        </div>
+      </section>
+
+      <!-- FACULTIES -->
+      <section id="faculties">
+        <h2 class="section-title">🏛️ จัดการคณะและภาควิชา</h2>
+        <p>เข้าเมนู <strong>Admin → จัดการคณะ</strong></p>
+
+        <h3 class="sub-title">เพิ่มคณะ</h3>
+        <ol class="steps">
+          <li>กรอก <strong>ชื่อคณะ</strong> ในช่องด้านบน</li>
+          <li>กดปุ่ม <strong>"บันทึกข้อมูล"</strong></li>
+        </ol>
+
+        <h3 class="sub-title">เพิ่มภาควิชา/สาขาวิชา</h3>
+        <ol class="steps">
+          <li>เลือก <strong>คณะ</strong> จาก dropdown</li>
+          <li>กรอก <strong>ชื่อภาควิชา</strong></li>
+          <li>กดปุ่ม <strong>"บันทึกข้อมูล"</strong></li>
+        </ol>
+
+        <h3 class="sub-title">ดูและลบภาควิชา</h3>
+        <p>ในตารางคณะ กดปุ่ม <strong>"ดู/ลบสาขา"</strong> เพื่อขยายรายชื่อภาควิชาและลบออกได้</p>
+        <div class="callout callout-warning">
+          ⚠️ ลบภาควิชาได้เฉพาะเมื่อไม่มีหลักสูตรหรือผู้ใช้ที่สังกัดอยู่
+        </div>
+      </section>
+
+      <!-- PROGRAMS -->
+      <section id="programs">
+        <h2 class="section-title">📚 จัดการหลักสูตร</h2>
+        <p>เข้าเมนู <strong>Admin → จัดการหลักสูตร</strong></p>
+
+        <hr id="program-add" />
+        <h3 class="sub-title">➕ เพิ่มหลักสูตรใหม่</h3>
+        <ol class="steps">
+          <li>เลือก <strong>คณะ/ภาควิชา</strong> ที่หลักสูตรสังกัด</li>
+          <li>กรอก <strong>ชื่อหลักสูตร</strong></li>
+          <li>กรอก <strong>ปีหลักสูตร</strong> (เช่น 2566) — ถ้ามี</li>
+          <li>กดปุ่ม <strong>"บันทึกข้อมูล"</strong></li>
+        </ol>
+
+        <hr id="program-import" />
+        <h3 class="sub-title">📥 นำเข้ารายวิชาจากไฟล์ (Bulk Import)</h3>
+        <p>สามารถนำเข้ารายวิชาทั้งหมดของหลักสูตรได้ครั้งเดียวผ่านไฟล์</p>
+        <ol class="steps">
+          <li>ในตารางหลักสูตร คลิกช่อง <strong>อัปโหลดไฟล์</strong> ที่แถวหลักสูตรที่ต้องการ</li>
+          <li>เลือกไฟล์จากเครื่อง (รองรับ <code>.json</code>, <code>.csv</code>, <code>.txt</code>)</li>
+          <li>กดปุ่ม <strong>"อัปโหลด"</strong></li>
+        </ol>
+
+        <h4>รูปแบบไฟล์ที่รองรับ</h4>
+        <table>
+          <thead><tr><th>รูปแบบ</th><th>หัวคอลัมน์ที่รองรับ</th></tr></thead>
+          <tbody>
+            <tr><td>CSV / TSV</td><td><code>รหัสวิชา</code> หรือ <code>code</code>, <code>ชื่อวิชา</code> หรือ <code>name</code>, <code>หน่วยกิต</code> หรือ <code>credits</code></td></tr>
+            <tr><td>Pipe-delimited</td><td>เหมือน CSV แต่คั่นด้วย <code>|</code></td></tr>
+            <tr><td>JSON</td><td>Array ของ object ที่มี field <code>code</code>, <code>name</code>, <code>credits</code></td></tr>
+          </tbody>
+        </table>
+        <div class="callout callout-info">
+          💡 รองรับหัวคอลัมน์ทั้งภาษาไทยและอังกฤษ — ระบบตรวจจับอัตโนมัติ
+        </div>
+      </section>
+
+      <!-- COURSES -->
+      <section id="courses">
+        <h2 class="section-title">📖 จัดการรายวิชา</h2>
+        <p>เข้าเมนู <strong>Admin → รายวิชา</strong></p>
+
+        <h3 class="sub-title">➕ เพิ่มรายวิชาด้วยตนเอง</h3>
+        <ol class="steps">
+          <li>กรอก <strong>รหัสวิชา</strong> (เช่น CS101)</li>
+          <li>กรอก <strong>ชื่อวิชาภาษาไทย</strong></li>
+          <li>กรอก <strong>ชื่อวิชาภาษาอังกฤษ</strong></li>
+          <li>กรอก <strong>จำนวนหน่วยกิต</strong> (เช่น 3(2-2-5))</li>
+          <li>เลือก <strong>หลักสูตร</strong> ที่รายวิชาสังกัด</li>
+          <li>กดปุ่ม <strong>"บันทึกข้อมูลวิชา"</strong></li>
+        </ol>
+
+        <h3 class="sub-title">🔍 กรอง/ค้นหารายวิชา</h3>
+        <p>ใช้ dropdown <strong>"กรองตามหลักสูตร"</strong> เพื่อแสดงเฉพาะรายวิชาในหลักสูตรที่ต้องการ</p>
+
+        <h3 class="sub-title">🗑️ ลบรายวิชา</h3>
+        <p>กดปุ่ม <strong>"ลบ"</strong> ที่แถวรายวิชาในตาราง</p>
+        <div class="callout callout-warning">
+          ⚠️ ไม่ควรลบรายวิชาที่มี Section หรือเอกสาร มคอ. ที่สร้างแล้ว เนื่องจากอาจทำให้ข้อมูลไม่สมบูรณ์
+        </div>
+      </section>
+
+      <!-- ACCOUNT -->
+      <section id="account">
+        <h2 class="section-title">⚙️ ตั้งค่าบัญชี</h2>
+        <ol class="steps">
+          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
+          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>กดปุ่ม <strong>"บันทึก"</strong></li>
+        </ol>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq">
+        <h2 class="section-title">❓ คำถามที่พบบ่อย</h2>
+
+        <h3 class="sub-title">Q: ลืมรหัสผ่านผู้ใช้คนอื่น ทำอย่างไร?</h3>
+        <p>Admin สามารถแก้ไขรหัสผ่านของผู้ใช้ได้จากหน้า <strong>จัดการผู้ใช้งาน</strong> → คลิกที่ผู้ใช้ → แก้ไขรหัสผ่าน</p>
+
+        <h3 class="sub-title">Q: จะนำเข้าผู้ใช้จำนวนมากได้อย่างไร?</h3>
+        <p>ขณะนี้ยังไม่รองรับการนำเข้าผู้ใช้จำนวนมากจากไฟล์ ต้องสร้างทีละรายการ</p>
+
+        <h3 class="sub-title">Q: ลบหลักสูตรได้หรือไม่?</h3>
+        <p>ได้ แต่ต้องไม่มีรายวิชาหรือ Term Program ที่เชื่อมอยู่ หากมีให้ลบรายวิชาออกก่อน</p>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<footer>
+  คู่มือผู้ดูแลระบบ (Admin) — ระบบ TQF &nbsp;|&nbsp;
+  <a href="/admin/dashboard" style="color:inherit;">กลับหน้าหลัก</a> &nbsp;·&nbsp;
+  <a href="/manual" style="color:inherit;">คู่มือบทบาทอื่น</a>
+</footer>
+
+<script>
+  const sections = document.querySelectorAll('section[id]');
+  const links = document.querySelectorAll('.toc-link');
+  window.addEventListener('scroll', () => {
+    let cur = '';
+    sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) cur = s.id; });
+    links.forEach(a => a.classList.toggle('active', a.getAttribute('href') === '#' + cur));
+  }, { passive: true });
+</script>
+</body>
+</html>

@@ -1,114 +1,180 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard อาจารย์ - TQF System{% endblock %}
+{% block title %}หน้าหลักอาจารย์ผู้สอน{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h2>ยินดีต้อนรับ, {{ current_user.full_name }}</h2>
-    <p style="color: var(--text-muted);">รายวิชาที่คุณรับผิดชอบในทุกภาคการศึกษา</p>
-</div>
-
-<div class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
-    <div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-        <h3 style="margin: 0; font-size: 1.25rem;">รายการวิชาที่สอน</h3>
-        <form method="GET" action="{{ url_for('instructor_dashboard') }}" style="display:flex; gap: 0.5rem; align-items: center;">
-            <label style="color: var(--text-muted); font-size: 0.875rem;">ภาคการศึกษา</label>
-            <select name="term_id" class="form-control" style="height: 2.25rem; padding: 0.25rem 0.5rem; min-width: 200px;">
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> /
+            <span class="text-muted">สรุปหน้าที่ของฉัน</span>
+        </nav>
+        <h2>หน้าหลักอาจารย์ผู้สอน</h2>
+        <p class="text-muted mt-2">จัดทำ มคอ.3 และ มคอ.5 ที่ได้รับมอบหมาย</p>
+    </div>
+    <div class="inline-actions">
+        <form method="GET" action="{{ url_for('instructor_dashboard') }}" class="filter-form">
+            <label class="text-muted text-xs mb-0">เทอม</label>
+            <select name="term_id" class="form-control select-inline min-220">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
                 <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.9rem; color: var(--text-muted);">แสดง</button>
+            <button type="submit" class="btn btn-secondary btn-compact">กรอง</button>
         </form>
     </div>
-
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                    <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
-                    <th style="padding: 1rem;">สถานะการเปิดกรอก</th>
-                    <th style="padding: 1rem;">การดำเนินการ มคอ.3</th>
-                    <th style="padding: 1rem;">การดำเนินการ มคอ.5</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for section in sections %}
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 1rem;">
-                        <div style="font-weight: bold;">{{ section.course.code }} {{ section.course.name_th }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}
-                            | {{ section.term.semester }}/{{ section.term.year }}</div>
-                    </td>
-                    <td style="padding: 1rem;">
-                        <div style="display:flex; flex-direction: column; gap: 0.35rem;">
-                            {% if section.term and section.term.is_open_tqf3 %}
-                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 มคอ.3 เปิดให้กรอก</span>
-                            {% else %}
-                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 มคอ.3 ยังไม่เปิด</span>
-                            {% endif %}
-
-                            {% if section.term and section.term.is_open_tqf5 %}
-                            <span class="status-badge" style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢 มคอ.5 เปิดให้กรอก</span>
-                            {% else %}
-                            <span class="status-badge" style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒 มคอ.5 ยังไม่เปิด</span>
-                            {% endif %}
-                        </div>
-                    </td>
-
-                    <!-- TQF3 Action -->
-                    <td style="padding: 1rem;">
-                        {% if section.term and section.term.is_open_tqf3 %}
-                        <div style="margin-bottom: 0.5rem;">
-                            <span class="status-badge" style="
-                                    {% if section.tqf3 and section.tqf3.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                                    {% elif section.tqf3 and section.tqf3.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                                    {% elif section.tqf3 and section.tqf3.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-                                ">{{ section.tqf3.status if section.tqf3 else 'DRAFT' }}</span>
-                        </div>
-                        <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
-                            class="btn {% if section.tqf3 and section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}glass{% else %}btn-primary{% endif %}"
-                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            {% if section.tqf3 and section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}👁️ ดูรายละเอียด{%
-                            else %}📝 บันทึกข้อมูล{% endif %}
-                        </a>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอผู้ดูแลเปิดให้กรอกข้อมูล</span>
-                        {% endif %}
-                    </td>
-
-                    <!-- TQF5 Action -->
-                    <td style="padding: 1rem;">
-                        {% if section.term and section.term.is_open_tqf5 %}
-                        <div style="margin-bottom: 0.5rem;">
-                            <span class="status-badge" style="
-                                    {% if section.tqf5 and section.tqf5.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                                    {% elif section.tqf5 and section.tqf5.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                                    {% elif section.tqf5 and section.tqf5.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-                                ">{{ section.tqf5.status if section.tqf5 else 'DRAFT' }}</span>
-                        </div>
-                        <a href="{{ url_for('edit_tqf5', section_id=section.id) }}"
-                            class="btn {% if section.tqf5 and section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}glass{% else %}btn-primary{% endif %}"
-                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            {% if section.tqf5 and section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}👁️ ดูรายละเอียด{%
-                            else %}📝 บันทึกข้อมูล{% endif %}
-                        </a>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอผู้ดูแลเปิดให้กรอกข้อมูล</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">
-                        ไม่พบรายวิชาที่คุณรับผิดชอบในขณะนี้</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 </div>
+
+{% if grouped_by_term %}
+    {% for group in grouped_by_term %}
+    <div class="glass panel mb-4"
+         data-term-id="{{ group.term.id }}"
+         data-tqf3="{{ 'true' if group.tqf3_open else 'false' }}"
+         data-tqf5="{{ 'true' if group.tqf5_open else 'false' }}">
+
+        <!-- Term Header with Status -->
+        <div class="flex-between flex-wrap mb-3">
+            <div>
+                <h3 class="mb-0">เทอม {{ group.term.semester }}/{{ group.term.year }}</h3>
+            </div>
+            <div class="badge-list flex-wrap" style="gap: 0.5rem;">
+                <span class="status-badge {{ 'status-approved' if group.tqf3_open else 'status-returned' }}">
+                    มคอ.3: {{ 'เปิด' if group.tqf3_open else 'ปิด' }}
+                </span>
+                <span class="status-badge {{ 'status-approved' if group.tqf5_open else 'status-returned' }}">
+                    มคอ.5: {{ 'เปิด' if group.tqf5_open else 'ปิด' }}
+                </span>
+                {% if not group.tqf3_open and not group.tqf5_open %}
+                <span class="text-muted text-xs" style="align-self: center;">ฝ่ายวิชาการยังไม่เปิดให้กรอก</span>
+                {% elif not group.tqf3_open %}
+                <span class="text-muted text-xs" style="align-self: center;">มคอ.3 ยังไม่เปิด</span>
+                {% elif not group.tqf5_open %}
+                <span class="text-muted text-xs" style="align-self: center;">มคอ.5 ยังไม่เปิด</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>รายวิชา / กลุ่ม</th>
+                        <th class="text-center">มคอ.3</th>
+                        <th class="text-center">มคอ.5</th>
+                        <th class="text-center">การดำเนินการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for section in group.sections %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold">{{ section.course.code if section.course else '' }} {{ section.course.name_th if section.course else '' }}</div>
+                            <div class="text-muted text-xs">Section {{ section.section_number }}</div>
+                        </td>
+                        <td>
+                            {% if section.tqf3 %}
+                                {% set s = section.tqf3.status %}
+                                {% if s == 'APPROVED' %}
+                                <span class="status-badge status-approved" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% elif s == 'SUBMITTED' %}
+                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% elif s == 'RETURNED' %}
+                                <span class="status-badge status-returned" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% else %}
+                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% endif %}
+                                {% if section.tqf3.submitted_at %}
+                                <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf3.submitted_at.strftime('%d/%m/%Y') }}</div>
+                                {% endif %}
+                            {% else %}
+                            <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if section.tqf5 %}
+                            <div>
+                                {% set s = section.tqf5.status %}
+                                {% if s == 'APPROVED' %}
+                                <span class="status-badge status-approved" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% elif s == 'SUBMITTED' %}
+                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% elif s == 'RETURNED' %}
+                                <span class="status-badge status-returned" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% else %}
+                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% endif %}
+                                {% if section.tqf5.submitted_at %}
+                                <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf5.submitted_at.strftime('%d/%m/%Y') }}</div>
+                                {% endif %}
+                            </div>
+                            {% else %}
+                            <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="inline-actions justify-center">
+                                    <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
+                                       class="btn btn-secondary btn-compact{% if not group.tqf3_open %} btn-disabled{% endif %}"
+                                       {% if not group.tqf3_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
+                                        มคอ.3
+                                    </a>
+                                    <a href="{{ url_for('edit_tqf5', section_id=section.id) }}"
+                                       class="btn btn-secondary btn-compact{% if not group.tqf5_open %} btn-disabled{% endif %}"
+                                       {% if not group.tqf5_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
+                                        มคอ.5
+                                    </a> 
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-state text-center text-muted">ไม่มีรายวิชาในเทอมนี้</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ยังไม่มีรายวิชาที่ได้รับมอบหมาย หรือยังไม่ได้สร้างเทอม</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var initial = {};
+    document.querySelectorAll('[data-term-id]').forEach(function (el) {
+        initial[el.dataset.termId] = {
+            tqf3: el.dataset.tqf3 === 'true',
+            tqf5: el.dataset.tqf5 === 'true'
+        };
+    });
+    if (!Object.keys(initial).length) return;
+
+    function poll() {
+        fetch('/api/term-statuses')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var changed = false;
+                for (var id in initial) {
+                    var curr = data[id];
+                    if (!curr) continue;
+                    if (curr.tqf3 !== initial[id].tqf3 || curr.tqf5 !== initial[id].tqf5) {
+                        changed = true;
+                        break;
+                    }
+                }
+                if (changed) { window.location.reload(); }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(poll, 30000);
+}());
+</script>
 {% endblock %}

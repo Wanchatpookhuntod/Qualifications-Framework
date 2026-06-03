@@ -3,6 +3,9 @@ import os
 import csv
 import io
 import re
+from dotenv import load_dotenv
+
+load_dotenv()
 from collections import Counter
 from datetime import datetime
 from functools import wraps
@@ -58,6 +61,15 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 
 ROLE_PRIORITY = ["admin", "academic", "head", "instructor"]
+
+
+@app.after_request
+def no_cache(response):
+    if "text/html" in response.content_type:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 
 def _normalize_header_key(value: str) -> str:
@@ -580,9 +592,11 @@ def get_active_role():
 
 
 def _safe_redirect_next(default_endpoint: str, **default_kwargs):
+    import time as _time
     next_url = (request.form.get("next") or request.args.get("next") or "").strip()
     if next_url.startswith("/") and not next_url.startswith("//"):
-        return redirect(next_url)
+        sep = "&" if "?" in next_url else "?"
+        return redirect(f"{next_url}{sep}_={int(_time.time())}")
     return redirect(url_for(default_endpoint, **default_kwargs))
 
 
@@ -621,12 +635,6 @@ def _get_or_404(model_cls, doc_id: str):
         abort(404)
     return obj
 
-
-def _is_system_locked() -> bool:
-    sections = Section.find_all()
-    has_active = any(getattr(s, "status", "") == "active" for s in sections)
-    has_locked = any(getattr(s, "status", "") == "locked" for s in sections)
-    return (not has_active) and has_locked
 
 
 def users_with_role(role_name: str):
@@ -2002,11 +2010,7 @@ def head_dashboard():
         s.tqf3 = tqf3_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
 
-    all_instructors = users_with_role("instructor")
-    if current_user.department_id:
-        instructors = [u for u in all_instructors if (u.department_id == current_user.department_id) or (u.program_id in program_ids)]
-    else:
-        instructors = [u for u in all_instructors if u.program_id in program_ids]
+    instructors = users_with_role("instructor")
     instructors.sort(key=lambda u: u.full_name)
 
     all_terms = Term.find_all()
@@ -2025,12 +2029,21 @@ def head_dashboard():
             "sections": t_sections,
         })
 
+    dept_name = ""
+    if current_user.department_id:
+        dept = Department.get(current_user.department_id)
+        dept_name = dept.name if dept else ""
+    elif current_user.program_id:
+        prog = Program.get(current_user.program_id)
+        dept_name = prog.name if prog else ""
+
     return render_template(
         "head/dashboard.html",
         grouped_by_term=grouped_by_term,
         instructors=instructors,
         terms=all_terms,
         selected_term_id=selected_term_id,
+        dept_name=dept_name,
     )
 
 
@@ -2305,11 +2318,15 @@ def manage_faculties():
             elif not department_name:
                 flash("กรุณากรอกชื่อสาขาวิชา", "danger")
             else:
-                existing = [d for d in Department.find_by("faculty_id", faculty.id) if d.name == department_name]
+                major_raw = (request.form.get("major") or "").strip() or None
+                existing = [
+                    d for d in Department.find_by("faculty_id", faculty.id)
+                    if d.name == department_name and (d.major or None) == major_raw
+                ]
                 if existing:
-                    flash("มีสาขาวิชานี้อยู่แล้ว", "info")
+                    flash("มีสาขาวิชา (วิชาเอก) นี้อยู่แล้ว", "info")
                 else:
-                    Department(name=department_name, faculty_id=faculty.id).save()
+                    Department(name=department_name, faculty_id=faculty.id, major=major_raw).save()
                     flash("เพิ่มสาขาวิชาเรียบร้อย", "success")
 
         else:
@@ -2372,6 +2389,40 @@ def admin_delete_department(department_id):
     dept.delete()
     flash("ลบสาขาเรียบร้อยแล้ว", "success")
     return redirect(url_for("manage_faculties"))
+
+
+@app.route("/admin/department/<department_id>/update", methods=["POST"])
+@login_required
+@roles_required("admin")
+def admin_update_department(department_id):
+    dept = _get_or_404(Department, department_id)
+    name = (request.form.get("name") or "").strip()
+    major = (request.form.get("major") or "").strip() or None
+    if name:
+        dept.name = name
+        dept.major = major
+        dept.save()
+        flash("อัปเดตสาขาวิชาเรียบร้อย", "success")
+    return _safe_redirect_next("manage_faculties")
+
+
+@app.route("/admin/departments/bulk-update", methods=["POST"])
+@login_required
+@roles_required("admin")
+def admin_bulk_update_departments():
+    for key, value in request.form.items():
+        if key.startswith("name_"):
+            dept_id = key[5:]
+            name = value.strip()
+            major = (request.form.get(f"major_{dept_id}") or "").strip() or None
+            if name:
+                dept = Department.get(dept_id)
+                if dept:
+                    dept.name = name
+                    dept.major = major
+                    dept.save()
+    flash("บันทึกสาขาวิชาเรียบร้อย", "success")
+    return _safe_redirect_next("manage_faculties")
 
 
 def _handle_programs_request():
@@ -2797,6 +2848,41 @@ def admin_update_user_affiliation(user_id):
     return redirect(url_for("manage_users"))
 
 
+@app.route("/admin/users/<user_id>/edit", methods=["POST"])
+@login_required
+@roles_required("admin")
+def admin_edit_user(user_id):
+    user = _get_or_404(User, user_id)
+    # Roles
+    roles = [r for r in request.form.getlist("roles") if r]
+    roles = list(dict.fromkeys(roles))
+    if roles:
+        user.roles = roles
+        if current_user.id == user.id:
+            session.pop("active_role", None)
+    # Affiliation
+    faculty_id = request.form.get("faculty_id") or None
+    department_id = request.form.get("department_id") or None
+    program_id = request.form.get("program_id") or None
+    if program_id:
+        prog = Program.get(program_id)
+        if prog:
+            if prog.department_id:
+                department_id = prog.department_id
+            if prog.faculty_id:
+                faculty_id = prog.faculty_id
+    if department_id:
+        dept = Department.get(department_id)
+        if dept and dept.faculty_id:
+            faculty_id = dept.faculty_id
+    user.faculty_id = faculty_id
+    user.department_id = department_id
+    user.program_id = program_id
+    user.save()
+    flash("อัปเดตข้อมูลผู้ใช้เรียบร้อย", "success")
+    return redirect(url_for("manage_users"))
+
+
 @app.route("/admin/delete-user/<user_id>", methods=["POST"])
 @login_required
 @roles_required("admin")
@@ -2827,19 +2913,50 @@ def admin_delete_user(user_id):
 # --- Academic ---
 
 
+def _find_current_term(terms):
+    """Return term whose date range contains today, or closest to today."""
+    from datetime import date as _date
+    today = _date.today()
+    today_val = (today.year) * 12 + today.month  # months since epoch
+
+    best = None
+    best_dist = float("inf")
+    for t in terms:
+        if t.start_month and t.start_year and t.end_month and t.end_year:
+            start_val = (t.start_year - 543) * 12 + t.start_month
+            end_val = (t.end_year - 543) * 12 + t.end_month
+            if start_val <= today_val <= end_val:
+                return t
+            dist = min(abs(today_val - start_val), abs(today_val - end_val))
+            if dist < best_dist:
+                best_dist = dist
+                best = t
+    return best or (terms[0] if terms else None)
+
+
 @app.route("/academic/dashboard")
 @login_required
 @roles_required("academic")
 def academic_dashboard():
-    selected_term_id = request.args.get("term_id")
+    # term_id absent → auto-select current term; term_id="" → show all
+    term_id_param = request.args.get("term_id")
     all_terms = Term.find_all()
     all_terms.sort(key=lambda t: (t.year, t.semester), reverse=True)
 
-    if selected_term_id:
-        selected_term = Term.get(selected_term_id)
-        terms = [selected_term] if selected_term else []
+    show_all = term_id_param == ""
+    if term_id_param is None and all_terms:
+        current = _find_current_term(all_terms)
+        selected_term_id = current.id if current else None
     else:
+        selected_term_id = term_id_param or None
+
+    if show_all or not selected_term_id:
         terms = all_terms
+        show_stats = False
+    else:
+        selected_term = Term.get(selected_term_id)
+        terms = [selected_term] if selected_term else all_terms
+        show_stats = True
 
     programs = Program.find_all()
     programs.sort(key=lambda p: (-(p.year or 0), p.name))
@@ -2866,34 +2983,22 @@ def academic_dashboard():
             if prog:
                 grouped_data[term_label]["programs"][prog.id] = {"name": prog.name, "year": prog.year}
 
-    sections = Section.find_all()
+    # Stats only for selected term
+    if show_stats and selected_term_id:
+        sections = Section.find_by("term_id", selected_term_id)
+    else:
+        sections = []
+
     total = len(sections)
-
-    is_system_locked = _is_system_locked()
-
     section_ids = [s.id for s in sections if s.id]
     tqf3_by_section = _tqf3_by_section_ids(section_ids)
     tqf5_by_section = _tqf5_by_section_ids(section_ids)
 
     if total > 0:
-        tqf3_submitted = 0
-        tqf3_approved = 0
-        tqf5_submitted = 0
-        tqf5_approved = 0
-
-        for s in sections:
-            d3 = tqf3_by_section.get(s.id)
-            if d3 and d3.status in ["SUBMITTED", "APPROVED"]:
-                tqf3_submitted += 1
-            if d3 and d3.status == "APPROVED":
-                tqf3_approved += 1
-
-            d5 = tqf5_by_section.get(s.id)
-            if d5 and d5.status in ["SUBMITTED", "APPROVED"]:
-                tqf5_submitted += 1
-            if d5 and d5.status == "APPROVED":
-                tqf5_approved += 1
-
+        tqf3_submitted = sum(1 for s in sections if tqf3_by_section.get(s.id) and tqf3_by_section[s.id].status in ["SUBMITTED", "APPROVED"])
+        tqf3_approved = sum(1 for s in sections if tqf3_by_section.get(s.id) and tqf3_by_section[s.id].status == "APPROVED")
+        tqf5_submitted = sum(1 for s in sections if tqf5_by_section.get(s.id) and tqf5_by_section[s.id].status in ["SUBMITTED", "APPROVED"])
+        tqf5_approved = sum(1 for s in sections if tqf5_by_section.get(s.id) and tqf5_by_section[s.id].status == "APPROVED")
         stats = {
             "total": total,
             "tqf3_perc": round((tqf3_submitted / total) * 100),
@@ -2908,7 +3013,7 @@ def academic_dashboard():
         "academic/dashboard.html",
         grouped_data=grouped_data,
         stats=stats,
-        is_system_locked=is_system_locked,
+        show_stats=show_stats,
         programs=programs,
         term_program_ids=term_program_ids,
         terms=all_terms,
@@ -2932,8 +3037,6 @@ def academic_term_program(term_id, program_id):
     if not tp:
         flash("หลักสูตรนี้ยังไม่ได้ถูกเพิ่มในเทอมนี้", "warning")
         return redirect(url_for("academic_dashboard"))
-
-    is_system_locked = _is_system_locked()
 
     courses = Course.find_by("program_id", program_id)
     courses.sort(key=lambda c: c.code)
@@ -2988,7 +3091,6 @@ def academic_term_program(term_id, program_id):
         courses=courses,
         sections=sections,
         instructors=instructors,
-        is_system_locked=is_system_locked,
         stats=stats,
         head_summaries=head_summaries,
     )
@@ -3064,7 +3166,6 @@ def academic_term_documents(term_id):
             "tqf5_approved": tqf5_approved,
         },
         submitted_head_summaries=submitted_head_summaries,
-        is_system_locked=_is_system_locked(),
     )
 
 
@@ -3176,10 +3277,6 @@ def academic_add_program_to_term():
         flash("ข้อมูลไม่ครบถ้วน", "danger")
         return redirect(url_for("academic_dashboard"))
 
-    if _is_system_locked():
-        flash("ระบบถูกล็อกอยู่ ไม่สามารถเพิ่มหลักสูตรในเทอมได้", "warning")
-        return redirect(url_for("academic_dashboard"))
-
     term = _get_or_404(Term, term_id)
     program = _get_or_404(Program, program_id)
 
@@ -3201,10 +3298,7 @@ def academic_bulk_open_courses():
     program_id = request.form.get("program_id")
     section_number = (request.form.get("section_number") or "1").strip()
     course_ids = request.form.getlist("course_ids")
-
-    if _is_system_locked():
-        flash("ระบบถูกล็อกอยู่ ไม่สามารถเปิดรายวิชาเพิ่มได้", "warning")
-        return redirect(url_for("academic_dashboard"))
+    instructor_id_raw = (request.form.get("instructor_id") or "").strip() or None
 
     if not term_id or not program_id or not course_ids:
         flash("กรุณาเลือกอย่างน้อย 1 รายวิชา", "danger")
@@ -3237,7 +3331,7 @@ def academic_bulk_open_courses():
             course_id=cid,
             term_id=term_id,
             section_number=section_number,
-            instructor_id=None,
+            instructor_id=instructor_id_raw,
             status="active",
         ).save()
         created += 1
@@ -3254,10 +3348,6 @@ def academic_remove_program_from_term():
     program_id = request.form.get("program_id")
     if not term_id or not program_id:
         flash("ข้อมูลไม่ครบถ้วน", "danger")
-        return redirect(url_for("academic_dashboard"))
-
-    if _is_system_locked():
-        flash("ระบบถูกล็อกอยู่ ไม่สามารถลบหลักสูตรออกจากเทอมได้", "warning")
         return redirect(url_for("academic_dashboard"))
 
     term = _get_or_404(Term, term_id)
@@ -3289,8 +3379,27 @@ def manage_terms():
         year = (request.form.get("year") or "").strip()
         semester = (request.form.get("semester") or "").strip()
         if year and semester:
+            def _parse_month_input(field):
+                # value is CE "YYYY-MM"; convert year to BE (+543)
+                raw = (request.form.get(field) or "").strip()
+                if not raw:
+                    return None, None
+                try:
+                    ce_year, month = raw.split("-")
+                    return int(month), int(ce_year) + 543
+                except Exception:
+                    return None, None
             try:
-                Term(year=int(year), semester=int(semester)).save()
+                s_month, s_year = _parse_month_input("start_date")
+                e_month, e_year = _parse_month_input("end_date")
+                Term(
+                    year=int(year),
+                    semester=int(semester),
+                    start_month=s_month,
+                    start_year=s_year,
+                    end_month=e_month,
+                    end_year=e_year,
+                ).save()
                 flash("เพิ่มปีการศึกษา/ภาคเรียนเรียบร้อย", "success")
             except Exception:
                 flash("ข้อมูลปีการศึกษา/ภาคเรียนไม่ถูกต้อง", "danger")
@@ -3298,6 +3407,39 @@ def manage_terms():
     terms = Term.find_all()
     terms.sort(key=lambda t: (t.year, t.semester), reverse=True)
     return render_template("academic/manage_terms.html", terms=terms)
+
+
+@app.route("/academic/edit-term/<term_id>", methods=["POST"])
+@login_required
+@roles_required("academic", "admin")
+def edit_term(term_id):
+    term = _get_or_404(Term, term_id)
+
+    def _parse_month_input(field):
+        raw = (request.form.get(field) or "").strip()
+        if not raw:
+            return None, None
+        try:
+            ce_year, month = raw.split("-")
+            return int(month), int(ce_year) + 543
+        except Exception:
+            return None, None
+
+    year = (request.form.get("year") or "").strip()
+    semester = (request.form.get("semester") or "").strip()
+    if year and semester:
+        try:
+            term.year = int(year)
+            term.semester = int(semester)
+            term.start_month, term.start_year = _parse_month_input("start_date")
+            term.end_month, term.end_year = _parse_month_input("end_date")
+            term.save()
+            flash("แก้ไขปีการศึกษา/ภาคเรียนเรียบร้อย", "success")
+        except Exception:
+            flash("ข้อมูลปีการศึกษา/ภาคเรียนไม่ถูกต้อง", "danger")
+    else:
+        flash("กรุณากรอกข้อมูลให้ครบ", "danger")
+    return redirect(url_for("manage_terms"))
 
 
 @app.route("/academic/delete-term/<term_id>", methods=["POST"])
@@ -3314,53 +3456,12 @@ def delete_term(term_id):
     return redirect(url_for("manage_terms"))
 
 
-@app.route("/academic/lock-term", methods=["POST"])
-@login_required
-@roles_required("academic")
-def lock_term():
-    terms = Term.find_all()
-    for t in terms:
-        t.is_open_tqf3 = False
-        t.is_open_tqf5 = False
-        t.save()
-
-    sections = Section.find_all()
-    for s in sections:
-        if s.status == "active":
-            s.status = "locked"
-            s.save()
-    flash("ทำการปิดรอบและล็อกเอกสารเรียบร้อยแล้ว", "warning")
-    return _safe_redirect_next("academic_dashboard")
-
-
-@app.route("/academic/unlock-term", methods=["POST"])
-@login_required
-@roles_required("academic")
-def unlock_term():
-    terms = Term.find_all()
-    for t in terms:
-        t.is_open_tqf3 = False
-        t.is_open_tqf5 = False
-        t.save()
-
-    sections = Section.find_all()
-    for s in sections:
-        if s.status in ["active", "locked"]:
-            s.status = "active"
-            s.save()
-    flash("ทำการเปิดรอบและปลดล็อกเอกสารเรียบร้อยแล้ว", "success")
-    return _safe_redirect_next("academic_dashboard")
-
 
 @app.route("/academic/open-course", methods=["GET", "POST"])
 @login_required
 @roles_required("academic")
 def open_course():
     if request.method == "POST":
-        if _is_system_locked():
-            flash("ระบบถูกล็อกอยู่ ไม่สามารถเปิดรายวิชาเพิ่มได้", "warning")
-            return redirect(url_for("academic_dashboard"))
-
         course_id = request.form.get("course_id")
         term_id = request.form.get("term_id")
         section_number = (request.form.get("section_number") or "1").strip()
@@ -3380,14 +3481,15 @@ def open_course():
                 flash("มีการเปิดรายวิชานี้ (หมู่เรียนนี้) แล้วในเทอมดังกล่าว", "warning")
                 return redirect(url_for("academic_dashboard"))
 
+            instructor_id_raw = (request.form.get("instructor_id") or "").strip() or None
             Section(
                 course_id=course_id,
                 term_id=term_id,
                 section_number=section_number,
-                instructor_id=None,
+                instructor_id=instructor_id_raw,
                 status="active",
             ).save()
-            flash("เปิดรายวิชาสอนเรียบร้อย (รอหัวหน้าสาขามอบหมายผู้สอน)", "success")
+            flash("เปิดรายวิชาสอนเรียบร้อย", "success")
             return _safe_redirect_next("academic_dashboard")
 
     courses = Course.find_all()
@@ -3444,17 +3546,8 @@ def assign_instructor(section_id):
         return _safe_redirect_next("head_dashboard")
 
     instructor = User.get(instructor_id_raw)
-    if (not instructor) or (not instructor.has_role("instructor")):
+    if not instructor:
         flash("ไม่พบข้อมูลอาจารย์ผู้สอน", "danger")
-        return _safe_redirect_next("head_dashboard")
-
-    if current_user.department_id:
-        allowed = (instructor.department_id == current_user.department_id) or (instructor.program_id in program_ids)
-    else:
-        allowed = instructor.program_id in program_ids
-
-    if not allowed:
-        flash("ไม่สามารถมอบหมายผู้สอนข้ามสาขา/หลักสูตรได้", "danger")
         return _safe_redirect_next("head_dashboard")
 
     section.instructor_id = instructor_id_raw
@@ -3462,6 +3555,63 @@ def assign_instructor(section_id):
     flash("มอบหมายผู้สอนเรียบร้อย", "success")
     return _safe_redirect_next("head_dashboard")
 
+
+@app.route("/academic/section/<section_id>/assign-instructor", methods=["POST"])
+@login_required
+@roles_required("academic")
+def academic_assign_section_instructor(section_id):
+    section = _get_or_404(Section, section_id)
+    instructor_id_raw = (request.form.get("instructor_id") or "").strip() or None
+    section.instructor_id = instructor_id_raw
+    section.save()
+    flash("บันทึกผู้สอนเรียบร้อย", "success")
+    return _safe_redirect_next("academic_dashboard")
+
+
+@app.route("/academic/assign-instructors-bulk-term", methods=["POST"])
+@login_required
+@roles_required("academic")
+def academic_assign_instructors_bulk_term():
+    saved = 0
+    for key, value in request.form.items():
+        if not key.startswith("instructor_"):
+            continue
+        section_id = key[len("instructor_"):]
+        section = Section.get(section_id)
+        if not section:
+            continue
+        section.instructor_id = value.strip() or None
+        section.save()
+        saved += 1
+    flash(f"บันทึกการมอบหมายผู้สอน {saved} รายวิชาเรียบร้อย", "success")
+    return _safe_redirect_next("academic_dashboard")
+
+
+@app.route("/academic/assign-instructors-bulk", methods=["POST"])
+@login_required
+@roles_required("head")
+def assign_instructors_bulk():
+    program_ids = set()
+    if current_user.department_id:
+        program_ids = {p.id for p in Program.find_by("department_id", current_user.department_id) if p.id}
+    elif current_user.program_id:
+        program_ids = {current_user.program_id}
+
+    saved = 0
+    for key, value in request.form.items():
+        if not key.startswith("instructor_"):
+            continue
+        section_id = key[len("instructor_"):]
+        section = Section.get(section_id)
+        if not section:
+            continue
+        instructor_id_raw = value.strip() or None
+        section.instructor_id = instructor_id_raw
+        section.save()
+        saved += 1
+
+    flash(f"บันทึกการมอบหมายผู้สอน {saved} รายวิชาเรียบร้อย", "success")
+    return _safe_redirect_next("head_dashboard")
 
 
 @app.route("/academic/term/<term_id>/toggle-open-tqf3", methods=["POST"])
@@ -3473,10 +3623,6 @@ def toggle_open_term_tqf3(term_id):
     if get_active_role() != "academic":
         flash("โปรดสลับบทบาทเป็นฝ่ายวิชาการเพื่อดำเนินการ", "warning")
         return redirect(url_for("dashboard"))
-
-    if _is_system_locked():
-        flash("ระบบถูกล็อกอยู่ ไม่สามารถเปิด/ปิดให้กรอกได้", "warning")
-        return _safe_redirect_next("academic_dashboard")
 
     term.is_open_tqf3 = not bool(term.is_open_tqf3)
     term.save()
@@ -3497,10 +3643,6 @@ def toggle_open_term_tqf5(term_id):
     if get_active_role() != "academic":
         flash("โปรดสลับบทบาทเป็นฝ่ายวิชาการเพื่อดำเนินการ", "warning")
         return redirect(url_for("dashboard"))
-
-    if _is_system_locked():
-        flash("ระบบถูกล็อกอยู่ ไม่สามารถเปิด/ปิดให้กรอกได้", "warning")
-        return _safe_redirect_next("academic_dashboard")
 
     term.is_open_tqf5 = not bool(term.is_open_tqf5)
     term.save()

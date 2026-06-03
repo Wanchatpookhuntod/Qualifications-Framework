@@ -5,7 +5,14 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <a href="{{ back_url or url_for('head_dashboard') }}" class="text-muted text-xs">← {{ back_label or 'กลับไปที่ Dashboard' }}</a>
+
+        
+        <nav class="breadcrumb">
+            <a href="{{ back_url}}">ย้อนกลับ </a>
+        </nav>
+        
+        
+        
         <h2>ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}:
             {% if tqf.section and tqf.section.course %}
             {{ tqf.section.course.code }} {{ tqf.section.course.name_th }}
@@ -24,89 +31,89 @@
         </p>
     </div>
     <div>
-        <span class="status-badge {% if tqf.status == 'APPROVED' %}status-approved{% elif tqf.status == 'SUBMITTED' %}status-submitted{% elif tqf.status == 'RETURNED' %}status-returned{% else %}role-instructor{% endif %}">สถานะปัจจุบัน: {{ tqf.status }}</span>
+        <span class="status-badge {% if tqf.status == 'APPROVED' %}status-approved{% elif tqf.status == 'SUBMITTED' %}status-submitted{% elif tqf.status == 'RETURNED' %}status-returned{% else %}role-instructor{% endif %}">สถานะปัจจุบัน: {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf.status, tqf.status) }}</span>
     </div>
 </div>
 
-<div class="card-grid aside-layout">
-    <!-- Content Preview -->
-    <div class="glass panel">
-        <h3 class="panel-title text-primary">ข้อมูลที่ส่ง (Preview)</h3>
-        <div class="panel-dashed">
-            {% if tqf_type == 'tqf3' %}
-            <div class="preview-block">
-                <h4 class="preview-label">📝 จุดมุ่งหมายและวัตถุประสงค์</h4>
-                <p class="preserve-text">{{ tqf.general_info.get('objectives', 'ไม่ได้ระบุ') }}</p>
-            </div>
-            <div class="preview-block">
-                <h4 class="preview-label">📖 คำอธิบายรายวิชา</h4>
-                <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
-            </div>
-            <div class="preview-block">
-                <h4 class="preview-label">📊 จำนวน CLO ที่ระบุ</h4>
-                <p>{{ tqf.general_info.get('clo_code[]', [])|length }} รายการ</p>
-            </div>
-            {% else %}
-            <div class="preview-block">
-                <h4 class="preview-label">📉 สรุปจำนวนผู้เรียน</h4>
-                <p>ลงทะเบียน: {{ tqf.actual_teaching.get('students_enrolled', '0') }} | จบ: {{
-                    tqf.actual_teaching.get('students_finished', '0') }} | ถอน: {{
-                    tqf.actual_teaching.get('students_withdrawn', '0') }}</p>
-            </div>
-            <div class="preview-block">
-                <h4 class="preview-label">⚠️ ปัญหาที่พบและการแก้ไข</h4>
-                <p class="preserve-text">{{ tqf.actual_teaching.get('problems_fixed', 'ไม่มีระบุ') }}</p>
-            </div>
-            <div class="preview-block">
-                <h4 class="preview-label">🔍 ผลการทวนสอบ</h4>
-                <p class="preserve-text">{{ tqf.actual_teaching.get('verification_method', 'ไม่มีระบุ') }}</p>
-            </div>
-            {% endif %}
-
-            <div class="form-footnote text-xs">
-                * ดูข้อมูลฉบับเต็ม (ตามฟอร์ม) ด้านล่าง
-            </div>
+{% if can_review %}
+<div class="glass glass-card-sm mb-4">
+    <div class="fw-bold mb-1">ตรวจสอบเอกสาร</div>
+    <form method="POST">
+        <div class="form-group mb-3">
+            <label class="text-muted text-xs">ความคิดเห็น / เหตุผล (ถ้ามี)</label>
+            <textarea name="comment" class="form-control" rows="3" placeholder="ระบุความคิดเห็น..."></textarea>
         </div>
+        <div class="flex-between">
+            <span style="width: 70%;"></span>
+            <button style="width: 15%;" type="submit" name="action" value="return" class="btn btn-outline-danger">ส่งคืน</button>
+            <button style="width: 15%;" type="submit" name="action" value="approve" class="btn btn-primary">อนุมัติ</button>
+        </div>
+    </form>
+</div>
+{% endif %}
 
-        <div class="mt-5">
-            {% if tqf_type == 'tqf3' %}
-                {% set section = tqf.section if tqf.section else None %}
-                {% set tqf3 = tqf %}
-                {% include 'shared/tqf3_readonly.html' %}
-            {% else %}
-                {% set section = tqf.section if tqf.section else None %}
-                {% set tqf5 = tqf %}
-                {% include 'shared/tqf5_readonly.html' %}
-            {% endif %}
+{% if not can_review %}
+<div class="glass glass-card-sm mb-4">
+    <div class="flex-between flex-wrap">
+        <div>
+            <div class="fw-bold">สถานะเอกสาร</div>
+            <div class="text-muted text-xs">ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</div>
+        </div>
+        <span class="status-badge {% if tqf.status == 'APPROVED' %}status-approved{% elif tqf.status == 'SUBMITTED' %}status-submitted{% elif tqf.status == 'RETURNED' %}status-returned{% else %}role-instructor{% endif %}">
+            {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf.status, tqf.status) }}
+        </span>
+    </div>
+</div>
+{% endif %}
+
+<div class="glass panel">
+    <h3 class="panel-title text-primary">ข้อมูลที่ส่ง (Preview)</h3>
+    <div class="panel-dashed">
+        {% if tqf_type == 'tqf3' %}
+        <div class="preview-block">
+            <h4 class="preview-label">จุดมุ่งหมายและวัตถุประสงค์</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('objectives', 'ไม่ได้ระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">คำอธิบายรายวิชา</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">จำนวน CLO ที่ระบุ</h4>
+            <p>{{ tqf.general_info.get('clo_code[]', [])|length }} รายการ</p>
+        </div>
+        {% else %}
+        <div class="preview-block">
+            <h4 class="preview-label">สรุปจำนวนผู้เรียน</h4>
+            <p>ลงทะเบียน: {{ tqf.actual_teaching.get('students_enrolled', '0') }} | จบ: {{
+                tqf.actual_teaching.get('students_finished', '0') }} | ถอน: {{
+                tqf.actual_teaching.get('students_withdrawn', '0') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">ปัญหาที่พบและการแก้ไข</h4>
+            <p class="preserve-text">{{ tqf.actual_teaching.get('problems_fixed', 'ไม่มีระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">ผลการทวนสอบ</h4>
+            <p class="preserve-text">{{ tqf.actual_teaching.get('verification_method', 'ไม่มีระบุ') }}</p>
+        </div>
+        {% endif %}
+
+        <div class="form-footnote text-xs">
+            * ดูข้อมูลฉบับเต็ม (ตามฟอร์ม) ด้านล่าง
         </div>
     </div>
 
-    {% if can_review %}
-    <!-- Review Form -->
-    <div class="glass panel panel-sticky">
-        <h3 class="panel-title text-warning">ดำเนินการ Step E</h3>
-        <form method="POST">
-            <div class="form-group">
-                <label for="comment">ข้อเสนอแนะสำหรับการรับรอง / เหตุผลในการตีกลับ</label>
-                <textarea name="comment" id="comment" class="form-control" rows="8"
-                    placeholder="เช่น 'ข้อมูลครบถ้วน' หรือ 'กรุณาปรับปรุงหัวข้อ CLO'" required></textarea>
-            </div>
-
-            <div class="grid-gap-sm mt-3">
-                <button type="submit" name="action" value="approve" class="btn btn-success">
-                    ✅ อนุมัติและรับรอง (Approve)
-                </button>
-                <button type="submit" name="action" value="reject" class="btn btn-ghost-danger">
-                    ↩️ ตีกลับเพื่อให้แก้ไข (Return)
-                </button>
-            </div>
-        </form>
+    <div class="mt-5">
+        {% if tqf_type == 'tqf3' %}
+            {% set section = tqf.section if tqf.section else None %}
+            {% set tqf3 = tqf %}
+            {% include 'shared/tqf3_readonly.html' %}
+        {% else %}
+            {% set section = tqf.section if tqf.section else None %}
+            {% set tqf5 = tqf %}
+            {% include 'shared/tqf5_readonly.html' %}
+        {% endif %}
     </div>
-    {% else %}
-    <div class="glass panel panel-sticky">
-        <h3 class="panel-title text-primary">โหมดอ่านอย่างเดียว</h3>
-        <div class="text-muted">ฝ่ายวิชาการสามารถเปิดดูเอกสารได้ แต่ไม่สามารถอนุมัติ/ตีกลับได้</div>
-    </div>
-    {% endif %}
 </div>
 {% endblock %}

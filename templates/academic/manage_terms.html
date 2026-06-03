@@ -3,6 +3,7 @@
 {% block title %}จัดการปีการศึกษา - ฝ่ายวิชาการ{% endblock %}
 
 {% block content %}
+{% set month_names = ['', 'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'] %}
 <div class="page-header">
     <div>
         <nav class="breadcrumb">
@@ -11,63 +12,173 @@
         </nav>
         <h2>จัดการปีการศึกษา/ภาคเรียน</h2>
     </div>
-    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
+    <div class="inline-actions">
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('addTermModal').style.display='flex'">+ เพิ่มปีการศึกษาใหม่</button>
+        <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
+    </div>
 </div>
 
-<div class="course-grid">
-    <div class="glass panel">
-        <h3 class="panel-title">+ เพิ่มปีการศึกษาใหม่</h3>
-        <form method="POST">
-            <div class="form-group">
-                <label>ปีการศึกษา (พ.ศ.)</label>
-                <input type="number" name="year" class="form-control" placeholder="เช่น 2567" required min="2500"
-                    max="2600" value="2567">
-            </div>
-            <div class="form-group">
-                <label>ภาคเรียน</label>
-                <select name="semester" class="form-control" required>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3 (ฤดูร้อน)</option>
-                </select>
-            </div>
-            <button type="submit" class="btn btn-primary w-100 mt-3">บันทึกข้อมูล</button>
-        </form>
-    </div>
-
-    <div class="glass panel">
-        <h3 class="panel-title">ปีการศึกษาที่มีในระบบ</h3>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ภาคเรียน/ปีการศึกษา</th>
-                        <th>สถานะ</th>
-                        <th class="col-80">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for term in terms %}
-                    <tr>
-                        <td class="fw-bold">{{ term.semester }}/{{ term.year }}</td>
-                        <td>
-                            <span class="status-badge status-approved">พร้อมใช้งาน</span>
-                        </td>
-                        <td>
+<div class="glass panel">
+    <h3 class="panel-title">ปีการศึกษาที่มีในระบบ</h3>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ภาคเรียน/ปีการศึกษา</th>
+                    <th>ช่วงเวลา</th>
+                    <th>สถานะ</th>
+                    <th class="col-120">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for term in terms %}
+                <tr>
+                    <td class="fw-bold">{{ term.semester }}/{{ term.year }}</td>
+                    <td class="text-muted">
+                        {% if term.start_month and term.start_year and term.end_month and term.end_year %}
+                            {{ month_names[term.start_month] }} {{ term.start_year }} – {{ month_names[term.end_month] }} {{ term.end_year }}
+                        {% else %}
+                            <span class="text-xs">-</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge status-approved">พร้อมใช้งาน</span>
+                    </td>
+                    <td>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <button type="button" class="btn btn-secondary btn-compact"
+                                onclick="openEditModal('{{ term.id }}','{{ term.year }}','{{ term.semester }}','{{ term.start_month or '' }}','{{ term.start_year or '' }}','{{ term.end_month or '' }}','{{ term.end_year or '' }}')">แก้ไข</button>
                             <form action="{{ url_for('delete_term', term_id=term.id) }}" method="POST"
                                 onsubmit="return confirm('ยืนยันการลบปีการศึกษานี้?')">
-                                <button type="submit" class="btn btn-outline-danger">ลบ</button>
+                                <button type="submit" class="btn btn-outline-danger btn-compact">ลบ</button>
                             </form>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" class="empty-state text-center text-muted">ไม่พบข้อมูลปีการศึกษา</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="empty-state text-center text-muted">ไม่พบข้อมูลปีการศึกษา</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
     </div>
 </div>
+
+<!-- Add Modal -->
+<div id="addTermModal" class="modal" style="display:none;">
+    <div class="modal-card" style="max-width:480px; width:100%; margin:0;">
+        <div class="modal-header">
+            <h3 class="mb-0">+ เพิ่มปีการศึกษาใหม่</h3>
+            <button type="button" onclick="document.getElementById('addTermModal').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form method="POST" class="modal-body">
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group mb-0">
+                    <label>ปีการศึกษา (พ.ศ.)</label>
+                    <input type="number" name="year" class="form-control" placeholder="เช่น 2567" required min="2500" max="2600" value="2567">
+                </div>
+                <div class="form-group mb-0">
+                    <label>ภาคเรียน</label>
+                    <select name="semester" class="form-control" required>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3 (ฤดูร้อน)</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr style="margin:1.25rem 0; border-color:var(--border-color);">
+
+            <div class="text-muted text-xs mb-2" style="font-weight:600;">ช่วงเวลาภาคเรียน <span style="font-weight:400;">(ปี พ.ศ. จะแสดงเป็น ค.ศ. ในช่องเลือก)</span></div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group mb-0">
+                    <label>ตั้งแต่</label>
+                    <input type="month" name="start_date" class="form-control">
+                </div>
+                <div class="form-group mb-0">
+                    <label>ถึง</label>
+                    <input type="month" name="end_date" class="form-control">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('addTermModal').style.display='none'">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="editTermModal" class="modal" style="display:none;">
+    <div class="modal-card" style="max-width:480px; width:100%; margin:0;">
+        <div class="modal-header">
+            <h3 class="mb-0">แก้ไขปีการศึกษา</h3>
+            <button type="button" onclick="document.getElementById('editTermModal').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form id="editTermForm" method="POST" class="modal-body">
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group mb-0">
+                    <label>ปีการศึกษา (พ.ศ.)</label>
+                    <input type="number" id="edit_year" name="year" class="form-control" required min="2500" max="2600">
+                </div>
+                <div class="form-group mb-0">
+                    <label>ภาคเรียน</label>
+                    <select id="edit_semester" name="semester" class="form-control" required>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3 (ฤดูร้อน)</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr style="margin:1.25rem 0; border-color:var(--border-color);">
+
+            <div class="text-muted text-xs mb-2" style="font-weight:600;">ช่วงเวลาภาคเรียน <span style="font-weight:400;">(ปี พ.ศ. จะแสดงเป็น ค.ศ. ในช่องเลือก)</span></div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group mb-0">
+                    <label>ตั้งแต่</label>
+                    <input type="month" id="edit_start_date" name="start_date" class="form-control">
+                </div>
+                <div class="form-group mb-0">
+                    <label>ถึง</label>
+                    <input type="month" id="edit_end_date" name="end_date" class="form-control">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('editTermModal').style.display='none'">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">บันทึกการแก้ไข</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('addTermModal').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+document.getElementById('editTermModal').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+
+function beToMonthInput(month, beYear) {
+    // convert BE year to CE for <input type="month"> value
+    if (!month || !beYear) return '';
+    var ce = parseInt(beYear) - 543;
+    return ce + '-' + String(month).padStart(2, '0');
+}
+
+function openEditModal(id, year, semester, startMonth, startYear, endMonth, endYear) {
+    document.getElementById('editTermForm').action = '/academic/edit-term/' + id;
+    document.getElementById('edit_year').value = year;
+    document.getElementById('edit_semester').value = semester;
+    document.getElementById('edit_start_date').value = beToMonthInput(startMonth, startYear);
+    document.getElementById('edit_end_date').value = beToMonthInput(endMonth, endYear);
+    document.getElementById('editTermModal').style.display = 'flex';
+}
+</script>
 {% endblock %}

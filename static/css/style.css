@@ -1,3 +1,8 @@
+h2 {
+    font-family: 'Kanit', 'Sarabun', sans-serif;
+    font-weight: 500;
+}
+
 :root {
     --primary-color: #0f83a6;
     --primary-hover: #0c6a85;
@@ -98,22 +103,15 @@ fieldset {
 }
 
 .layout-grid-aside {
-    display: grid;
-    grid-template-columns: minmax(320px, 360px) 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 2rem;
-    align-items: start;
 }
 
 .justify-center{
     display: flex;
     gap: 1rem;
     justify-content: center;
-}
-
-@media (max-width: 980px) {
-    .layout-grid-aside {
-        grid-template-columns: 1fr;
-    }
 }
 
 .info-stack {
@@ -152,7 +150,9 @@ fieldset {
 
 .table-wrapper {
     overflow-x: auto;
+    scrollbar-width: none;
 }
+.table-wrapper::-webkit-scrollbar { display: none; }
 
 .table-scroll-panel {
     max-height: 50vh;
@@ -464,7 +464,7 @@ fieldset {
 }
 
 .btn-compact {
-    padding: 0.35rem 0.8rem;
+    /* padding: 0.35rem 0.8rem; */
     font-size: 0.85rem;
 }
 
@@ -500,6 +500,9 @@ fieldset {
     background: rgba(0, 0, 0, 0.5);
     z-index: 1000;
     padding: 2rem;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
 }
 
 .modal-panel {
@@ -509,8 +512,10 @@ fieldset {
 }
 
 .modal-card {
-    width: min(960px, 96%);
-    margin: 6vh auto;
+    width: fit-content;
+    min-width: min(480px, 96%);
+    max-width: min(960px, 96%);
+    margin: 0;
     border-radius: var(--radius-xl);
     background: var(--bg-card);
     box-shadow: var(--shadow-xl);
@@ -524,6 +529,25 @@ fieldset {
     align-items: flex-start;
     gap: 1rem;
     border-bottom: 1px solid var(--border-color);
+}
+
+.modal-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background: none;
+    border: none;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+}
+.modal-close-btn:hover {
+    background: rgba(0,0,0,0.07);
+    color: var(--text-main);
 }
 
 .modal-body {
@@ -1195,6 +1219,8 @@ fieldset {
     color: var(--text-main);
     transition: all 0.3s ease;
     box-shadow: var(--shadow-soft);
+    font-family: inherit;
+    font-size: inherit;
 }
 
 .form-control:focus {
@@ -1203,11 +1229,91 @@ fieldset {
     box-shadow: 0 0 0 3px rgba(15, 131, 166, 0.2);
 }
 
+/* hide original select when wrapped */
+select.form-control.cs-hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    width: 0;
+    height: 0;
+}
+
+/* Custom Select */
+.cs-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    
+}
+.cs-wrapper.cs-inline { width: auto; }
+.cs-wrapper.cs-text-xs .cs-trigger { padding: 0.3rem 2rem 0.3rem 0.6rem; font-size: 0.8rem; }
+
+.cs-trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    color: var(--text-main);
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-shadow: var(--shadow-soft);
+    box-sizing: border-box;
+    text-align: left;
+    white-space: normal;
+    word-break: break-word;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23607089' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+}
+.cs-wrapper.open .cs-trigger,
+.cs-trigger:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(15,131,166,0.18);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230f83a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='18 15 12 9 6 15'/%3E%3C/svg%3E");
+}
+
+.cs-dropdown {
+    display: none;
+    position: fixed;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.13);
+    z-index: 99999;
+    overflow-y: auto;
+    max-height: 260px;
+    scrollbar-width: none;
+}
+.cs-dropdown::-webkit-scrollbar { display: none; }
+
+.cs-option {
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+    color: var(--text-main);
+    transition: background 0.12s;
+    white-space: nowrap;
+}
+.cs-option:first-child { border-radius: 0.75rem 0.75rem 0 0; }
+.cs-option:last-child  { border-radius: 0 0 0.75rem 0.75rem; }
+.cs-option:hover, .cs-option.cs-active { background: rgba(15,131,166,0.09); }
+.cs-option.cs-selected { color: var(--primary-color); font-weight: 600; }
+.cs-option.cs-selected::before { content: "✓ "; }
+
 .btn {
     display: inline-block;
     padding: 0.75rem 1.5rem;
     border-radius: 0.75rem;
     font-weight: 600;
+    line-height: 1.6;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -1485,16 +1591,9 @@ button.nav-identity:focus-visible {
     color: var(--primary-color);
     font-size: 0.875rem;
 }
-.nav-menu-item--manual::before {
-    content: "📖";
-    font-size: 0.95rem;
-    margin-right: 0.15rem;
-}
+.nav-menu-item--manual::before,
 .nav-menu-item--manual::after {
-    content: "↗";
-    font-size: 0.75rem;
-    opacity: 0.5;
-    margin-left: auto;
+    content: none;
 }
 
 .nav-popover-disclosure {
@@ -1763,6 +1862,13 @@ button.nav-identity:focus-visible {
 .status-submitted {
     background: rgba(59, 130, 246, 0.2);
     color: #3b82f6;
+    text-decoration: none;
+}
+
+a.status-submitted:hover {
+    background: rgba(59, 130, 246, 0.35);
+    color: #2563eb;
+    cursor: pointer;
 }
 
 .status-approved {
@@ -1820,8 +1926,8 @@ button.nav-identity:focus-visible {
 
 .btn-outline-danger {
     color: var(--accent-danger);
-    padding: 0.35rem 0.6rem;
-    font-size: 0.75rem;
+    /* padding: 0.35rem 0.6rem; */
+    /* font-size: 0.75rem; */
 }
 
 .btn-outline-danger:hover {

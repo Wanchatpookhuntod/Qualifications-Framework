@@ -15,13 +15,12 @@
     <div class="inline-actions">
         <form method="GET" action="{{ url_for('instructor_dashboard') }}" class="filter-form">
             <label class="text-muted text-xs mb-0">เทอม</label>
-            <select name="term_id" class="form-control select-inline min-220">
+            <select name="term_id" class="form-control select-inline min-220" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
                 <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-secondary btn-compact">กรอง</button>
         </form>
     </div>
 </div>
@@ -75,14 +74,10 @@
                         <td>
                             {% if section.tqf3 %}
                                 {% set s = section.tqf3.status %}
-                                {% if s == 'APPROVED' %}
-                                <span class="status-badge status-approved" style="display: flex; justify-content: center;">{{ s }}</span>
-                                {% elif s == 'SUBMITTED' %}
-                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">{{ s }}</span>
-                                {% elif s == 'RETURNED' %}
-                                <span class="status-badge status-returned" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% if s in ['SUBMITTED', 'APPROVED'] %}
+                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">รอตรวจสอบ</span>
                                 {% else %}
-                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">{{ s }}</span>
+                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">ร่าง</span>
                                 {% endif %}
                                 {% if section.tqf3.submitted_at %}
                                 <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf3.submitted_at.strftime('%d/%m/%Y') }}</div>
@@ -95,14 +90,10 @@
                             {% if section.tqf5 %}
                             <div>
                                 {% set s = section.tqf5.status %}
-                                {% if s == 'APPROVED' %}
-                                <span class="status-badge status-approved" style="display: flex; justify-content: center;">{{ s }}</span>
-                                {% elif s == 'SUBMITTED' %}
-                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">{{ s }}</span>
-                                {% elif s == 'RETURNED' %}
-                                <span class="status-badge status-returned" style="display: flex; justify-content: center;">{{ s }}</span>
+                                {% if s in ['SUBMITTED', 'APPROVED'] %}
+                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">รอตรวจสอบ</span>
                                 {% else %}
-                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">{{ s }}</span>
+                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">ร่าง</span>
                                 {% endif %}
                                 {% if section.tqf5.submitted_at %}
                                 <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf5.submitted_at.strftime('%d/%m/%Y') }}</div>

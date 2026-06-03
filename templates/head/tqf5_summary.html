@@ -119,7 +119,7 @@
                 {% endif %}
             </div>
             <div class="inline-actions">
-                <span class="status-badge {% if summary.status == 'SUBMITTED' %}status-approved{% else %}role-instructor{% endif %}">{{ summary.status }}</span>
+                <span class="status-badge {% if summary.status == 'SUBMITTED' %}status-approved{% else %}role-instructor{% endif %}">{{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(summary.status, summary.status) }}</span>
                 {% if summary.submitted_at %}
                 <span class="summary-meta">ส่งเมื่อ {{ summary.submitted_at.strftime('%d/%m/%Y %H:%M') }}</span>
                 {% endif %}

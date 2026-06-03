@@ -4,8 +4,6 @@
 
 {% block content %}
 {% set is_locked = tqf5.status in ['SUBMITTED', 'APPROVED'] %}
-{% set tqf3_ok = tqf3_is_approved if tqf3_is_approved is defined else (tqf3 and tqf3.status == 'APPROVED') %}
-
 {% if prefill_source and not is_locked %}
 <div class="qtf-alert qtf-alert-info">
     <div class="flex-between flex-wrap">
@@ -15,13 +13,6 @@
         </div>
         <div class="qtf-alert-note">แหล่งข้อมูล: มคอ.3{% if prefill_source.get('tqf3_status') %} (สถานะ: {{ prefill_source.get('tqf3_status') }}){% endif %}</div>
     </div>
-</div>
-{% endif %}
-
-{% if (not tqf3_ok) and (not is_locked) %}
-<div class="qtf-alert qtf-alert-danger">
-    <div class="fw-bold">ยังส่ง มคอ.5 ไม่ได้ในขณะนี้</div>
-    <div class="qtf-alert-note">คุณยังสามารถกรอกและบันทึกฉบับร่างได้ แต่ปุ่ม “ส่งให้หัวหน้าสาขา” จะใช้งานได้เมื่อ มคอ.3 อนุมัติแล้ว (สถานะ มคอ.3: {{ tqf3.status if tqf3 else '-' }})</div>
 </div>
 {% endif %}
 
@@ -53,7 +44,7 @@
             {% elif tqf5.status == 'RETURNED' %}
                 {% set badge_class = 'status-returned' %}
             {% endif %}
-            <span class="status-badge {{ badge_class }}">สถานะ: {{ tqf5.status }}</span>
+            <span class="status-badge {{ badge_class }}">สถานะ: {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf5.status, tqf5.status) }}</span>
             {% if is_locked %}
             <span class="qtf-status-note">🔒 เอกสารถูกล็อก (Read-Only)</span>
             {% endif %}
@@ -81,6 +72,9 @@
                      <div>รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) }}</div>
                      <div>ผู้สอน {{ instructors_val }}</div>
                      <input type="hidden" name="instructors" value="{{ instructors_val }}">
+                     <input type="hidden" name="university" value="{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }}">
+                     <input type="hidden" name="faculty" value="{{ data.get('faculty', gi.get('faculty', '')) }}">
+                     <input type="hidden" name="program" value="{{ data.get('program', gi.get('program', '')) }}">
                  </div>
                  <div>
                      <div>ปีการศึกษา {{ data.get('semester', section.term.semester) }} / {{ data.get('academic_year', section.term.year) }} ชั้นปีที่ {{ data.get('year_level', '') }}</div>
@@ -288,7 +282,7 @@
     <div class="qtf-btn-row mt-4">
         {% if not is_locked %}
         <button type="submit" name="action" value="draft" class="btn btn-primary">บันทึกฉบับร่าง</button>
-        <button type="submit" name="action" value="submit" class="btn btn-primary" {% if not tqf3_ok %}disabled title="ต้องรอ มคอ.3 อนุมัติ"{% else %}onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกเพื่อรอการตรวจสอบ')"{% endif %}>ส่งให้หัวหน้าสาขา</button>
+        <button type="submit" name="action" value="submit" class="btn btn-primary" onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกเพื่อรอการตรวจสอบ')">ส่งให้หัวหน้าสาขา</button>
         {% else %}
         <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary">ย้อนกลับ</a>
         {% endif %}

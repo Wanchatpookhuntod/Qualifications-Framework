@@ -12,46 +12,6 @@
         <h2>รวม มคอ. ตามเทอม</h2>
         <p class="text-muted mb-0">เทอม {{ term.semester }}/{{ term.year }} — ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</p>
     </div>
-
-    <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
-</div>
-
-<div class="glass glass-card-sm mb-5">
-    <div class="flex-between flex-wrap">
-        <div class="badge-list">
-            <span class="status-badge role-instructor">ทั้งหมด: {{ stats.total }}</span>
-            <span class="status-badge role-instructor">มคอ.3 ส่งแล้ว: {{ stats.tqf3_submitted }}</span>
-            <span class="status-badge role-academic">มคอ.3 อนุมัติ: {{ stats.tqf3_approved }}</span>
-            <span class="status-badge role-instructor">มคอ.5 ส่งแล้ว: {{ stats.tqf5_submitted }}</span>
-            <span class="status-badge role-academic">มคอ.5 อนุมัติ: {{ stats.tqf5_approved }}</span>
-        </div>
-
-        <form method="GET" action="{{ url_for('academic_term_documents', term_id=term.id) }}" class="filter-form">
-            <label class="text-muted text-xs mb-0">หลักสูตร</label>
-            <select name="program_id" class="form-control min-320">
-                <option value="" {% if not selected_program_id %}selected{% endif %}>ทั้งหมด</option>
-                {% for p in programs %}
-                <option value="{{ p.id }}" {% if selected_program_id == p.id %}selected{% endif %}>
-                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
-                </option>
-                {% endfor %}
-            </select>
-            <button type="submit" class="btn btn-secondary btn-compact">กรอง</button>
-        </form>
-    </div>
-</div>
-
-<div class="glass glass-card-sm mb-5">
-    <div class="flex-between flex-wrap">
-        <div>
-            <div class="fw-bold">สถานะการเปิดให้กรอก (ทั้งเทอม)</div>
-            <div class="text-muted text-xs">มีผลกับทุกวิชาในเทอมนี้</div>
-        </div>
-        <div class="badge-list">
-            <span class="status-badge role-instructor">มคอ.3: {{ 'เปิด' if term.is_open_tqf3 else 'ปิด' }}</span>
-            <span class="status-badge role-instructor">มคอ.5: {{ 'เปิด' if term.is_open_tqf5 else 'ปิด' }}</span>
-        </div>
-    </div>
 </div>
 
 <div class="glass glass-card-sm mb-5">
@@ -80,8 +40,31 @@
     </div>
 </div>
 
+<!-- Table of Sections and TQF statuses -->
 <div class="glass glass-card">
-    <div class="table-wrapper">
+
+    <div class="flex-between flex-wrap">
+        <div class="badge-list">
+            <span class="status-badge role-instructor">ทั้งหมด: {{ stats.total }}</span>
+            <span class="status-badge role-instructor">มคอ.3 ส่งแล้ว: {{ stats.tqf3_submitted }}</span>
+            <span class="status-badge role-instructor">มคอ.5 ส่งแล้ว: {{ stats.tqf5_submitted }}</span>
+        </div>
+        <form method="GET" action="{{ url_for('academic_term_documents', term_id=term.id) }}" class="filter-form">
+            <label class="text-muted text-xs mb-0">หลักสูตร</label>
+            <select name="program_id" class="form-control min-320" onchange="this.form.submit()">
+                <option value="" {% if not selected_program_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for p in programs %}
+                <option value="{{ p.id }}" {% if selected_program_id == p.id %}selected{% endif %}>
+                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+
+
+    <div class="table-wrapper mt-3">
         <table class="data-table">
             <thead>
                 <tr>
@@ -114,39 +97,15 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if section.tqf3 %}
-                        <div class="mb-2">
-                            {% set s = section.tqf3.status %}
-                            {% if s == 'APPROVED' %}
-                            <span class="status-badge status-approved">{{ s }}</span>
-                            {% elif s == 'SUBMITTED' %}
-                            <span class="status-badge status-submitted">{{ s }}</span>
-                            {% elif s == 'RETURNED' %}
-                            <span class="status-badge status-returned">{{ s }}</span>
-                            {% else %}
-                            <span class="status-badge role-instructor">{{ s }}</span>
-                            {% endif %}
-                        </div>
-                        <a class="btn btn-secondary btn-compact" href="{{ url_for('academic_view_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id, next=request.path) }}">👁️ ดู</a>
+                        {% if section.tqf3 and section.tqf3.status == 'APPROVED' %}
+                        <a class="status-badge status-approved" href="{{ url_for('academic_view_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id, next=request.path) }}">อนุมัติแล้ว</a>
                         {% else %}
                         <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
                         {% endif %}
                     </td>
                     <td>
-                        {% if section.tqf5 %}
-                        <div class="mb-2">
-                            {% set s = section.tqf5.status %}
-                            {% if s == 'APPROVED' %}
-                            <span class="status-badge status-approved">{{ s }}</span>
-                            {% elif s == 'SUBMITTED' %}
-                            <span class="status-badge status-submitted">{{ s }}</span>
-                            {% elif s == 'RETURNED' %}
-                            <span class="status-badge status-returned">{{ s }}</span>
-                            {% else %}
-                            <span class="status-badge role-instructor">{{ s }}</span>
-                            {% endif %}
-                        </div>
-                        <a class="btn btn-secondary btn-compact" href="{{ url_for('academic_view_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id, next=request.path) }}">ดู</a>
+                        {% if section.tqf5 and section.tqf5.status == 'APPROVED' %}
+                        <a class="status-badge status-approved" href="{{ url_for('academic_view_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id, next=request.path) }}">อนุมัติแล้ว</a>
                         {% else %}
                         <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
                         {% endif %}

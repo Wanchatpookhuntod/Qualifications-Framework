@@ -5,25 +5,26 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <h2>Dashboard หัวหน้าสาขา</h2>
-        <p class="text-muted mb-0">Step C & E: มอบหมายผู้สอน ตรวจสอบ และอนุมัติ มคอ.</p>
+        <h2>Dashboard หัวหน้าสาขา{% if dept_name %} {{ dept_name }}{% endif %}</h2>
+        <p class="text-muted mb-0">มอบหมายผู้สอน และตรวจสอบ มคอ.</p>
     </div>
     <div class="inline-actions">
         <form method="GET" action="{{ url_for('head_dashboard') }}" class="filter-form">
             <label class="text-muted text-xs mb-0">เทอม</label>
-            <select name="term_id" class="form-control select-inline min-200">
+            <select name="term_id" class="form-control select-inline min-200" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
                 <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-secondary btn-compact">แสดง</button>
         </form>
     </div>
 </div>
 
 {% if grouped_by_term %}
     {% for group in grouped_by_term %}
+    <form action="{{ url_for('assign_instructors_bulk') }}" method="POST">
+    <input type="hidden" name="next" value="{{ request.url }}">
     <div class="glass panel mb-4"
          data-term-id="{{ group.term.id }}"
          data-tqf3="{{ 'true' if group.tqf3_open else 'false' }}"
@@ -45,20 +46,27 @@
                 <span class="text-muted text-xs">ฝ่ายวิชาการยังไม่เปิดให้กรอก</span>
                 {% endif %}
             </div>
-            <div class="inline-actions">
-                <a class="btn btn-secondary btn-compact" href="{{ url_for('head_term_documents', term_id=group.term.id) }}">รวม มคอ. ของเทอมนี้</a>
-                <a class="btn btn-secondary btn-compact" href="{{ url_for('head_tqf5_summary', term_id=group.term.id) }}">สรุป มคอ.5</a>
+            <div class="inline-actions" style="flex-wrap: nowrap; align-items: stretch;">
+                <a class="btn btn-secondary btn-compact" style="white-space: nowrap; display: flex; align-items: center;" href="{{ url_for('head_term_documents', term_id=group.term.id) }}">รวม มคอ.</a>
+                <a class="btn btn-secondary btn-compact" style="white-space: nowrap; display: flex; align-items: center;" href="{{ url_for('head_tqf5_summary', term_id=group.term.id) }}">สรุป มคอ.5</a>
+                <button type="submit" class="btn btn-primary btn-compact" style="white-space: nowrap; width: auto; display: flex; align-items: center;">บันทึก</button>
             </div>
         </div>
 
         <div class="table-wrapper">
-            <table class="data-table">
+            <table class="data-table" style="table-layout: fixed; width: 100%;">
+                <colgroup>
+                    <col style="width: 56%;">
+                    <col style="width: 26%;">
+                    <col style="width: 12%;">
+                    <col style="width: 12%;">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>รายวิชา / กลุ่ม</th>
-                        <th>อาจารย์ผู้สอน (Step C)</th>
-                        <th>มคอ. 3</th>
-                        <th>มคอ. 5</th>
+                        <th style="text-align: center;">อาจารย์ผู้สอน</th>
+                        <th style="text-align: right;">มคอ. 3</th>
+                        <th style="text-align: right;">มคอ. 5</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -69,52 +77,34 @@
                             <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                         </td>
                         <td>
-                            <form action="{{ url_for('assign_instructor', section_id=section.id) }}" method="POST"
-                                class="inline-actions">
-                                <select name="instructor_id" class="form-control text-xs w-180">
-                                    <option value="">-- รอการมอบหมาย --</option>
-                                    {% for inst in instructors %}
-                                    <option value="{{ inst.id }}" {% if section.instructor_id==inst.id %}selected{% endif %}>{{ inst.full_name }}</option>
-                                    {% endfor %}
-                                </select>
-                                <button type="submit" class="btn btn-primary btn-compact">บันทึก</button>
-                            </form>
+                            <select name="instructor_{{ section.id }}" class="form-control text-xs">
+                                <option value="">-- รอการมอบหมาย --</option>
+                                {% for inst in instructors %}
+                                <option value="{{ inst.id }}" {% if section.instructor_id==inst.id %}selected{% endif %}>{{ inst.full_name }}</option>
+                                {% endfor %}
+                            </select>
                         </td>
-                        <td>
+                        <td style="text-align: right;">
                             {% if section.tqf3 %}
-                            <div class="mb-1">
-                                {% if section.tqf3.status == 'APPROVED' %}
-                                <span class="status-badge status-approved">{{ section.tqf3.status }}</span>
-                                {% elif section.tqf3.status == 'SUBMITTED' %}
-                                <span class="status-badge status-submitted">{{ section.tqf3.status }}</span>
-                                {% elif section.tqf3.status == 'RETURNED' %}
-                                <span class="status-badge status-returned">{{ section.tqf3.status }}</span>
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" style="text-decoration: none;">
+                                {% if section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}
+                                <span class="status-badge status-submitted">รอตรวจสอบ</span>
                                 {% else %}
-                                <span class="status-badge role-instructor">{{ section.tqf3.status }}</span>
+                                <span class="status-badge role-instructor">ร่าง</span>
                                 {% endif %}
-                            </div>
-                            <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" class="btn btn-secondary btn-compact">
-                                {% if section.tqf3.status == 'SUBMITTED' %}ตรวจสอบ{% else %}ดูรายละเอียด{% endif %}
                             </a>
                             {% else %}
                             <span class="text-muted text-xs">รอดำเนินการ</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td style="text-align: right;">
                             {% if section.tqf5 %}
-                            <div class="mb-1">
-                                {% if section.tqf5.status == 'APPROVED' %}
-                                <span class="status-badge status-approved">{{ section.tqf5.status }}</span>
-                                {% elif section.tqf5.status == 'SUBMITTED' %}
-                                <span class="status-badge status-submitted">{{ section.tqf5.status }}</span>
-                                {% elif section.tqf5.status == 'RETURNED' %}
-                                <span class="status-badge status-returned">{{ section.tqf5.status }}</span>
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" style="text-decoration: none;">
+                                {% if section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}
+                                <span class="status-badge status-submitted">รอตรวจสอบ</span>
                                 {% else %}
-                                <span class="status-badge role-instructor">{{ section.tqf5.status }}</span>
+                                <span class="status-badge role-instructor">ร่าง</span>
                                 {% endif %}
-                            </div>
-                            <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" class="btn btn-secondary btn-compact">
-                                {% if section.tqf5.status == 'SUBMITTED' %}ตรวจสอบ{% else %}ดูรายละเอียด{% endif %}
                             </a>
                             {% else %}
                             <span class="text-muted text-xs">รอดำเนินการ</span>
@@ -130,6 +120,7 @@
             </table>
         </div>
     </div>
+    </form>
     {% endfor %}
 {% else %}
 <div class="glass panel">

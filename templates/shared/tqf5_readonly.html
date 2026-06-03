@@ -15,9 +15,11 @@
             <div><span class="text-muted">ชื่อวิชา:</span> {{ data.get('course_name', course.name_th if course else '-') }}</div>
             <div><span class="text-muted">หน่วยกิต:</span> {{ data.get('credits', course.credits if course else '-') }}</div>
         </div>
+        {% set _prog = course.program if course else None %}
+        {% set _fac = _prog.faculty if _prog else None %}
         <div class="qtf-grid three mt-2">
-            <div><span class="text-muted">คณะ/สำนัก:</span> {{ data.get('faculty', '-') }}</div>
-            <div><span class="text-muted">หลักสูตร:</span> {{ data.get('program', '-') }}</div>
+            <div><span class="text-muted">คณะ/สำนัก:</span> {{ data.get('faculty') or (_fac.name if _fac else '-') }}</div>
+            <div><span class="text-muted">หลักสูตร:</span> {{ data.get('program') or (_prog.name if _prog else '-') }}</div>
             <div><span class="text-muted">วิชาเอก:</span> {{ data.get('major', '-') }}</div>
         </div>
         <div class="mt-2">

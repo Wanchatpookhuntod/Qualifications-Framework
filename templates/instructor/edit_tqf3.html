@@ -35,7 +35,7 @@
             {% elif tqf3.status == 'RETURNED' %}
                 {% set badge_class = 'status-returned' %}
             {% endif %}
-            <span class="status-badge {{ badge_class }}">สถานะ: {{ tqf3.status }}</span>
+            <span class="status-badge {{ badge_class }}">สถานะ: {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf3.status, tqf3.status) }}</span>
             {% if is_locked %}
             <span class="qtf-status-note">🔒 เอกสารถูกล็อก (Read-Only)</span>
             {% endif %}
@@ -70,6 +70,9 @@
                         <div>{{ general.get('university', '') }} {{ general.get('faculty', '') }}</div>
                         <div>หลักสูตร {{ general.get('program', '') }}</div>
                         <div>รายวิชา {{ general.get('course_code', section.course.code) }} {{ general.get('course_name', section.course.name_th) }}</div>
+                        <input type="hidden" name="university" value="{{ general.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี') }}">
+                        <input type="hidden" name="faculty" value="{{ general.get('faculty', '') }}">
+                        <input type="hidden" name="program" value="{{ general.get('program', '') }}">
                     </div>
                     <div>
                          <div class="qtf-grid two">

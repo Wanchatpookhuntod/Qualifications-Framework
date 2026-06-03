@@ -11,49 +11,175 @@
         </nav>
         <h2>จัดการผู้ใช้งานและสิทธิ์ (Users & Roles)</h2>
     </div>
+    <div>
+        <button class="btn btn-primary" onclick="document.getElementById('modal-create-user').style.display='flex'">
+            + สร้างผู้ใช้ใหม่
+        </button>
+    </div>
 </div>
 
-<div class="layout-grid-aside">
-    <!-- Add User Form -->
-    <div class="glass glass-card">
-        <h3 class="mb-3">สร้างผู้ใช้ใหม่</h3>
+<!-- User List -->
+<div class="glass glass-card">
+    <h3 class="mb-3">รายชื่อผู้ใช้ทั้งหมด</h3>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ชื่อผู้ใช้</th>
+                    <th>ชื่อ-นามสกุล</th>
+                    <th>บทบาท</th>
+                    <th>สังกัด</th>
+                    <th style="text-align:center;">แก้ไข</th>
+                    <th class="col-80">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td class="text-mono">{{ user.username }}</td>
+                    <td>{{ user.full_name }}</td>
+                    <td>
+                        <div class="badge-list">
+                            {% for r in user.role_names() %}
+                            <span class="status-badge role-{{ r }}">{{ r|upper }}</span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                    <td class="text-muted text-xs">{{ user_affiliation_by_user_id.get(user.id) or 'System' }}</td>
+                    <td style="text-align:center;">
+                        <button type="button" class="btn btn-secondary btn-compact"
+                            onclick="openEditUserModal(
+                                '{{ user.id }}',
+                                '{{ user.full_name | e }}',
+                                '{{ user.role_names() | join(",") }}',
+                                '{{ user.faculty_id or "" }}',
+                                '{{ user.department_id or "" }}',
+                                '{{ user.program_id or "" }}'
+                            )">
+                            แก้ไข
+                        </button>
+                    </td>
+                    <td>
+                        {% if current_user.id != user.id %}
+                        <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST"
+                            onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')" class="mb-0">
+                            <button type="submit" class="btn btn-outline-danger">ลบ</button>
+                        </form>
+                        {% else %}
+                        <span class="text-muted text-xxs">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: สร้างผู้ใช้ใหม่ -->
+<div id="modal-create-user" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:760px; max-height:90vh; overflow-y:auto; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">สร้างผู้ใช้ใหม่</h3>
+            <button onclick="document.getElementById('modal-create-user').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
         <form method="POST">
-            <div class="form-group">
-                <label>Username</label>
-                <input type="text" name="username" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>Password</label>
-                <input type="password" name="password" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>ชื่อ-นามสกุล</label>
-                <input type="text" name="full_name" class="form-control" required>
-            </div>
-            <div class="form-group">
-                <label>บทบาท (Roles) <span class="form-note">(เลือกได้หลายบทบาท)</span></label>
-                <div class="grid-gap-sm mt-2">
-                    <label class="form-check-inline">
-                        <input type="checkbox" name="roles" value="instructor" checked>
-                        อาจารย์ผู้สอน
-                    </label>
-                    <label class="form-check-inline">
-                        <input type="checkbox" name="roles" value="head">
-                        หัวหน้าสาขา
-                    </label>
-                    <label class="form-check-inline">
-                        <input type="checkbox" name="roles" value="academic">
-                        ฝ่ายวิชาการ
-                    </label>
-                    <label class="form-check-inline">
-                        <input type="checkbox" name="roles" value="admin">
-                        Administrator
-                    </label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 1.5rem;">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>คณะที่สังกัด (ถ้ามี)</label>
+                    <select name="faculty_id" class="form-control">
+                        <option value="">-- ไม่ระบุ --</option>
+                        {% for faculty in faculties %}
+                        <option value="{{ faculty.id }}">{{ faculty.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="password" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>สาขาที่สังกัด (ถ้ามี)</label>
+                    <select name="department_id" class="form-control">
+                        <option value="">-- ไม่ระบุ --</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept.id }}">{{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ชื่อ-นามสกุล</label>
+                    <input type="text" name="full_name" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label>หลักสูตรที่สังกัด (ถ้ามี)</label>
+                    <select name="program_id" class="form-control">
+                        <option value="">-- ไม่ระบุ --</option>
+                        {% for program in programs %}
+                        <option value="{{ program.id }}">
+                            {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
+                            ({{ department_name_by_id.get(program.department_id) or '-' }} / {{ faculty_name_by_id.get(program.faculty_id) or '-' }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                    <label>บทบาท (Roles) <span class="form-note">(เลือกได้หลายบทบาท)</span></label>
+                    <div style="display:flex; flex-wrap:wrap; gap:0.5rem 1.5rem; margin-top:0.5rem;">
+                        <label class="form-check-inline">
+                            <input type="checkbox" name="roles" value="instructor" checked>
+                            อาจารย์ผู้สอน
+                        </label>
+                        <label class="form-check-inline">
+                            <input type="checkbox" name="roles" value="head">
+                            หัวหน้าสาขา
+                        </label>
+                        <label class="form-check-inline">
+                            <input type="checkbox" name="roles" value="academic">
+                            ฝ่ายวิชาการ
+                        </label>
+                        <label class="form-check-inline">
+                            <input type="checkbox" name="roles" value="admin">
+                            Administrator
+                        </label>
+                    </div>
                 </div>
             </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">สร้างบัญชีผู้ใช้</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-create-user').style.display='none'">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: แก้ไขผู้ใช้ -->
+<div id="modal-edit-user" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:520px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">แก้ไขข้อมูล — <span id="edit-user-name"></span></h3>
+            <button onclick="document.getElementById('modal-edit-user').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form id="edit-user-form" method="POST" data-no-confirm>
             <div class="form-group">
-                <label>คณะที่สังกัด (ถ้ามี)</label>
-                <select name="faculty_id" class="form-control">
+                <label class="text-xs text-muted">บทบาท</label>
+                <div style="display:flex; flex-wrap:wrap; gap:0.75rem; margin-top:0.25rem;">
+                    <label class="form-check-inline"><input type="checkbox" name="roles" value="instructor" id="eu-instructor"> อาจารย์ผู้สอน</label>
+                    <label class="form-check-inline"><input type="checkbox" name="roles" value="head" id="eu-head"> หัวหน้าสาขา</label>
+                    <label class="form-check-inline"><input type="checkbox" name="roles" value="academic" id="eu-academic"> ฝ่ายวิชาการ</label>
+                    <label class="form-check-inline"><input type="checkbox" name="roles" value="admin" id="eu-admin"> Administrator</label>
+                </div>
+            </div>
+            <hr style="margin:1rem 0; border-color:var(--border-color,#d7dfec);">
+            <div class="form-group">
+                <label class="text-xs text-muted">คณะที่สังกัด</label>
+                <select name="faculty_id" id="eu-faculty" class="form-control">
                     <option value="">-- ไม่ระบุ --</option>
                     {% for faculty in faculties %}
                     <option value="{{ faculty.id }}">{{ faculty.name }}</option>
@@ -61,8 +187,8 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>สาขาที่สังกัด (ถ้ามี)</label>
-                <select name="department_id" class="form-control">
+                <label class="text-xs text-muted">สาขาที่สังกัด</label>
+                <select name="department_id" id="eu-dept" class="form-control">
                     <option value="">-- ไม่ระบุ --</option>
                     {% for dept in departments %}
                     <option value="{{ dept.id }}">{{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}</option>
@@ -70,128 +196,41 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>หลักสูตรที่สังกัด (ถ้ามี)</label>
-                <select name="program_id" class="form-control">
+                <label class="text-xs text-muted">หลักสูตรที่สังกัด</label>
+                <select name="program_id" id="eu-program" class="form-control">
                     <option value="">-- ไม่ระบุ --</option>
                     {% for program in programs %}
-                    <option value="{{ program.id }}">
-                        {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
-                        ({{ department_name_by_id.get(program.department_id) or '-' }} / {{ faculty_name_by_id.get(program.faculty_id) or '-' }})
-                    </option>
+                    <option value="{{ program.id }}">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ department_name_by_id.get(program.department_id) or '-' }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <button type="submit" class="btn btn-primary w-100">สร้างบัญชีผู้ใช้</button>
+            <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึก</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-edit-user').style.display='none'">ยกเลิก</button>
+            </div>
         </form>
     </div>
-
-    <!-- User List -->
-    <div class="glass glass-card">
-        <h3 class="mb-3">รายชื่อผู้ใช้ทั้งหมด</h3>
-        <div class="table-wrapper">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>ชื่อผู้ใช้</th>
-                        <th>ชื่อ-นามสกุล</th>
-                        <th>บทบาท</th>
-                        <th>สังกัด</th>
-                        <th class="col-80">จัดการ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for user in users %}
-                    <tr>
-                        <td class="text-mono">{{ user.username }}</td>
-                        <td>{{ user.full_name }}</td>
-                        <td>
-                            <div class="badge-list">
-                                {% for r in user.role_names() %}
-                                <span class="status-badge role-{{ r }}">{{ r|upper }}</span>
-                                {% endfor %}
-                            </div>
-
-                            <details class="details-block">
-                                <summary class="details-summary">แก้ไขบทบาท</summary>
-                                <form method="POST" action="{{ url_for('admin_update_user_roles', user_id=user.id) }}" class="details-content">
-                                    <label class="form-check-inline">
-                                        <input type="checkbox" name="roles" value="instructor" {% if user.has_role('instructor') %}checked{% endif %}>
-                                        อาจารย์ผู้สอน
-                                    </label>
-                                    <label class="form-check-inline">
-                                        <input type="checkbox" name="roles" value="head" {% if user.has_role('head') %}checked{% endif %}>
-                                        หัวหน้าสาขา
-                                    </label>
-                                    <label class="form-check-inline">
-                                        <input type="checkbox" name="roles" value="academic" {% if user.has_role('academic') %}checked{% endif %}>
-                                        ฝ่ายวิชาการ
-                                    </label>
-                                    <label class="form-check-inline">
-                                        <input type="checkbox" name="roles" value="admin" {% if user.has_role('admin') %}checked{% endif %}>
-                                        Administrator
-                                    </label>
-                                    <button type="submit" class="btn btn-secondary btn-compact">บันทึกบทบาท</button>
-                                </form>
-                            </details>
-                        </td>
-                        <td class="text-muted text-xs">
-                            {{ user_affiliation_by_user_id.get(user.id) or 'System' }}
-
-                            <details class="details-block">
-                                <summary class="details-summary">แก้ไขสังกัด</summary>
-                                <form method="POST" action="{{ url_for('admin_update_user_affiliation', user_id=user.id) }}" class="details-content">
-                                    <div class="form-group mb-0">
-                                        <label class="text-xs">คณะที่สังกัด</label>
-                                        <select name="faculty_id" class="form-control">
-                                            <option value="">-- ไม่ระบุ --</option>
-                                            {% for faculty in faculties %}
-                                            <option value="{{ faculty.id }}" {% if user.faculty_id == faculty.id %}selected{% endif %}>{{ faculty.name }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="form-group mb-0">
-                                        <label class="text-xs">สาขาที่สังกัด</label>
-                                        <select name="department_id" class="form-control">
-                                            <option value="">-- ไม่ระบุ --</option>
-                                            {% for dept in departments %}
-                                            <option value="{{ dept.id }}" {% if user.department_id == dept.id %}selected{% endif %}>
-                                                {{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <div class="form-group mb-0">
-                                        <label class="text-xs">หลักสูตรที่สังกัด</label>
-                                        <select name="program_id" class="form-control">
-                                            <option value="">-- ไม่ระบุ --</option>
-                                            {% for program in programs %}
-                                            <option value="{{ program.id }}" {% if user.program_id == program.id %}selected{% endif %}>
-                                                {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
-                                                ({{ department_name_by_id.get(program.department_id) or '-' }} / {{ faculty_name_by_id.get(program.faculty_id) or '-' }})
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                    <button type="submit" class="btn btn-secondary btn-compact">บันทึกสังกัด</button>
-                                </form>
-                            </details>
-                        </td>
-
-                        <td>
-                            {% if current_user.id != user.id %}
-                            <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST"
-                                onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')" class="mb-0">
-                                <button type="submit" class="btn btn-outline-danger">ลบ</button>
-                            </form>
-                            {% else %}
-                            <span class="text-muted text-xxs">-</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
 </div>
+
+<script>
+['modal-create-user', 'modal-edit-user'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+});
+
+function openEditUserModal(uid, name, rolesStr, facultyId, deptId, programId) {
+    var roles = rolesStr ? rolesStr.split(',') : [];
+    document.getElementById('edit-user-name').textContent = name;
+    document.getElementById('edit-user-form').action = '/admin/users/' + uid + '/edit';
+    ['instructor','head','academic','admin'].forEach(function(r) {
+        document.getElementById('eu-' + r).checked = roles.indexOf(r) !== -1;
+    });
+    document.getElementById('modal-edit-user').style.display = 'flex';
+    window.initCustomSelects(document.getElementById('modal-edit-user'));
+    window.setSelectValue('eu-faculty', facultyId);
+    window.setSelectValue('eu-dept', deptId);
+    window.setSelectValue('eu-program', programId);
+}
+</script>
 {% endblock %}

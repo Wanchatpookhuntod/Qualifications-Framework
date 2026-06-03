@@ -7,7 +7,7 @@
     <div>
         <a href="{{ url_for('head_dashboard', term_id=term.id) }}" class="text-muted text-xs">← กลับไปที่ Dashboard</a>
         <h2>📚 รวม มคอ. ตามเทอม (สำหรับหัวหน้าสาขา)</h2>
-        <p class="text-muted">เทอม {{ term.semester }}/{{ term.year }} — เปิดดูและอนุมัติได้ตามสิทธิ์ของสาขา</p>
+        <p class="text-muted">เทอม {{ term.semester }}/{{ term.year }}</p>
     </div>
     <a href="{{ url_for('head_tqf5_summary', term_id=term.id) }}" class="btn btn-secondary">🧾 {{ 'แก้ไข' if summary else 'สร้าง' }} สรุป มคอ.5</a>
 </div>
@@ -22,16 +22,8 @@
         <div class="stat-value text-primary">{{ stats.tqf3_submitted }}</div>
     </div>
     <div class="glass stat-card">
-        <div class="stat-label">มคอ.3 (อนุมัติ)</div>
-        <div class="stat-value text-success">{{ stats.tqf3_approved }}</div>
-    </div>
-    <div class="glass stat-card">
         <div class="stat-label">มคอ.5 (ส่งแล้ว)</div>
         <div class="stat-value text-primary">{{ stats.tqf5_submitted }}</div>
-    </div>
-    <div class="glass stat-card">
-        <div class="stat-label">มคอ.5 (อนุมัติ)</div>
-        <div class="stat-value text-success">{{ stats.tqf5_approved }}</div>
     </div>
 </div>
 
@@ -64,14 +56,10 @@
                         {% if section.tqf3 %}
                         {% set s = section.tqf3.status %}
                         <div class="mb-2">
-                            {% if s == 'APPROVED' %}
-                            <span class="status-badge status-approved">{{ s }}</span>
-                            {% elif s == 'SUBMITTED' %}
-                            <span class="status-badge status-submitted">{{ s }}</span>
-                            {% elif s == 'RETURNED' %}
-                            <span class="status-badge status-returned">{{ s }}</span>
+                            {% if s in ['SUBMITTED', 'APPROVED'] %}
+                            <span class="status-badge status-submitted">รอตรวจสอบ</span>
                             {% else %}
-                            <span class="status-badge role-instructor">{{ s }}</span>
+                            <span class="status-badge role-instructor">ร่าง</span>
                             {% endif %}
                         </div>
                         <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" class="btn btn-secondary btn-compact">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>
@@ -83,14 +71,10 @@
                         {% if section.tqf5 %}
                         {% set s = section.tqf5.status %}
                         <div class="mb-2">
-                            {% if s == 'APPROVED' %}
-                            <span class="status-badge status-approved">{{ s }}</span>
-                            {% elif s == 'SUBMITTED' %}
-                            <span class="status-badge status-submitted">{{ s }}</span>
-                            {% elif s == 'RETURNED' %}
-                            <span class="status-badge status-returned">{{ s }}</span>
+                            {% if s in ['SUBMITTED', 'APPROVED'] %}
+                            <span class="status-badge status-submitted">รอตรวจสอบ</span>
                             {% else %}
-                            <span class="status-badge role-instructor">{{ s }}</span>
+                            <span class="status-badge role-instructor">ร่าง</span>
                             {% endif %}
                         </div>
                         <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" class="btn btn-secondary btn-compact">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>

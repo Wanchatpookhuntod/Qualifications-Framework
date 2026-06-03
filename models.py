@@ -160,9 +160,10 @@ class Department(FirestoreModel):
 
     name: str = ""
     faculty_id: Optional[str] = None
+    major: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"name": self.name, "faculty_id": self.faculty_id}
+        return {"name": self.name, "faculty_id": self.faculty_id, "major": self.major}
 
     @classmethod
     def from_dict(cls, doc_id: str, data: Dict[str, Any]) -> "Department":
@@ -170,6 +171,7 @@ class Department(FirestoreModel):
             id=doc_id,
             name=(data.get("name") or ""),
             faculty_id=data.get("faculty_id"),
+            major=data.get("major") or None,
         )
 
     @property
@@ -277,10 +279,12 @@ class Term(FirestoreModel):
 
     year: int = 0
     semester: int = 0
-    # เปิดให้กรอก มคอ.3 ทั้งเทอม
     is_open_tqf3: bool = False
-    # เปิดให้กรอก มคอ.5 ทั้งเทอม
     is_open_tqf5: bool = False
+    start_month: Optional[int] = None
+    start_year: Optional[int] = None
+    end_month: Optional[int] = None
+    end_year: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -288,6 +292,10 @@ class Term(FirestoreModel):
             "semester": int(self.semester),
             "is_open_tqf3": bool(self.is_open_tqf3),
             "is_open_tqf5": bool(self.is_open_tqf5),
+            "start_month": self.start_month,
+            "start_year": self.start_year,
+            "end_month": self.end_month,
+            "end_year": self.end_year,
         }
 
     @classmethod
@@ -304,12 +312,23 @@ class Term(FirestoreModel):
             semester = int(semester)
         except Exception:
             semester = 0
+
+        def _opt_int(v):
+            try:
+                return int(v) if v is not None and v != "" else None
+            except Exception:
+                return None
+
         return cls(
             id=doc_id,
             year=year,
             semester=semester,
             is_open_tqf3=is_open_tqf3,
             is_open_tqf5=is_open_tqf5,
+            start_month=_opt_int(data.get("start_month")),
+            start_year=_opt_int(data.get("start_year")),
+            end_month=_opt_int(data.get("end_month")),
+            end_year=_opt_int(data.get("end_year")),
         )
 
 

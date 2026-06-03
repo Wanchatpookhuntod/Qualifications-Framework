@@ -6,11 +6,12 @@
     <title>{% block title %}ระบบ มคอ.3 และ มคอ.5{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&family=Kanit:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&family=Kanit:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
     <noscript>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&family=Kanit:wght@400;500;600&display=swap">
     </noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
@@ -71,7 +72,7 @@
                                     </button>
                                     <div class="nav-submenu-panel glass" id="roleSubmenu" role="menu" aria-label="เลือกบทบาท" hidden>
                                         {% for r in available_roles %}
-                                        <form method="POST" action="{{ url_for('switch_role') }}" class="nav-submenu-form" role="none">
+                                        <form method="POST" action="{{ url_for('switch_role') }}" class="nav-submenu-form" role="none" data-no-confirm>
                                             <button
                                                 type="submit"
                                                 name="role"
@@ -111,7 +112,24 @@
     </div>
 
     <script>
+        // Force fresh data when page is restored from bfcache
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) { window.location.reload(); }
+        });
+
         document.addEventListener('DOMContentLoaded', function () {
+
+
+            document.querySelectorAll('.alert').forEach(function (el) {
+                if (el.textContent.includes('สลับบทบาท')) {
+                    setTimeout(function () {
+                        el.style.transition = 'opacity 0.3s';
+                        el.style.opacity = '0';
+                        setTimeout(function () { el.remove(); }, 300);
+                    }, 1000);
+                }
+            });
+
             function updateButtonPointer(btn, event) {
                 const rect = btn.getBoundingClientRect();
                 const x = ((event.clientX - rect.left) / rect.width) * 100;
@@ -129,6 +147,153 @@
                     btn.style.removeProperty('--mouse-y');
                 });
             });
+
+            // ── Custom Select ──────────────────────────────────────────
+            function csWrap(sel) {
+                if (sel.dataset.csInit) return;
+                sel.dataset.csInit = '1';
+                sel.classList.add('cs-hidden');
+
+                var wrap = document.createElement('div');
+                wrap.className = 'cs-wrapper';
+                if (sel.classList.contains('select-inline')) wrap.classList.add('cs-inline');
+                if (sel.classList.contains('text-xs'))       wrap.classList.add('cs-text-xs');
+
+                var trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'cs-trigger';
+
+                var drop = document.createElement('div');
+                drop.className = 'cs-dropdown';
+
+                function buildOptions() {
+                    drop.innerHTML = '';
+                    Array.from(sel.options).forEach(function(opt) {
+                        var item = document.createElement('div');
+                        item.className = 'cs-option' + (opt.selected ? ' cs-selected' : '');
+                        item.textContent = opt.text;
+                        item.dataset.val = opt.value;
+                        item.addEventListener('mousedown', function(e) {
+                            e.preventDefault();
+                            sel.value = opt.value;
+                            sel.dispatchEvent(new Event('change', {bubbles:true}));
+                            syncTrigger();
+                            closeAll();
+                        });
+                        drop.appendChild(item);
+                    });
+                }
+
+                function syncTrigger() {
+                    var idx = sel.selectedIndex;
+                    trigger.textContent = idx >= 0 ? sel.options[idx].text : '';
+                    drop.querySelectorAll('.cs-option').forEach(function(el) {
+                        el.classList.toggle('cs-selected', el.dataset.val === sel.value);
+                    });
+                }
+
+                function positionDrop() {
+                    var rect = trigger.getBoundingClientRect();
+                    var spaceBelow = window.innerHeight - rect.bottom - 8;
+                    var spaceAbove = rect.top - 8;
+                    var maxH = Math.min(280, Math.max(spaceBelow, spaceAbove));
+                    drop.style.maxHeight = maxH + 'px';
+                    if (spaceBelow >= spaceAbove) {
+                        drop.style.top = (rect.bottom + 4) + 'px';
+                    } else {
+                        drop.style.top = '';
+                        drop.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                    }
+                    drop.style.minWidth = rect.width + 'px';
+                    drop.style.width = 'max-content';
+                    drop.style.left = rect.left + 'px';
+                    requestAnimationFrame(function() {
+                        var dw = drop.getBoundingClientRect().width;
+                        if (rect.left + dw > window.innerWidth - 8) {
+                            drop.style.left = Math.max(8, window.innerWidth - dw - 8) + 'px';
+                        }
+                    });
+                }
+
+                trigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var isOpen = wrap.classList.contains('open');
+                    closeAll();
+                    if (!isOpen) {
+                        buildOptions(); syncTrigger();
+                        drop.style.display = 'block';
+                        positionDrop();
+                        wrap.classList.add('open');
+                    }
+                });
+
+                trigger.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') { closeAll(); return; }
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (!wrap.classList.contains('open')) { buildOptions(); syncTrigger(); wrap.classList.add('open'); }
+                        var items = Array.from(drop.querySelectorAll('.cs-option'));
+                        var cur = drop.querySelector('.cs-active');
+                        var idx2 = cur ? items.indexOf(cur) : -1;
+                        if (cur) cur.classList.remove('cs-active');
+                        idx2 = e.key === 'ArrowDown' ? Math.min(idx2+1, items.length-1) : Math.max(idx2-1, 0);
+                        if (items[idx2]) { items[idx2].classList.add('cs-active'); items[idx2].scrollIntoView({block:'nearest'}); }
+                    }
+                    if (e.key === 'Enter') {
+                        var active = drop.querySelector('.cs-active');
+                        if (active) active.dispatchEvent(new Event('mousedown'));
+                    }
+                });
+
+                sel.parentNode.insertBefore(wrap, sel);
+                wrap.appendChild(trigger);
+                wrap.appendChild(sel);
+                document.body.appendChild(drop);
+                drop.addEventListener('wheel', function(e) {
+                    var atTop = drop.scrollTop === 0;
+                    var atBottom = drop.scrollTop + drop.clientHeight >= drop.scrollHeight - 1;
+                    if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+                        e.preventDefault();
+                    }
+                    e.stopPropagation();
+                }, { passive: false });
+                buildOptions();
+                syncTrigger();
+            }
+
+            function closeAll() {
+                document.querySelectorAll('.cs-wrapper.open').forEach(function(w) { w.classList.remove('open'); });
+                document.querySelectorAll('.cs-dropdown').forEach(function(d) { d.style.display = 'none'; });
+            }
+
+            document.addEventListener('click', function() { closeAll(); });
+            window.addEventListener('scroll', function(e) {
+                if (e.target instanceof Element) return;
+                closeAll();
+            }, true);
+            window.addEventListener('resize', closeAll);
+
+            window.initCustomSelects = function(root) {
+                (root || document).querySelectorAll('select.form-control:not([data-cs-init])').forEach(csWrap);
+            };
+
+            window.setSelectValue = function(id, val) {
+                var sel = document.getElementById(id);
+                if (!sel) return;
+                sel.value = val;
+                var wrap = sel.closest('.cs-wrapper');
+                if (wrap) {
+                    var trigger = wrap.querySelector('.cs-trigger');
+                    var idx = sel.selectedIndex;
+                    if (trigger) trigger.textContent = idx >= 0 ? sel.options[idx].text : '';
+                    wrap.querySelectorAll('.cs-option').forEach(function(el) {
+                        el.classList.toggle('cs-selected', el.dataset.val === val);
+                    });
+                }
+            };
+
+            window.initCustomSelects();
+            // ── end Custom Select ──────────────────────────────────────
 
             var navToggle = document.querySelector('.nav-toggle');
             var navActions = document.getElementById('navActions');

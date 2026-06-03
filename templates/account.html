@@ -46,7 +46,7 @@
     <div class="glass glass-card modal-panel">
         <div class="flex-between mb-1">
             <h3 class="mb-0">เปลี่ยนรหัสผ่าน</h3>
-            <button type="button" class="btn btn-secondary btn-compact text-muted" onclick="closeChangePasswordModal()">ปิด</button>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()"><span class="material-symbols-rounded">close</span></button>
         </div>
 
         <form method="POST">
@@ -75,7 +75,7 @@
 <script>
     function openChangePasswordModal() {
         const modal = document.getElementById('changePasswordModal');
-        if (modal) modal.style.display = 'block';
+        if (modal) modal.style.display = 'flex';
     }
 
     function closeChangePasswordModal() {

@@ -11,32 +11,99 @@
         </nav>
         <h2>จัดการรายวิชา (Course Master)</h2>
     </div>
+    <button class="btn btn-primary" onclick="document.getElementById('modal-add-course').style.display='flex'"
+        {% if not programs %}disabled title="กรุณาเพิ่มหลักสูตรก่อน"{% endif %}>
+        + เพิ่มวิชาใหม่
+    </button>
 </div>
 
-<div class="course-grid">
-    <!-- Side Panel -->
-    <div class="side-panel">
-        <!-- Add Course Form -->
-        <div class="glass panel">
-            <h3 class="panel-title mb-6">เพิ่มวิชาใหม่</h3>
-            <form method="POST">
+<!-- Filter -->
+<div class="glass panel-sm course-header" style="margin-bottom:1rem;">
+    <div>
+        <h3 class="mb-0">ฐานข้อมูลรายวิชาทั้งหมด</h3>
+        <div class="muted">แสดงรายวิชาแบบจัดกลุ่มตามหลักสูตร</div>
+    </div>
+    <form method="GET" class="filter-form">
+        <label class="text-muted text-xs mb-0">กรองตามหลักสูตร:</label>
+        <select name="program_id" class="form-control select-inline" onchange="this.form.submit()">
+            <option value="">-- ทั้งหมด --</option>
+            {% for program in programs %}
+            <option value="{{ program.id }}" {{ 'selected' if selected_program_id|string==program.id|string else '' }}>
+                {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+{% for prog_name, courses in grouped_courses.items() %}
+<div class="glass panel" style="margin-bottom:1rem;">
+    <h4 class="course-section-title">หลักสูตร: {{ prog_name }}</h4>
+    <div class="muted mb-5">จำนวนรายวิชา: {{ courses|length }}</div>
+    <div class="table-scroll">
+        <table class="course-table">
+            <thead>
+                <tr>
+                    <th class="col-code">Code</th>
+                    <th>ชื่อรายวิชา</th>
+                    <th class="col-credits">หน่วยกิต</th>
+                    <th class="col-actions">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                <tr>
+                    <td class="course-code">{{ course.code }}</td>
+                    <td>
+                        <div class="course-name">{{ course.name_th }}</div>
+                        <div class="muted">{{ course.name_en }}</div>
+                    </td>
+                    <td>{{ course.credits }}</td>
+                    <td>
+                        <form action="{{ url_for('delete_course', course_id=course.id) }}" method="POST"
+                            onsubmit="return confirm('ยืนยันการลบรายวิชานี้จากฐานข้อมูล?')">
+                            <button type="submit" class="btn btn-outline-danger">ลบ</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="glass panel text-center text-muted">
+    ไม่พบรายวิชาตามเงื่อนไขที่เลือก
+</div>
+{% endfor %}
+
+<!-- Modal: เพิ่มวิชาใหม่ -->
+<div id="modal-add-course" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:480px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">เพิ่มวิชาใหม่</h3>
+            <button onclick="document.getElementById('modal-add-course').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form method="POST">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 1.5rem;">
                 <div class="form-group">
                     <label>รหัสวิชา</label>
                     <input type="text" name="code" class="form-control" placeholder="เช่น CS101" required>
                 </div>
                 <div class="form-group">
-                    <label>ชื่อวิชา (ภาษาไทย)</label>
-                    <input type="text" name="name_th" class="form-control" required>
-                </div>
-                <div class="form-group">
-                    <label>ชื่อวิชา (ภาษาอังกฤษ)</label>
-                    <input type="text" name="name_en" class="form-control" required>
-                </div>
-                <div class="form-group">
                     <label>หน่วยกิต</label>
                     <input type="text" name="credits" class="form-control" placeholder="เช่น 3(2-2-5)" required>
                 </div>
-                <div class="form-group">
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label>ชื่อวิชา (ภาษาไทย)</label>
+                    <input type="text" name="name_th" class="form-control" required>
+                </div>
+                <div class="form-group" style="grid-column:1/-1;">
+                    <label>ชื่อวิชา (ภาษาอังกฤษ)</label>
+                    <input type="text" name="name_en" class="form-control" required>
+                </div>
+                <div class="form-group" style="grid-column:1/-1;">
                     <label>หลักสูตรที่รับผิดชอบ</label>
                     <select name="program_id" class="form-control" required>
                         <option value="">-- เลือกหลักสูตร --</option>
@@ -47,78 +114,18 @@
                         {% endfor %}
                     </select>
                 </div>
-                <button type="submit" class="btn btn-primary">บันทึกข้อมูลวิชา</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Main Panel: Course List -->
-    <div class="main-panel">
-        <!-- Filter Header -->
-        <div class="glass panel-sm course-header">
-            <div>
-                <h3 class="mb-0">ฐานข้อมูลรายวิชาทั้งหมด</h3>
-                <div class="muted">แสดงรายวิชาแบบจัดกลุ่มตามหลักสูตร</div>
             </div>
-
-            <form method="GET" class="filter-form">
-                <label class="text-muted text-xs mb-0">กรองตามหลักสูตร:</label>
-                <select name="program_id" class="form-control select-inline" onchange="this.form.submit()">
-                    <option value="">-- ทั้งหมด --</option>
-                    {% for program in programs %}
-                    <option value="{{ program.id }}" {{ 'selected' if selected_program_id|string==program.id|string else '' }}>
-                        {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </form>
-        </div>
-
-        {% for prog_name, courses in grouped_courses.items() %}
-        <div class="glass panel">
-            <h4 class="course-section-title">
-                หลักสูตร: {{ prog_name }}
-            </h4>
-            <div class="muted mb-5">จำนวนรายวิชา: {{ courses|length }}</div>
-
-            <div class="table-scroll">
-                <table class="course-table">
-                    <thead>
-                        <tr>
-                            <th class="col-code">Code</th>
-                            <th>ชื่อรายวิชา</th>
-                            <th class="col-credits">หน่วยกิต</th>
-                            <th class="col-actions">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for course in courses %}
-                        <tr>
-                            <td class="course-code">{{ course.code }}</td>
-                            <td>
-                                <div class="course-name">{{ course.name_th }}</div>
-                                <div class="muted">{{ course.name_en }}</div>
-                            </td>
-                            <td>{{ course.credits }}</td>
-                            <td>
-                                <form action="{{ url_for('delete_course', course_id=course.id) }}" method="POST" onsubmit="return confirm('ยืนยันการลบรายวิชานี้จากฐานข้อมูล?')">
-                                    <button type="submit" class="btn btn-outline-danger">
-                                        ลบ
-                                    </button>
-                                </form>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกข้อมูลวิชา</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-add-course').style.display='none'">ยกเลิก</button>
             </div>
-        </div>
-        {% else %}
-        <div class="glass panel text-center text-muted">
-            ไม่พบรายวิชาตามเงื่อนไขที่เลือก
-        </div>
-        {% endfor %}
+        </form>
     </div>
 </div>
 
+<script>
+document.getElementById('modal-add-course').addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+</script>
 {% endblock %}

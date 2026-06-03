@@ -15,83 +15,103 @@
         {% set _fac = _prog.faculty if _prog else None %}
         
         <div class="mt-3">
-            <span class="text-muted">สถาบันการศึกษา:</span>
+            <span class="text-muted"><h5>สถาบันการศึกษา:</h5></span>
             <span>{{ general.get('university') or 'มหาวิทยาลัยราชภัฏเทพสตรี' }}</span>
             <span>คณะ{{ general.get('faculty') or (_fac.name if _fac else '-') }}</span>
             <span>หลักสูตร {{ general.get('program') or (_prog.name if _prog else '-') }}</span>
         </div>
 
         <div class="mt-2">
-            <span class="text-muted">รายวิชา: </span>
+            <span class="text-muted"><h5>รายวิชา:</h5></span>
             <span>{{ general.get('course_code', course.code if course else '-') }}</span>
             <span>{{ general.get('course_name', course.name_th if course else '-') }}</span>
             <span>หมู่เรียนที่ {{ general.get('class_group', section.section_number if section else '-') }}</span>
             <span>จำนวน {{ general.get('credits', course.credits if course else '-') }} หน่วยกิต </span>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted">ปีการศึกษา: </span>
-            <span> {{ general.get('semester', term.semester if term else '-') }} / {{ general.get('academic_year', term.year if term else '-') }} </span>
             <span>ชั้นปี {{ general.get('year_level', '-') }} </span>
         </div>
 
         <div class="mt-2">
-            <span class="text-muted">คำอธิบายรายวิชา:</span>
-            <span class="preserve-text">{{ general.get('description', course.description if course else '-') }}</span>
-        </div>
-
-        <div class="qtf-grid two mt-3">
-            <div class="mb-2">
-                <div class="text-muted text-sm mb-1">รายวิชาที่บังคับเรียนก่อน (Pre-requisite)</div>
-                <div class="preserve-text">{{ general.get('prereq', '-') }}</div>
-            </div>
-            <div>
-                <div class="text-muted text-sm mb-1">วันที่จัดทำ/ปรับปรุงล่าสุด</div>
-                <div>{{ general.get('last_updated', '-') }}</div>
-            </div>
-        </div>
-
-        <div class="qtf-grid two mt-2">
-            <div><span class="text-muted">อาจารย์ผู้รับผิดชอบรายวิชา:</span> {{ general.get('course_owner', '-') }}</div>
-            <div><span class="text-muted">อาจารย์ผู้สอน:</span> {{ general.get('instructor', section.instructor.full_name if section and section.instructor else '-') }}</div>
-        </div>
-
-        <div class="qtf-grid three mt-2">
-            <div><span class="text-muted">ห้องพัก:</span> {{ general.get('office', '-') }}</div>
-            <div><span class="text-muted">โทรศัพท์:</span> {{ general.get('phone', '-') }}</div>
-            <div><span class="text-muted">สถานที่เรียน:</span> {{ general.get('location', general.get('location_type', '-')) }}</div>
+            <span class="text-muted"><h5>ปีการศึกษา:</h5></span>
+            <span> {{ general.get('semester', term.semester if term else '-') }} / {{ general.get('academic_year', term.year if term else '-') }} </span>
         </div>
 
         <div class="mt-2">
-            <span class="text-muted">กรณีเรียนภายนอกมหาวิทยาลัย:</span> {{ general.get('external_location', '-') }}
+            <span class="text-muted"><h5>คำอธิบายรายวิชา:</h5></span>
+            <span class="preserve-text">{{ general.get('description', course.description if course else '-') }}</span>
         </div>
+
+        <div style="display: grid; grid-template-columns: 30% 30% 40%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>รายวิชาที่เรียนก่อน:</h5></span>
+                <span> {{ general.get('prereq', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>วันที่จัดทำ:</h5></span>
+                <span> {{ general.get('last_updated', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>อาจารย์ผู้สอน:</h5></span>
+                <span> {{ general.get('instructor', section.instructor.full_name if section and section.instructor else '-') }} </span>
+            </div>
+        </div>
+
+
+        <div style="display: grid; grid-template-columns: 30% 30% 40%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>ห้องพัก:</h5></span>
+                <span> {{ general.get('office', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>โทรศัพท์:</h5></span>
+                <span> {{ general.get('phone', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>สถานที่เรียน:</h5></span>
+                <span> {{ general.get('location', general.get('location_type', '-')) }} </span>
+            </div>
+        </div>
+
     </div>
 
     <!-- 2) จุดมุ่งหมาย + ชั่วโมง -->
     <div class="qtf-card">
         <h3>2) จุดมุ่งหมายของรายวิชา &amp; ภาระงาน</h3>
-        <div>
-            <div class="text-muted text-sm mb-1">จุดมุ่งหมายของรายวิชา</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>จุดมุ่งหมายของรายวิชา:</h5></span>
             <div class="preserve-text">{{ general.get('course_objective', general.get('objectives', '-')) }}</div>
         </div>
 
-        <div class="qtf-grid three mt-2">
-            <div><span class="text-muted">ชั่วโมงบรรยาย/ภาค:</span> {{ general.get('lecture_hours', '-') }}</div>
-            <div><span class="text-muted">ชั่วโมงปฏิบัติ/ภาคสนาม/ฝึกงาน:</span> {{ general.get('lab_hours', '-') }}</div>
-            <div><span class="text-muted">ชั่วโมงศึกษาด้วยตนเอง:</span> {{ general.get('self_hours', '-') }}</div>
+        <div style="display: grid; grid-template-columns: 20% 25% 25% 30%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>ชั่วโมงบรรยาย/ภาค:</h5></span>
+                <span> {{ general.get('lecture_hours', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ชั่วโมงปฏิบัติ/ฝึกงาน:</h5></span>
+                <span> {{ general.get('lab_hours', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ชั่วโมงศึกษาด้วยตนเอง:</h5></span>
+                <span>{{ general.get('self_hours', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ชั่วโมงให้คำปรึกษา:</h5></span>
+                <span>{{ general.get('consult_hours', '-') }} </span>
+            </div>
         </div>
 
-        <div class="qtf-grid two mt-2">
-            <div><span class="text-muted">ชั่วโมงให้คำปรึกษาต่อสัปดาห์:</span> {{ general.get('consult_hours', '-') }}</div>
-            <div><span class="text-muted">หมายเหตุ:</span> {{ general.get('hours_note', '-') }}</div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>หมายเหตุ:</h5></span>
+            <div class="preserve-text">{{ general.get('hours_note', '-') }}</div>
         </div>
+
+
     </div>
 
     <!-- 3) CLO/PLO และการวัดประเมิน -->
     <div class="qtf-card">
-        <h3>3) CLO/PLO และการวัดประเมิน</h3>
-        <div class="qtf-note">ตาราง CLO / PLO / กลยุทธ์การสอน / กลยุทธ์การประเมิน</div>
-
+        <h3 class="mb-3">3) CLO/PLO และการวัดประเมิน</h3>
         {% set clo_texts = general.get('clo_text[]', []) %}
         {% if clo_texts|length == 0 %}
             {% set clo_texts = general.get('clo_desc[]', []) %}
@@ -130,9 +150,7 @@
 
     <!-- 4) แผนการสอนรายสัปดาห์ -->
     <div class="qtf-card">
-        <h3>4) แผนการสอนรายสัปดาห์</h3>
-        <div class="qtf-note">สัปดาห์ / หัวข้อ-รายละเอียด / CLOs / ชั่วโมง / กิจกรรม / สื่อ / ผู้สอน</div>
-
+        <h3 class="mb-3">4) แผนการสอนรายสัปดาห์</h3>
         {% set weeks = general.get('week[]', []) %}
         {% set topics = general.get('topic[]', []) %}
         {% set week_clos = general.get('week_clo[]', []) %}
@@ -194,26 +212,42 @@
 
     <!-- 5) วิธีจัดการเรียนการสอน (ร้อยละของเวลา) -->
     <div class="qtf-card">
-        <h3>5) วิธีจัดการเรียนการสอน (ร้อยละของเวลา)</h3>
-        <div class="qtf-grid three">
-            <div><span class="text-muted">การบรรยาย (%):</span> {{ general.get('pct_lecture', '-') }}</div>
-            <div><span class="text-muted">การบรรยายเชิงอภิปราย (%):</span> {{ general.get('pct_discussion', '-') }}</div>
-            <div><span class="text-muted">กรณีศึกษา (%):</span> {{ general.get('pct_case', '-') }}</div>
+        <h3 class="mb-3">5) วิธีจัดการเรียนการสอน (ร้อยละของเวลา)</h3>
+
+        <div style="display: grid; grid-template-columns: 30% 30% 40%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>การบรรยาย(%):</h5></span>
+                <span> {{ general.get('pct_lecture', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>การบรรยายเชิงอภิปราย(%):</h5></span>
+                <span> {{ general.get('pct_discussion', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>กรณีศึกษา(%):</h5></span>
+                <span> {{ general.get('pct_case', '-') }} </span>
+            </div>
         </div>
-        <div class="qtf-grid three mt-2">
-            <div><span class="text-muted">การฝึกปฏิบัติ (%):</span> {{ general.get('pct_practice', '-') }}</div>
-            <div><span class="text-muted">กิจกรรมกลุ่ม (%):</span> {{ general.get('pct_group', '-') }}</div>
-            <div><span class="text-muted">อื่นๆ (%):</span> {{ general.get('pct_other', '-') }}</div>
-        </div>
-        <div class="mt-2">
-            <span class="text-muted">รายละเอียด “อื่นๆ”:</span> {{ general.get('other_detail', '-') }}
+
+        <div style="display: grid; grid-template-columns: 30% 30% 40%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>การฝึกปฏิบัติ(%):</h5></span>
+                <span> {{ general.get('pct_practice', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>กิจกรรมกลุ่ม(%):</h5></span>
+                <span> {{ general.get('pct_group', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>อื่นๆ(%):</h5></span>
+                <span> {{ general.get('pct_other', '-') }} </span>
+            </div>
         </div>
     </div>
 
     <!-- 6) แผนการประเมินตาม CLO -->
     <div class="qtf-card">
-        <h3>6) แผนการประเมินตามผลลัพธ์การเรียนรู้ (CLOs)</h3>
-        <div class="qtf-note">CLO / กิจกรรมประเมิน / กำหนดการ (สัปดาห์) / สัดส่วน (%)</div>
+        <h3 class="mb-3">6) แผนการประเมินตามผลลัพธ์การเรียนรู้ (CLOs)</h3>
 
         {% set a_clo = general.get('assess_clo[]', []) %}
         {% set a_act = general.get('assess_activity[]', general.get('assess_method[]', [])) %}
@@ -251,25 +285,25 @@
     <!-- 7) เอกสารประกอบ (APA) -->
     <div class="qtf-card">
         <h3>7) ตำราและเอกสารประกอบ (รูปแบบ APA)</h3>
-        <div class="preserve-text">{{ general.get('references', '-') }}</div>
+        <div class="preserve-text mt-3">{{ general.get('references', '-') }}</div>
     </div>
 
     <!-- 8) การประเมินและปรับปรุงรายวิชา -->
     <div class="qtf-card">
         <h3>8) การประเมินและปรับปรุงการดำเนินการของรายวิชา</h3>
-        <div class="qtf-grid two">
-            <div>
-                <div class="text-muted text-sm mb-1">กลยุทธ์การประเมินการจัดการเรียนการสอน</div>
-                <div class="preserve-text">{{ general.get('course_eval_strategy', '-') }}</div>
-            </div>
-            <div>
-                <div class="text-muted text-sm mb-1">การปรับปรุงการสอน</div>
-                <div class="preserve-text">{{ general.get('course_improve', general.get('improvement_strategy', '-')) }}</div>
-            </div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>กลยุทธ์การประเมินการจัดการเรียนการสอน:</h5></span>
+            <span> {{ general.get('course_eval_strategy', '-') }} </span>
         </div>
-        <div class="mt-2">
-            <div class="text-muted text-sm mb-1">กระบวนการยืนยัน (verification)</div>
-            <div class="preserve-text">{{ general.get('verification', '-') }}</div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>การปรับปรุงการสอน:</h5></span>
+            <span> {{ general.get('course_improve', general.get('improvement_strategy', '-')) }} </span>
         </div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>กระบวนการยืนยัน:</h5></span>
+            <span> {{ general.get('verification', '-') }} </span>
+        </div>
+
     </div>
 </div>

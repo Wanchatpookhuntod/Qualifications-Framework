@@ -46,12 +46,9 @@
             {% endif %}
             <span class="status-badge {{ badge_class }}">สถานะ: {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf5.status, tqf5.status) }}</span>
             {% if is_locked %}
-            <span class="qtf-status-note">🔒 เอกสารถูกล็อก (Read-Only)</span>
+            <span class="qtf-status-note">เอกสารถูกส่งแล้ว</span>
             {% endif %}
         </div>
-    </div>
-    <div class="inline-actions">
-        <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
     </div>
 </div>
 

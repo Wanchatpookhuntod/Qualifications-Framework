@@ -247,6 +247,7 @@ fieldset {
 .data-table th,
 .data-table td {
     padding: 1rem;
+    vertical-align: middle;
 }
 
 .data-table thead tr {

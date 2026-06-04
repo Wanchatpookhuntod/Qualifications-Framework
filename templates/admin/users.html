@@ -23,23 +23,31 @@
     <h3 class="mb-3">รายชื่อผู้ใช้ทั้งหมด</h3>
     <div class="table-wrapper">
         <table class="data-table">
+            <colgroup>
+                <col style="width: 15%;">
+                <col style="width: 20%;">
+                <col style="width: 20%;">
+                <col style="width: 20%;">
+                <col style="width: 15%;">
+                <col style="width: 10%;">
+            </colgroup>
             <thead>
                 <tr>
-                    <th>ชื่อผู้ใช้</th>
-                    <th>ชื่อ-นามสกุล</th>
-                    <th>บทบาท</th>
-                    <th>สังกัด</th>
-                    <th style="text-align:center;">แก้ไข</th>
-                    <th class="col-80">จัดการ</th>
+                    <th class="text-center">ชื่อผู้ใช้</th>
+                    <th class="text-center">ชื่อ-นามสกุล</th>
+                    <th class="text-center">บทบาท</th>
+                    <th class="text-center">สังกัด</th>
+                    <th class="text-center">แก้ไข</th>
+                    <th class="text-center">จัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td class="text-mono">{{ user.username }}</td>
+                    <td class="text-table">{{ user.username }}</td>
                     <td>{{ user.full_name }}</td>
                     <td>
-                        <div class="badge-list">
+                        <div class="badge-list text-table">
                             {% for r in user.role_names() %}
                             <span class="status-badge role-{{ r }}">{{ r|upper }}</span>
                             {% endfor %}

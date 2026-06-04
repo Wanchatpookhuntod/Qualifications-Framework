@@ -7,7 +7,7 @@
     <div>
         <nav class="breadcrumb">
             <a href="{{ url_for('dashboard') }}">Dashboard</a> /
-            <span class="text-muted">จัดการรายวิชา (Master Data)</span>
+            <span class="text-muted">จัดการรายวิชา</span>
         </nav>
         <h2>จัดการรายวิชา (Course Master)</h2>
     </div>
@@ -42,12 +42,18 @@
     <div class="muted mb-5">จำนวนรายวิชา: {{ courses|length }}</div>
     <div class="table-scroll">
         <table class="course-table">
+            <colgroup>
+                <col style="width: 15%;">
+                <col style="width: 55%;">
+                <col style="width: 15%;">
+                <col style="width: 15%;">
+            </colgroup>
             <thead>
                 <tr>
-                    <th class="col-code">Code</th>
+                    <th>รหัส</th>
                     <th>ชื่อรายวิชา</th>
-                    <th class="col-credits">หน่วยกิต</th>
-                    <th class="col-actions">จัดการ</th>
+                    <th class="text-center">หน่วยกิต</th>
+                    <th>จัดการ</th>
                 </tr>
             </thead>
             <tbody>
@@ -58,7 +64,7 @@
                         <div class="course-name">{{ course.name_th | thai_wrap }}</div>
                         <div class="muted">{{ course.name_en }}</div>
                     </td>
-                    <td>{{ course.credits }}</td>
+                    <td class="text-center">{{ course.credits }}</td>
                     <td>
                         <form action="{{ url_for('delete_course', course_id=course.id) }}" method="POST"
                             onsubmit="return confirm('ยืนยันการลบรายวิชานี้จากฐานข้อมูล?')">

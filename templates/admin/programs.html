@@ -23,20 +23,28 @@
     <h3 class="panel-title">รายชื่อหลักสูตรทั้งหมด</h3>
     <div class="table-wrapper">
         <table class="data-table">
+            <colgroup>
+                <col style="width: 25%;">
+                <col style="width: 10%;">
+                <col style="width: 20%;">
+                <col style="width: 15%;">
+                <col style="width: 15%;">
+                <col style="width: 15%;">
+            </colgroup>
             <thead>
                 <tr>
-                    <th>ชื่อหลักสูตร</th>
-                    <th class="col-90">ปี</th>
-                    <th>สาขา/คณะที่สังกัด</th>
-                    <th class="col-90 text-center">จำนวนรายวิชา</th>
-                    <th class="col-200">จัดการ</th>
-                    <th class="col-80 text-center">ลบ</th>
+                    <th class="text-center">ชื่อหลักสูตร</th>
+                    <th class="text-center">ปี</th>
+                    <th class="text-center">สาขา/คณะที่สังกัด</th>
+                    <th class="text-center">จำนวนรายวิชา</th>
+                    <th class="text-center">จัดการ</th>
+                    <th class="text-center">ลบ</th>
                 </tr>
             </thead>
             <tbody>
                 {% for program in programs %}
                 <tr>
-                    <td class="fw-bold">{{ program.name | thai_wrap }}</td>
+                    <td class="text-table">{{ program.name | thai_wrap }}</td>
                     <td>{{ program.year if program.year else '-' }}</td>
                     <td>
                         <div>{{ (department_name_by_id.get(program.department_id) or '-') | thai_wrap }}</div>

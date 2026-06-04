@@ -3,6 +3,8 @@
 {% block title %}หน้าหลักอาจารย์ผู้สอน{% endblock %}
 
 {% block content %}
+{% set status_label_map = {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'} %}
+{% set status_badge_map = {'APPROVED': 'status-approved', 'SUBMITTED': 'status-submitted', 'RETURNED': 'status-returned', 'DRAFT': 'role-instructor'} %}
 <div class="page-header">
     <div>
         <nav class="breadcrumb">
@@ -73,12 +75,8 @@
                         </td>
                         <td>
                             {% if section.tqf3 %}
-                                {% set s = section.tqf3.status %}
-                                {% if s in ['SUBMITTED', 'APPROVED'] %}
-                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">รอตรวจสอบ</span>
-                                {% else %}
-                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">ร่าง</span>
-                                {% endif %}
+                                {% set s = section.tqf3.status or 'DRAFT' %}
+                                <span class="status-badge {{ status_badge_map.get(s, 'role-instructor') }}" style="display: flex; justify-content: center;">{{ status_label_map.get(s, s) }}</span>
                                 {% if section.tqf3.submitted_at %}
                                 <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf3.submitted_at.strftime('%d/%m/%Y') }}</div>
                                 {% endif %}
@@ -89,12 +87,8 @@
                         <td>
                             {% if section.tqf5 %}
                             <div>
-                                {% set s = section.tqf5.status %}
-                                {% if s in ['SUBMITTED', 'APPROVED'] %}
-                                <span class="status-badge status-submitted" style="display: flex; justify-content: center;">รอตรวจสอบ</span>
-                                {% else %}
-                                <span class="status-badge role-instructor" style="display: flex; justify-content: center;">ร่าง</span>
-                                {% endif %}
+                                {% set s = section.tqf5.status or 'DRAFT' %}
+                                <span class="status-badge {{ status_badge_map.get(s, 'role-instructor') }}" style="display: flex; justify-content: center;">{{ status_label_map.get(s, s) }}</span>
                                 {% if section.tqf5.submitted_at %}
                                 <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf5.submitted_at.strftime('%d/%m/%Y') }}</div>
                                 {% endif %}

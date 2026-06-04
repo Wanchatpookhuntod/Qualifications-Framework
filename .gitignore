@@ -12,6 +12,7 @@ ENV/
 # Environment variables / secrets
 .env
 .env.*
+!.env.example
 *.pem
 *.key
 *.p12
@@ -41,6 +42,13 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# GCP service-account credential JSON files
+qualificationsframework-*.json
+
+# Dev / test artifacts
+test/
+sample_uploads/
 
 # Local-only files
 cookies.txt

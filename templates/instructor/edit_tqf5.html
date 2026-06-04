@@ -4,27 +4,16 @@
 
 {% block content %}
 {% set is_locked = tqf5.status in ['SUBMITTED', 'APPROVED'] %}
+
 {% if prefill_source and not is_locked %}
 <div class="qtf-alert qtf-alert-info">
     <div class="flex-between flex-wrap">
         <div>
             <div class="fw-bold">มีการดึงข้อมูลจาก มคอ.3 มาเติมให้อัตโนมัติ</div>
-            <div class="qtf-alert-note">ตรวจทานแล้วกด “บันทึกฉบับร่าง” ได้เลย</div>
+            <div class="qtf-alert-note">แหล่งข้อมูล: มคอ.3{% if prefill_source.get('tqf3_status') %} • สถานะ: {{ prefill_source.get('tqf3_status') }}{% endif %}</div>
         </div>
-        <div class="qtf-alert-note">แหล่งข้อมูล: มคอ.3{% if prefill_source.get('tqf3_status') %} (สถานะ: {{ prefill_source.get('tqf3_status') }}){% endif %}</div>
+        <div class="qtf-alert-note">ตรวจทานแล้วกด “บันทึกฉบับร่าง” ได้เลย</div>
     </div>
-</div>
-{% endif %}
-
-{% if feedbacks %}
-<div class="qtf-alert qtf-alert-danger">
-    <h4 class="mb-2">ข้อเสนอแนะจากหัวหน้าสาขา</h4>
-    {% for fb in feedbacks %}
-    <div class="qtf-feedback-item">
-        <div class="text-muted text-xs">{{ fb.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
-        <div>{{ fb.comment }}</div>
-    </div>
-    {% endfor %}
 </div>
 {% endif %}
 
@@ -52,6 +41,18 @@
     </div>
 </div>
 
+{% if feedbacks %}
+<div class="qtf-alert qtf-alert-danger">
+    <h4 class="mb-2">💬 ข้อเสนอแนะจากหัวหน้าสาขา</h4>
+    {% for fb in feedbacks %}
+    <div class="qtf-feedback-item">
+        <div class="text-muted text-xs">{{ fb.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div>{{ fb.comment }}</div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
 <form id="tqf5-form" method="POST" class="glass panel">
     {% set data = tqf5.actual_teaching or {} %}
     {% set gi = tqf3.general_info or {} %}
@@ -62,26 +63,29 @@
     <fieldset {% if is_locked %}disabled{% endif %}>
         <div class="qtf-card qtf-highlight">
             <div class="qtf-section-title">1) ข้อมูลรายวิชา</div>
-            <div class="qtf-grid two">
-                <div>
-                     <div>คณะ {{ data.get('faculty', '') }}</div>
-                     <div>หลักสูตร {{ data.get('program', '') }}</div>
-                     <div>รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) }}</div>
-                     <div>ผู้สอน {{ instructors_val }}</div>
-                     <input type="hidden" name="instructors" value="{{ instructors_val }}">
-                     <input type="hidden" name="university" value="{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }}">
-                     <input type="hidden" name="faculty" value="{{ data.get('faculty', gi.get('faculty', '')) }}">
-                     <input type="hidden" name="program" value="{{ data.get('program', gi.get('program', '')) }}">
-                 </div>
-                 <div>
-                     <div>ปีการศึกษา {{ data.get('semester', section.term.semester) }} / {{ data.get('academic_year', section.term.year) }} ชั้นปีที่ {{ data.get('year_level', '') }}</div>
-                     <div>จำนวน {{ data.get('credits', section.course.credits) }} หน่วยกิต</div>
-                     <div>หมู่เรียน {{ class_group_val or '-' }}</div>
-                     <div>วันที่จัดทำ/ปรับปรุงครั้งล่าสุด {{ data.get('last_update', '') }}</div>
-                     <input type="hidden" name="class_group" value="{{ class_group_val }}">
-                 </div>
+            <div class="qtf-card qtf-highlight">
+                <div class="qtf-grid two">
+                    <div>
+                        <div>{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }} {{ data.get('faculty', gi.get('faculty', '')) }}</div>
+                        <div>หลักสูตร {{ data.get('program', gi.get('program', '')) }}</div>
+                        <div>รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) }}</div>
+                        <div>ผู้สอน {{ instructors_val }}</div>
+                        <input type="hidden" name="instructors" value="{{ instructors_val }}">
+                        <input type="hidden" name="university" value="{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }}">
+                        <input type="hidden" name="faculty" value="{{ data.get('faculty', gi.get('faculty', '')) }}">
+                        <input type="hidden" name="program" value="{{ data.get('program', gi.get('program', '')) }}">
+                    </div>
+                    <div>
+                        <div>ปีการศึกษา {{ data.get('semester', section.term.semester) }} / {{ data.get('academic_year', section.term.year) }} ชั้นปีที่ {{ data.get('year_level', '') }}</div>
+                        <div class="mt-2">จำนวน {{ data.get('credits', section.course.credits) }} หน่วยกิต</div>
+                        <div class="mt-2">หมู่เรียน {{ class_group_val or '-' }}</div>
+                        <div class="mt-2">วันที่จัดทำ/ปรับปรุงครั้งล่าสุด {{ data.get('last_update', '') }}</div>
+                        <input type="hidden" name="class_group" value="{{ class_group_val }}">
+                    </div>
+                </div>
             </div>
-            <div class="form-group mt-2">
+
+            <div class="form-group mt-3">
                 <label>คำอธิบายรายวิชา</label>
                 <textarea name="course_desc" class="form-control" rows="4">{{ data.get('course_desc', section.course.description or '') }}</textarea>
             </div>

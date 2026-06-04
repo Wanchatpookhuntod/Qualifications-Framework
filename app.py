@@ -3,9 +3,6 @@ import os
 import csv
 import io
 import re
-from dotenv import load_dotenv
-
-load_dotenv()
 from collections import Counter
 from datetime import datetime
 from functools import wraps
@@ -42,6 +39,7 @@ from models import (
     TQF3,
     TQF5,
     User,
+    pick_canonical_tqf,
 )
 
 try:
@@ -53,8 +51,31 @@ except ModuleNotFoundError:  # pragma: no cover
 if load_dotenv:
     load_dotenv()
 
+
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "tqf-secret-key-12345")
+
+
+def _resolve_secret_key() -> str:
+    key = os.getenv("SECRET_KEY")
+    if key:
+        return key
+    if os.getenv("FLASK_ENV") == "production":
+        raise RuntimeError(
+            "SECRET_KEY environment variable is required in production. "
+            "Set SECRET_KEY before starting the app."
+        )
+    import warnings
+
+    warnings.warn(
+        "SECRET_KEY not set; using an insecure development fallback. "
+        "Set SECRET_KEY in your environment before deploying.",
+        RuntimeWarning,
+        stacklevel=2,
+    )
+    return "tqf-dev-insecure-key-do-not-use-in-production"
+
+
+app.config["SECRET_KEY"] = _resolve_secret_key()
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -656,20 +677,60 @@ def _dedupe_ids(values: Iterable[object]) -> list[str]:
     return cleaned
 
 
+def _get_or_create_tqf3(section_id: str) -> TQF3:
+    """Return the section's single TQF3, creating it if absent.
+
+    If duplicates already exist for this section, keep the canonical one and
+    delete the rest so the document stops disagreeing with itself across pages.
+    """
+    rows = TQF3.find_by("section_id", section_id)
+    if not rows:
+        return TQF3(section_id=section_id).save()
+    canonical = pick_canonical_tqf(rows)
+    for doc in rows:
+        if doc.id != canonical.id:
+            doc.delete()
+    return canonical
+
+
+def _get_or_create_tqf5(section_id: str, tqf3_id: str) -> TQF5:
+    """Return the section's single TQF5, creating it if absent (self-healing)."""
+    rows = TQF5.find_by("section_id", section_id)
+    if not rows:
+        return TQF5(section_id=section_id, tqf3_id=tqf3_id).save()
+    canonical = pick_canonical_tqf(rows)
+    for doc in rows:
+        if doc.id != canonical.id:
+            doc.delete()
+    return canonical
+
+
+def _canonical_by_section(docs):
+    """Group TQF docs by section_id, keeping one canonical doc per section.
+
+    Guards against any duplicate documents left in the data: without this, the
+    last doc seen would win arbitrarily and could disagree with the
+    ``first_by``/get-or-create reads used elsewhere.
+    """
+    grouped: dict[str, list] = {}
+    for doc in docs:
+        if doc.section_id:
+            grouped.setdefault(doc.section_id, []).append(doc)
+    return {sid: pick_canonical_tqf(rows) for sid, rows in grouped.items()}
+
+
 def _tqf3_by_section_ids(section_ids: Iterable[str]) -> dict[str, TQF3]:
     ids = _dedupe_ids(section_ids)
     if not ids:
         return {}
-    docs = TQF3.find_in("section_id", ids)
-    return {doc.section_id: doc for doc in docs if doc.section_id}
+    return _canonical_by_section(TQF3.find_in("section_id", ids))
 
 
 def _tqf5_by_section_ids(section_ids: Iterable[str]) -> dict[str, TQF5]:
     ids = _dedupe_ids(section_ids)
     if not ids:
         return {}
-    docs = TQF5.find_in("section_id", ids)
-    return {doc.section_id: doc for doc in docs if doc.section_id}
+    return _canonical_by_section(TQF5.find_in("section_id", ids))
 
 
 def _get_head_scope(user: User) -> dict:
@@ -1458,9 +1519,7 @@ def edit_tqf3(section_id):
             if loc in {"Onsite", "Online", "Hybrid"}:
                 form_data["location_type"] = loc
 
-    tqf3 = TQF3.first_by("section_id", section_id)
-    if not tqf3:
-        tqf3 = TQF3(section_id=section_id).save()
+    tqf3 = _get_or_create_tqf3(section_id)
 
     prefill_source = None
     if request.method == "GET" and _is_effectively_empty_payload(tqf3.general_info or {}):
@@ -1564,9 +1623,7 @@ def edit_tqf5(section_id):
 
     tqf3_is_approved = tqf3.status == "APPROVED"
 
-    tqf5 = TQF5.first_by("section_id", section_id)
-    if not tqf5:
-        tqf5 = TQF5(section_id=section_id, tqf3_id=tqf3.id).save()
+    tqf5 = _get_or_create_tqf5(section_id, tqf3.id)
 
     def _normalize_actual_teaching_for_qtf5_format(
         payload: dict,
@@ -3591,12 +3648,6 @@ def academic_assign_instructors_bulk_term():
 @login_required
 @roles_required("head")
 def assign_instructors_bulk():
-    program_ids = set()
-    if current_user.department_id:
-        program_ids = {p.id for p in Program.find_by("department_id", current_user.department_id) if p.id}
-    elif current_user.program_id:
-        program_ids = {current_user.program_id}
-
     saved = 0
     for key, value in request.form.items():
         if not key.startswith("instructor_"):

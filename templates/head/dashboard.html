@@ -84,14 +84,13 @@
                                 {% endfor %}
                             </select>
                         </td>
+                        {% set status_label_map = {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'} %}
+                        {% set status_badge_map = {'APPROVED': 'status-approved', 'SUBMITTED': 'status-submitted', 'RETURNED': 'status-returned', 'DRAFT': 'status-draft'} %}
                         <td style="text-align: right;">
                             {% if section.tqf3 %}
+                            {% set s3 = section.tqf3.status or 'DRAFT' %}
                             <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" style="text-decoration: none;">
-                                {% if section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}
-                                <span class="status-badge status-submitted">รอตรวจสอบ</span>
-                                {% else %}
-                                <span class="status-badge role-instructor">ร่าง</span>
-                                {% endif %}
+                                <span class="status-badge {{ status_badge_map.get(s3, 'status-draft') }}">{{ status_label_map.get(s3, s3) }}</span>
                             </a>
                             {% else %}
                             <span class="text-muted text-xs">รอดำเนินการ</span>
@@ -99,12 +98,9 @@
                         </td>
                         <td style="text-align: right;">
                             {% if section.tqf5 %}
+                            {% set s5 = section.tqf5.status or 'DRAFT' %}
                             <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" style="text-decoration: none;">
-                                {% if section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}
-                                <span class="status-badge status-submitted">รอตรวจสอบ</span>
-                                {% else %}
-                                <span class="status-badge role-instructor">ร่าง</span>
-                                {% endif %}
+                                <span class="status-badge {{ status_badge_map.get(s5, 'status-draft') }}">{{ status_label_map.get(s5, s5) }}</span>
                             </a>
                             {% else %}
                             <span class="text-muted text-xs">รอดำเนินการ</span>

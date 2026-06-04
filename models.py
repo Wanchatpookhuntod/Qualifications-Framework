@@ -494,6 +494,35 @@ class TQF5(FirestoreModel):
         )
 
 
+_TQF_STATUS_RANK = {"APPROVED": 3, "SUBMITTED": 2, "RETURNED": 1, "DRAFT": 0}
+
+
+def tqf_status_rank(status: Optional[str]) -> int:
+    """Workflow precedence for a TQF status (higher = further along)."""
+    return _TQF_STATUS_RANK.get(status or "", 0)
+
+
+def pick_canonical_tqf(docs: List[T]) -> Optional[T]:
+    """Choose the authoritative TQF doc when several share a ``section_id``.
+
+    A section must have at most one TQF3 and one TQF5. When duplicates exist,
+    different read paths (``first_by`` vs ``find_in``) can disagree on which
+    copy wins, which surfaces as mismatched statuses across pages. This picks a
+    single deterministic winner: highest workflow status, then most recent
+    ``submitted_at``, then the lexicographically greatest doc id as a stable
+    tie-break.
+    """
+    chosen: Optional[T] = None
+    chosen_key: Optional[tuple] = None
+    for doc in docs:
+        submitted = getattr(doc, "submitted_at", None)
+        ts = submitted.timestamp() if hasattr(submitted, "timestamp") else 0.0
+        key = (tqf_status_rank(getattr(doc, "status", None)), ts, str(getattr(doc, "id", "") or ""))
+        if chosen_key is None or key > chosen_key:
+            chosen, chosen_key = doc, key
+    return chosen
+
+
 @dataclass
 class HeadTQF5Summary(FirestoreModel):
     collection_name: ClassVar[str] = "head_tqf5_summaries"

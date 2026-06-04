@@ -32,16 +32,17 @@ python purge_curriculum_uploads.py --all --yes        # delete all curriculum_up
 ruff check . && ruff format --check .
 black --line-length 100 .
 
-# Tests (no suite yet; commands for when tests are added)
+# Tests (pure-Python smoke tests; no Firestore required)
+pip install -r requirements-dev.txt
 pytest -q
-pytest tests/test_models.py::TestClass::test_method -vv
-pytest -k "tqf5"
+pytest tests/test_course_parser.py -vv
+pytest -k "secret_key"
 ```
 
 ## Architecture
 
 ### Entry point & routing
-`app.py` (~3600 lines) contains the entire Flask app: all routes, access-control decorators, CSV/JSON bulk-import parsers, and the `seed-firestore` CLI command. There is no blueprint split. Role-based access is enforced manually inside each view using `current_user.best_role()` and the `ROLE_PRIORITY` list `["admin", "academic", "head", "instructor"]`.
+`app.py` (~3700 lines) contains the entire Flask app: all routes, access-control decorators, CSV/JSON bulk-import parsers, and the `seed-firestore` CLI command. There is no blueprint split. Role-based access is enforced manually inside each view using `current_user.best_role()` and the `ROLE_PRIORITY` list `["admin", "academic", "head", "instructor"]`.
 
 ### Data layer
 `models.py` — all Firestore models as Python dataclasses extending `FirestoreModel`. Key patterns:
@@ -83,6 +84,9 @@ curriculum_uploads
 
 ### Bulk course import
 `_parse_courses_upload_text()` in `app.py` handles JSON, CSV, TSV, and pipe-delimited formats with Thai/English column header aliases (see `_COURSE_HEADER_MAP`). Reuse this parser; do not duplicate parsing logic.
+
+### Deployment
+Containerized via `Dockerfile` (Python 3.10-slim + gunicorn on `$PORT`, default 8080) and deployed to Google Cloud Run by `deploy.sh` (Artifact Registry repo `tqf-repo`, default region `asia-southeast1`, service `tqf-app`). `SECRET_KEY` is injected as an env var; `.dockerignore` excludes `instance/`, credentials, dev/seed scripts, and docs from the image.
 
 ## Key Conventions
 

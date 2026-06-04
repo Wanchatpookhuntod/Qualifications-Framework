@@ -10,48 +10,63 @@
     <!-- 1) ข้อมูลรายวิชา -->
     <div class="qtf-card">
         <h3>1) ข้อมูลรายวิชา</h3>
-        <div class="qtf-grid three">
-            <div><span class="text-muted">รหัสวิชา:</span> {{ data.get('course_code', course.code if course else '-') }}</div>
-            <div><span class="text-muted">ชื่อวิชา:</span> {{ data.get('course_name', course.name_th if course else '-') }}</div>
-            <div><span class="text-muted">หน่วยกิต:</span> {{ data.get('credits', course.credits if course else '-') }}</div>
-        </div>
+
         {% set _prog = course.program if course else None %}
         {% set _fac = _prog.faculty if _prog else None %}
-        <div class="qtf-grid three mt-2">
-            <div><span class="text-muted">คณะ/สำนัก:</span> {{ data.get('faculty') or (_fac.name if _fac else '-') }}</div>
-            <div><span class="text-muted">หลักสูตร:</span> {{ data.get('program') or (_prog.name if _prog else '-') }}</div>
-            <div><span class="text-muted">วิชาเอก:</span> {{ data.get('major', '-') }}</div>
-        </div>
-        <div class="mt-2">
-            <div class="text-muted text-sm mb-1">คำอธิบายรายวิชา</div>
-            <div class="preserve-text">{{ data.get('course_desc', '-') }}</div>
-        </div>
-        <div class="mt-2"><span class="text-muted">Pre-requisite:</span> {{ data.get('prereq', '-') }}</div>
-        <div class="mt-2"><span class="text-muted">ผลการประเมิน:</span> {{ data.get('assessment_score', data.get('result_score', '-')) }}</div>
 
-        <div class="qtf-grid four mt-2">
-            <div><span class="text-muted">ภาคการศึกษา:</span> {{ data.get('semester', term.semester if term else '-') }}</div>
-            <div><span class="text-muted">ปีการศึกษา:</span> {{ data.get('academic_year', term.year if term else '-') }}</div>
-            <div><span class="text-muted">ชั้นเรียนปีที่:</span> {{ data.get('year_level', '-') }}</div>
-            <div><span class="text-muted">ปรับปรุงล่าสุด:</span> {{ data.get('last_update', '-') }}</div>
-        </div>
-        <div class="mt-2"><span class="text-muted">หมู่เรียน:</span> {{ data.get('class_group', section.section_number if section else '-') }}</div>
-
-        <div class="qtf-grid two mt-2">
-            <div><span class="text-muted">อาจารย์ผู้รับผิดชอบรายวิชา:</span> {{ data.get('course_owner', '-') }}</div>
-            <div><span class="text-muted">อาจารย์ผู้สอน:</span> {{ data.get('instructors', section.instructor.full_name if section and section.instructor else '-') }}</div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>สถาบันการศึกษา:</h5></span>
+            <span>{{ data.get('university') or 'มหาวิทยาลัยราชภัฏเทพสตรี' }}</span>
+            <span>คณะ{{ data.get('faculty') or (_fac.name if _fac else '-') }}</span>
+            <span>หลักสูตร {{ data.get('program') or (_prog.name if _prog else '-') }}</span>
         </div>
 
         <div class="mt-2">
-            <div class="text-muted text-sm mb-1">รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อน (ถ้ามี)</div>
+            <span class="text-muted"><h5>รายวิชา:</h5></span>
+            <span>{{ data.get('course_code', course.code if course else '-') }}</span>
+            <span>{{ data.get('course_name', course.name_th if course else '-') }}</span>
+            <span>หมู่เรียนที่ {{ data.get('class_group', section.section_number if section else '-') }}</span>
+            <span>จำนวน {{ data.get('credits', course.credits if course else '-') }} หน่วยกิต </span>
+            <span>ชั้นปี {{ data.get('year_level', '-') }} </span>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>ปีการศึกษา:</h5></span>
+            <span> {{ data.get('semester', term.semester if term else '-') }} / {{ data.get('academic_year', term.year if term else '-') }} </span>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>คำอธิบายรายวิชา:</h5></span>
+            <span class="preserve-text">{{ data.get('course_desc', course.description if course else '-') }}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 30% 30% 40%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>วันที่ปรับปรุงล่าสุด:</h5></span>
+                <span> {{ data.get('last_update', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>อาจารย์ผู้รับผิดชอบรายวิชา:</h5></span>
+                <span> {{ data.get('course_owner', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>อาจารย์ผู้สอน:</h5></span>
+                <span> {{ data.get('instructors', section.instructor.full_name if section and section.instructor else '-') }} </span>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อน (ถ้ามี):</h5></span>
             <div class="preserve-text">{{ data.get('teaching_hours', '-') }}</div>
         </div>
-        <div class="mt-2">
-            <div class="text-muted text-sm mb-1">หัวข้อที่สอบไม่ครอบคลุมจากแผน (ถ้ามี)</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>หัวข้อที่สอนไม่ครอบคลุมจากแผน (ถ้ามี):</h5></span>
             <div class="preserve-text">{{ data.get('uncovered_topics', data.get('deviations', '-')) }}</div>
         </div>
-        <div class="mt-2">
-            <div class="text-muted text-sm mb-1">ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้:</h5></span>
             <div class="preserve-text">{{ data.get('during_improve', '-') }}</div>
         </div>
     </div>
@@ -107,18 +122,38 @@
     <!-- 3) สรุปผล + เกรด -->
     <div class="qtf-card">
         <h3>3) สรุปผลการจัดการเรียนการสอนของรายวิชา</h3>
-        <div class="qtf-grid four">
-            <div><span class="text-muted">ลงทะเบียน:</span> {{ data.get('n_registered', data.get('students_enrolled', '-')) }}</div>
-            <div><span class="text-muted">คงอยู่เมื่อสิ้นสุดภาค:</span> {{ data.get('n_remain', data.get('students_finished', '-')) }}</div>
-            <div><span class="text-muted">ถอน (W):</span> {{ data.get('n_withdraw', data.get('students_withdrawn', '-')) }}</div>
-            <div><span class="text-muted">ปัจจัยคะแนนผิดปกติ:</span> {{ data.get('grade_abnormal_reason', data.get('grade_factors', '-')) }}</div>
+
+        <div style="display: grid; grid-template-columns: 25% 25% 25% 25%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>ลงทะเบียน:</h5></span>
+                <span> {{ data.get('n_registered', data.get('students_enrolled', '-')) }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>คงอยู่เมื่อสิ้นสุดภาค:</h5></span>
+                <span> {{ data.get('n_remain', data.get('students_finished', '-')) }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ถอน (W):</h5></span>
+                <span> {{ data.get('n_withdraw', data.get('students_withdrawn', '-')) }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ปัจจัยคะแนนผิดปกติ:</h5></span>
+                <span> {{ data.get('grade_abnormal_reason', data.get('grade_factors', '-')) }} </span>
+            </div>
         </div>
-        <div class="mt-2">
-            <div class="text-muted text-sm mb-1">ความคลาดเคลื่อนจากแผนการประเมิน (ถ้ามี)</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>คะแนนการประเมิน:</h5></span>
+            <span> {{ data.get('assessment_score', data.get('result_score', '-')) }} </span>
+        </div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>ความคลาดเคลื่อนจากแผนการประเมิน (ถ้ามี):</h5></span>
             <div class="preserve-text">{{ data.get('assessment_deviation', '-') }}</div>
         </div>
-        <div class="mt-2">
-            <div class="text-muted text-sm mb-1">กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา:</h5></span>
             <div class="preserve-text">{{ data.get('verification', data.get('verification_method', '-')) }}</div>
         </div>
 
@@ -200,20 +235,24 @@
     <!-- 5) การประเมินผลรายวิชา -->
     <div class="qtf-card">
         <h3>5) การประเมินผลรายวิชา</h3>
-        <div class="mb-2">
-            <div class="text-muted text-sm mb-1">ข้อวิพากษ์ที่สำคัญจากผลการประเมินโดยนักศึกษา/ผู้เรียน</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>ข้อวิพากษ์ที่สำคัญจากผลการประเมินโดยนักศึกษา/ผู้เรียน:</h5></span>
             <div class="preserve-text">{{ data.get('eval_crit', '-') }}</div>
         </div>
-        <div class="mb-2">
-            <div class="text-muted text-sm mb-1">ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์:</h5></span>
             <div class="preserve-text">{{ data.get('teacher_comment', '-') }}</div>
         </div>
-        <div class="mb-2">
-            <div class="text-muted text-sm mb-1">แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา:</h5></span>
             <div class="preserve-text">{{ data.get('improve_plan', data.get('improvement_plan', '-')) }}</div>
         </div>
-        <div>
-            <div class="text-muted text-sm mb-1">ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร:</h5></span>
             <div class="preserve-text">{{ data.get('suggest_to_committee', '-') }}</div>
         </div>
     </div>

@@ -11,12 +11,12 @@
             <a href="{{ url_for('dashboard') }}">Dashboard</a> /
             <span class="text-muted">สรุปหน้าที่ของฉัน</span>
         </nav>
-        <h2>หน้าหลักอาจารย์ผู้สอน</h2>
+        <h2>ผู้สอน : {{ current_user.full_name or current_user.username }}</h2>
         <p class="text-muted mt-2">จัดทำ มคอ.3 และ มคอ.5 ที่ได้รับมอบหมาย</p>
     </div>
     <div class="inline-actions">
         <form method="GET" action="{{ url_for('instructor_dashboard') }}" class="filter-form">
-            <label class="text-muted text-xs mb-0">เทอม</label>
+            <label class="text-muted text-xs mb-0">ปีการศึกษา</label>
             <select name="term_id" class="form-control select-inline min-220" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
@@ -59,17 +59,15 @@
         <div class="table-wrapper">
             <table class="data-table">
                 <colgroup>
-                    <col style="width: 40%;">
+                    <col style="width: 70%;">
                     <col style="width: 15%;">
                     <col style="width: 15%;">
-                    <col style="width: 30%;">
                 </colgroup>
                 <thead>
                     <tr>
                         <th>รายวิชา / กลุ่ม</th>
                         <th class="text-center">มคอ.3</th>
                         <th class="text-center">มคอ.5</th>
-                        <th class="text-right">การดำเนินการ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -79,48 +77,38 @@
                             <div class="text-table">{{ section.course.code if section.course else '' }} {{ (section.course.name_th if section.course else '') | thai_wrap }}</div>
                             <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                         </td>
-                        <td>
-                            {% if section.tqf3 %}
-                                {% set s = section.tqf3.status or 'DRAFT' %}
-                                <span class="status-badge {{ status_badge_map.get(s, 'role-instructor') }}" style="display: flex; justify-content: center;">{{ status_label_map.get(s, s) }}</span>
-                                {% if section.tqf3.submitted_at %}
-                                <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf3.submitted_at.strftime('%d/%m/%Y') }}</div>
-                                {% endif %}
-                            {% else %}
-                            <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if section.tqf5 %}
-                            <div>
-                                {% set s = section.tqf5.status or 'DRAFT' %}
-                                <span class="status-badge {{ status_badge_map.get(s, 'role-instructor') }}" style="display: flex; justify-content: center;">{{ status_label_map.get(s, s) }}</span>
-                                {% if section.tqf5.submitted_at %}
-                                <div class="text-muted text-xs justify-center text-center mt-2">ส่งเมื่อ {{ section.tqf5.submitted_at.strftime('%d/%m/%Y') }}</div>
+                        <td class="text-center table-t">
+                            {% set s = (section.tqf3.status if section.tqf3 else None) or 'DRAFT' %}
+                            <div class="status-action-stack">
+                                <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
+                                   class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if section.tqf3 else 'role-instructor' }}{% if not group.tqf3_open %} is-disabled{% endif %}"
+                                   title="แก้ไข มคอ.3"
+                                   {% if not group.tqf3_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
+                                    {{ status_label_map.get(s, s) if section.tqf3 else 'เริ่มกรอก' }}
+                                </a>
+                                {% if section.tqf3 and section.tqf3.submitted_at %}
+                                <div class="text-muted text-xs">ส่งเมื่อ {{ section.tqf3.submitted_at.strftime('%d/%m/%Y') }}</div>
                                 {% endif %}
                             </div>
-                            {% else %}
-                            <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
-                            {% endif %}
                         </td>
-                        <td class="text-right">
-                            <div class="inline-actions justify-center">
-                                    <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
-                                       class="btn btn-secondary btn-compact{% if not group.tqf3_open %} btn-disabled{% endif %}"
-                                       {% if not group.tqf3_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
-                                        มคอ.3
-                                    </a>
-                                    <a href="{{ url_for('edit_tqf5', section_id=section.id) }}"
-                                       class="btn btn-secondary btn-compact{% if not group.tqf5_open %} btn-disabled{% endif %}"
-                                       {% if not group.tqf5_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
-                                        มคอ.5
-                                    </a> 
+                        <td class="text-center table-t">
+                            {% set s = (section.tqf5.status if section.tqf5 else None) or 'DRAFT' %}
+                            <div class="status-action-stack">
+                                <a href="{{ url_for('edit_tqf5', section_id=section.id) }}"
+                                   class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if section.tqf5 else 'role-instructor' }}{% if not group.tqf5_open %} is-disabled{% endif %}"
+                                   title="แก้ไข มคอ.5"
+                                   {% if not group.tqf5_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
+                                    {{ status_label_map.get(s, s) if section.tqf5 else 'เริ่มกรอก' }}
+                                </a>
+                                {% if section.tqf5 and section.tqf5.submitted_at %}
+                                <div class="text-muted text-xs">ส่งเมื่อ {{ section.tqf5.submitted_at.strftime('%d/%m/%Y') }}</div>
+                                {% endif %}
                             </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="4" class="empty-state text-center text-muted">ไม่มีรายวิชาในเทอมนี้</td>
+                        <td colspan="3" class="empty-state text-center text-muted">ไม่มีรายวิชาในเทอมนี้</td>
                     </tr>
                     {% endfor %}
                 </tbody>

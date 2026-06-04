@@ -10,7 +10,7 @@
     </div>
     <div class="inline-actions">
         <form method="GET" action="{{ url_for('head_dashboard') }}" class="filter-form">
-            <label class="text-muted text-xs mb-0">ปีการศึกษา</label>
+            <label class="text-muted mb-0">ปีการศึกษา</label>
             <select name="term_id" class="form-control select-inline min-200" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}

@@ -1178,15 +1178,25 @@ def switch_role():
 @login_required
 @roles_required("instructor")
 def instructor_dashboard():
-    selected_term_id = request.args.get("term_id")
+    # term_id absent → auto-select current term; term_id="" → show all
+    term_id_param = request.args.get("term_id")
 
-    sections = Section.find_by("instructor_id", current_user.id)
+    all_sections = Section.find_by("instructor_id", current_user.id)
+
+    # All terms the instructor teaches in — always shown in the filter dropdown.
+    all_term_ids = {s.term_id for s in all_sections if s.term_id}
+    terms = [t for t in (Term.get(tid) for tid in all_term_ids) if t]
+    terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+
+    if term_id_param is None and terms:
+        current = _find_current_term(terms)
+        selected_term_id = current.id if current else None
+    else:
+        selected_term_id = term_id_param or None
+
+    sections = all_sections
     if selected_term_id:
-        sections = [s for s in sections if s.term_id == selected_term_id]
-
-    term_ids = {s.term_id for s in sections if s.term_id}
-    terms = [t for t in (Term.get(tid) for tid in term_ids) if t]
-    terms.sort(key=lambda t: (t.year, t.semester), reverse=True)
+        sections = [s for s in all_sections if s.term_id == selected_term_id]
 
     term_by_id = {t.id: t for t in terms}
     course_ids = {s.course_id for s in sections if s.course_id}

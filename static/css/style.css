@@ -126,6 +126,71 @@ fieldset {
     justify-content: center;
 }
 
+.justify-end{
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+}
+
+.status-action-stack{
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Status rendered as a clickable button (status text inside).
+   Scoped under .status-action-stack to outrank the .status-badge pill rules. */
+.status-action-stack .status-btn{
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 7rem;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(15, 131, 166, 0.12);
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: none;
+    text-decoration: none;
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-action-stack .status-btn:hover{
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.status-action-stack .status-btn:active{
+    transform: translateY(0);
+    box-shadow: var(--shadow-soft);
+}
+
+/* เปลี่ยนสีพื้นหลังตอน hover ให้ครบทุกสถานะ (เหมือน "รอตรวจสอบ") */
+.status-action-stack .status-btn.status-approved:hover{
+    background: rgba(16, 185, 129, 0.35);
+    color: #059669;
+}
+
+.status-action-stack .status-btn.status-returned:hover{
+    background: rgba(239, 68, 68, 0.22);
+    color: var(--accent-danger);
+}
+
+.status-action-stack .status-btn.role-instructor:hover{
+    background: rgba(15, 131, 166, 0.24);
+    color: var(--primary-color);
+}
+
+.status-action-stack .status-btn.is-disabled{
+    cursor: not-allowed;
+    opacity: 0.5;
+    pointer-events: none;
+    box-shadow: none;
+}
+
 .info-stack {
     display: grid;
     gap: 0.5rem;
@@ -1941,6 +2006,33 @@ a.status-submitted:hover {
     color: var(--accent-danger);
 }
 
+/* ปุ่ม toggle ที่ใช้สี status ให้มี interactive state */
+.btn.status-approved {
+    border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+.btn.status-approved:hover {
+    background: rgba(16, 185, 129, 0.32);
+    box-shadow: 0 10px 22px -14px rgba(16, 185, 129, 0.8);
+    transform: translateY(-1px);
+}
+
+.btn.status-returned {
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.btn.status-returned:hover {
+    background: rgba(239, 68, 68, 0.2);
+    box-shadow: 0 10px 22px -14px rgba(239, 68, 68, 0.7);
+    transform: translateY(-1px);
+}
+
+.btn.status-approved:active,
+.btn.status-returned:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
 .alert {
     padding: 1rem;
     border-radius: var(--radius-sm);
@@ -2345,4 +2437,14 @@ a.status-submitted:hover {
     input[type="radio"] {
         transform: scale(1.05);
     }
+}
+
+/* ปุ่มทุกปุ่ม: ใช้ฟอนต์ Prompt น้ำหนักปกติ (400) */
+button,
+.btn,
+.status-action-stack .status-btn,
+input[type="submit"],
+input[type="button"] {
+    font-family: 'Prompt', 'Sarabun', sans-serif;
+    font-weight: 400;
 }

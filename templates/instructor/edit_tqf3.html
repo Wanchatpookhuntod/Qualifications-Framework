@@ -45,7 +45,7 @@
 
 {% if feedbacks %}
 <div class="qtf-alert qtf-alert-danger">
-    <h4 class="mb-2">💬 ข้อเสนอแนะจากหัวหน้าสาขา</h4>
+    <h4 class="mb-2">ข้อเสนอแนะจากหัวหน้าสาขา</h4>
     {% for fb in feedbacks %}
     <div class="qtf-feedback-item">
         <div class="text-muted text-xs">{{ fb.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
@@ -60,7 +60,7 @@
 
     <fieldset {% if is_locked %}disabled{% endif %}>
         <div class="qtf-card qtf-highlight">
-            <div class="qtf-section-title">1) ข้อมูลรายวิชา</div>
+            <div class="qtf-section-title">1. ข้อมูลรายวิชา</div>
             <div class="qtf-card qtf-highlight">
                 <div class="qtf-grid two">
                     <div>
@@ -136,7 +136,7 @@
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">2) จุดมุ่งหมายของรายวิชา &amp; ภาระงาน</div>
+            <div class="qtf-section-title">2. จุดมุ่งหมายของรายวิชา &amp; ภาระงาน</div>
             <div class="form-group">
                 <label>จุดมุ่งหมายของรายวิชา</label>
                 <textarea name="course_objective" class="form-control" rows="4" placeholder="กรอกจุดมุ่งหมายของรายวิชา">{{ general.get('course_objective', general.get('objectives', '')) }}</textarea>
@@ -169,86 +169,91 @@
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">3) CLO/PLO และการวัดประเมิน</div>
-            <div class="qtf-table-wrapper mt-2">
-                <table id="cloTable" class="qtf-table min-900">
+            <div class="qtf-section-title">3. CLO/PLO และการวัดประเมิน</div>
+            <div class="table-wrapper mt-2">
+                <table id="cloTable" class="data-table min-900">
+                    <colgroup>
+                        <col style="width: 25%;">
+                        <col style="width: 20%;">
+                        <col style="width: 20%;">
+                        <col style="width: 20%;">
+                        <col style="width: 15%;">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th class="col-28p">CLO (ผลลัพธ์รายวิชา)</th>
-                            <th class="col-16p">PLO ที่สอดคล้อง</th>
-                            <th class="col-28p">กลยุทธ์การสอน</th>
-                            <th class="col-28p">กลยุทธ์วัดและประเมินผล</th>
-                            <th class="col-84">ลบ</th>
+                            <th class="text-center">CLO (ผลลัพธ์รายวิชา)</th>
+                            <th class="text-center">PLO ที่สอดคล้อง</th>
+                            <th class="text-center">กลยุทธ์การสอน</th>
+                            <th class="text-center">กลยุทธ์วัดและประเมินผล</th>
+                            <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% set clo_texts = general.get('clo_text[]') or [''] %}
-                        {% set plos = general.get('plo[]') or [''] %}
-                        {% set teachs = general.get('teach_strategy[]') or [''] %}
-                        {% set assesses = general.get('assess_strategy[]') or [''] %}
-                        {% for i in range(clo_texts|length) %}
-                        <tr>
-                            <td><textarea name="clo_text[]" class="form-control" rows="2" placeholder="เช่น สามารถอธิบาย...">{{ clo_texts[i] }}</textarea></td>
-                            <td><input type="text" name="plo[]" class="form-control" value="{{ plos[i] if i < plos|length else '' }}" placeholder="เช่น PLO4"></td>
-                            <td><input type="text" name="teach_strategy[]" class="form-control" value="{{ teachs[i] if i < teachs|length else '' }}" placeholder="เช่น บรรยาย/ฝึกปฏิบัติ"></td>
-                            <td><input type="text" name="assess_strategy[]" class="form-control" value="{{ assesses[i] if i < assesses|length else '' }}" placeholder="เช่น สอบ/โครงงาน"></td>
-                            <td class="text-center"><button type="button" class="btn btn-outline-danger" onclick="removeRow(this)">ลบ</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
+            {% set clo_texts = general.get('clo_text[]') or [] %}
+            {% set plos = general.get('plo[]') or [] %}
+            {% set teachs = general.get('teach_strategy[]') or [] %}
+            {% set assesses = general.get('assess_strategy[]') or [] %}
+            {% set clo_rows = [] %}
+            {% for i in range(clo_texts|length) %}
+            {% set _ = clo_rows.append({'clo_text[]': clo_texts[i], 'plo[]': plos[i] if i < plos|length else '', 'teach_strategy[]': teachs[i] if i < teachs|length else '', 'assess_strategy[]': assesses[i] if i < assesses|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="cloData">{{ clo_rows | tojson }}</script>
             <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="addCloRow()">+ เพิ่ม CLO</button>
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('clo')">+ เพิ่ม CLO</button>
             </div>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">4) แผนการสอนรายสัปดาห์</div>
-            <div class="qtf-table-wrapper mt-2">
-                <table id="weeklyTable" class="qtf-table min-900">
+            <div class="qtf-section-title">4. แผนการสอนรายสัปดาห์</div>
+            <div class="table-wrapper mt-2">
+                <table id="weeklyTable" class="data-table min-900">
+                    <colgroup>
+                        <col style="width: 10%;">
+                        <col style="width: 20%;">
+                        <col style="width: 10%;">
+                        <col style="width: 10%;">
+                        <col style="width: 20%;">
+                        <col style="width: 10%;">
+                        <col style="width: 10%;">
+                        <col style="width: 10%;">
+                    </colgroup>
+                    
                     <thead>
                         <tr>
-                            <th class="col-90">สัปดาห์</th>
-                            <th class="min-260">หัวข้อ / รายละเอียด</th>
-                            <th class="col-140">CLOs</th>
-                            <th class="col-110">ชั่วโมง</th>
-                            <th class="min-220">กิจกรรมการเรียนการสอน</th>
-                            <th class="min-160">สื่อที่ใช้</th>
-                            <th class="col-140">ผู้สอน</th>
-                            <th class="col-84">ลบ</th>
+                            <th class="text-center">สัปดาห์</th>
+                            <th class="text-center">หัวข้อ / รายละเอียด</th>
+                            <th class="text-center">CLOs</th>
+                            <th class="text-center">ชั่วโมง</th>
+                            <th class="text-center">กิจกรรมการเรียนการสอน</th>
+                            <th class="text-center">สื่อที่ใช้</th>
+                            <th class="text-center">ผู้สอน</th>
+                            <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% set weeks = general.get('week[]') or [''] %}
-                        {% set topics = general.get('topic[]') or [''] %}
-                        {% set week_clos = general.get('week_clo[]') or [''] %}
-                        {% set hours = general.get('hours[]') or [''] %}
-                        {% set activities = general.get('activities[]') or [''] %}
-                        {% set medias = general.get('media[]') or [''] %}
-                        {% set teachers = general.get('teacher[]') or [''] %}
-                        {% for i in range(weeks|length) %}
-                        <tr>
-                            <td><input type="text" name="week[]" class="form-control" value="{{ weeks[i] if i < weeks|length else '' }}" placeholder="เช่น 1"></td>
-                            <td><textarea name="topic[]" class="form-control" rows="2" placeholder="กรอกหัวข้อและรายละเอียด">{{ topics[i] if i < topics|length else '' }}</textarea></td>
-                            <td><input type="text" name="week_clo[]" class="form-control" value="{{ week_clos[i] if i < week_clos|length else '' }}" placeholder="เช่น CLO1"></td>
-                            <td><input type="number" name="hours[]" class="form-control" min="0" step="0.5" value="{{ hours[i] if i < hours|length else '' }}" placeholder="เช่น 4"></td>
-                            <td><textarea name="activities[]" class="form-control" rows="2" placeholder="เช่น บรรยาย + ฝึกปฏิบัติ">{{ activities[i] if i < activities|length else '' }}</textarea></td>
-                            <td><input type="text" name="media[]" class="form-control" value="{{ medias[i] if i < medias|length else '' }}" placeholder="สื่อที่ใช้"></td>
-                            <td><input type="text" name="teacher[]" class="form-control" value="{{ teachers[i] if i < teachers|length else '' }}" placeholder="ผู้สอน"></td>
-                            <td class="text-center"><button type="button" class="btn btn-outline-danger" onclick="removeRow(this)">ลบ</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
+            {% set weeks = general.get('week[]') or [] %}
+            {% set topics = general.get('topic[]') or [] %}
+            {% set week_clos = general.get('week_clo[]') or [] %}
+            {% set hours = general.get('hours[]') or [] %}
+            {% set activities = general.get('activities[]') or [] %}
+            {% set medias = general.get('media[]') or [] %}
+            {% set teachers = general.get('teacher[]') or [] %}
+            {% set weekly_rows = [] %}
+            {% for i in range(weeks|length) %}
+            {% set _ = weekly_rows.append({'week[]': weeks[i], 'topic[]': topics[i] if i < topics|length else '', 'week_clo[]': week_clos[i] if i < week_clos|length else '', 'hours[]': hours[i] if i < hours|length else '', 'activities[]': activities[i] if i < activities|length else '', 'media[]': medias[i] if i < medias|length else '', 'teacher[]': teachers[i] if i < teachers|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="weeklyData">{{ weekly_rows | tojson }}</script>
             <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="addWeeklyRow()">+ เพิ่มสัปดาห์</button>
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('weekly')">+ เพิ่มสัปดาห์</button>
             </div>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">5) วิธีจัดการเรียนการสอน (ร้อยละของเวลา)</div>
+            <div class="qtf-section-title">5. วิธีจัดการเรียนการสอน (ร้อยละของเวลา)</div>
             <div class="qtf-grid three">
                 <div class="form-group">
                     <label>การบรรยาย (%)</label>
@@ -285,47 +290,49 @@
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">6) แผนการประเมินตามผลลัพธ์การเรียนรู้ (CLOs)</div>
-            <div class="qtf-table-wrapper mt-2">
-                <table id="assessTable" class="qtf-table min-900">
+            <div class="qtf-section-title">6. แผนการประเมินตามผลลัพธ์การเรียนรู้ (CLOs)</div>
+            <div class="table-wrapper mt-2">
+                <table id="assessTable" class="data-table">
+                    <colgroup>
+                        <col style="width: 10%;">
+                        <col style="width: 40%;">
+                        <col style="width: 15%;">
+                        <col style="width: 15%;">
+                        <col style="width: 10%;">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th class="min-240">CLO</th>
-                            <th class="min-240">กิจกรรมการประเมิน</th>
-                            <th class="col-180">กำหนดการ (สัปดาห์)</th>
-                            <th class="col-140">สัดส่วน (%)</th>
-                            <th class="col-84">ลบ</th>
+                            <th class="text-center">CLO</th>
+                            <th class="text-center">กิจกรรมการประเมิน</th>
+                            <th class="text-center">กำหนดการ (สัปดาห์)</th>
+                            <th class="text-center">สัดส่วน (%)</th>
+                            <th class="text-center">จัดการ</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% set a_clo = general.get('assess_clo[]') or [''] %}
-                        {% set a_act = general.get('assess_activity[]') or [''] %}
-                        {% set a_week = general.get('assess_week[]') or [''] %}
-                        {% set a_pct = general.get('assess_pct[]') or [''] %}
-                        {% for i in range(a_clo|length) %}
-                        <tr>
-                            <td><textarea name="assess_clo[]" class="form-control" rows="2" placeholder="กรอก CLO">{{ a_clo[i] }}</textarea></td>
-                            <td><textarea name="assess_activity[]" class="form-control" rows="2" placeholder="กิจกรรมการประเมิน">{{ a_act[i] if i < a_act|length else '' }}</textarea></td>
-                            <td><input type="text" name="assess_week[]" class="form-control" value="{{ a_week[i] if i < a_week|length else '' }}" placeholder="เช่น สัปดาห์ที่ 16"></td>
-                            <td><input type="number" name="assess_pct[]" class="form-control" min="0" max="100" step="1" value="{{ a_pct[i] if i < a_pct|length else '' }}" placeholder="เช่น 30"></td>
-                            <td class="text-center"><button type="button" class="btn btn-outline-danger" onclick="removeRow(this)">ลบ</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
+            {% set a_clo = general.get('assess_clo[]') or [] %}
+            {% set a_act = general.get('assess_activity[]') or [] %}
+            {% set a_week = general.get('assess_week[]') or [] %}
+            {% set a_pct = general.get('assess_pct[]') or [] %}
+            {% set assess_rows = [] %}
+            {% for i in range(a_clo|length) %}
+            {% set _ = assess_rows.append({'assess_clo[]': a_clo[i], 'assess_activity[]': a_act[i] if i < a_act|length else '', 'assess_week[]': a_week[i] if i < a_week|length else '', 'assess_pct[]': a_pct[i] if i < a_pct|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="assessData">{{ assess_rows | tojson }}</script>
             <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="addAssessRow()">+ เพิ่มรายการประเมิน</button>
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('assess')">+ เพิ่มรายการประเมิน</button>
             </div>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">7) ตำราและเอกสารประกอบ (รูปแบบ APA)</div>
+            <div class="qtf-section-title">7. ตำราและเอกสารประกอบ (รูปแบบ APA)</div>
             <textarea name="references" class="form-control" rows="4" placeholder="เช่น Salen, K., & Zimmerman, E. (2003). Rules of Play...">{{ general.get('references', '') }}</textarea>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">8) การประเมินและปรับปรุงการดำเนินการของรายวิชา</div>
+            <div class="qtf-section-title">8. การประเมินและปรับปรุงการดำเนินการของรายวิชา</div>
             <div class="qtf-grid two">
                 <div class="form-group">
                     <label>กลยุทธ์การประเมินการจัดการเรียนการสอน</label>
@@ -353,60 +360,255 @@
         {% endif %}
     </div>
 </form>
+
+<!-- Shared row editor modal -->
+<div id="rowModal" class="modal" style="display:none;">
+    <div class="modal-card" style="max-width:640px; width:100%; margin:0;">
+        <div class="modal-header">
+            <h3 class="mb-0" id="rowModalTitle">เพิ่มข้อมูล</h3>
+            <button type="button" class="modal-close-btn" onclick="QTFRows.close()">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="rowModalFields"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="QTFRows.close()">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="QTFRows.save()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function removeRow(btn) {
-        const row = btn.closest('tr');
-        const tbody = row.parentNode;
-        if (tbody.rows.length > 1) {
-            row.remove();
+const QTFRows = (function () {
+    const CONFIGS = {
+        clo: {
+            tableId: 'cloTable', dataId: 'cloData', noun: 'CLO',
+            fields: [
+                { name: 'clo_text[]', label: 'CLO (ผลลัพธ์รายวิชา)', type: 'textarea', ph: 'เช่น สามารถอธิบาย...' },
+                { name: 'plo[]', label: 'PLO ที่สอดคล้อง', type: 'text', ph: 'เช่น PLO4' },
+                { name: 'teach_strategy[]', label: 'กลยุทธ์การสอน', type: 'text', ph: 'เช่น บรรยาย/ฝึกปฏิบัติ' },
+                { name: 'assess_strategy[]', label: 'กลยุทธ์วัดและประเมินผล', type: 'text', ph: 'เช่น สอบ/โครงงาน' }
+            ]
+        },
+        weekly: {
+            tableId: 'weeklyTable', dataId: 'weeklyData', noun: 'สัปดาห์',
+            fields: [
+                { name: 'week[]', label: 'สัปดาห์', type: 'text', ph: 'เช่น 1' },
+                { name: 'topic[]', label: 'หัวข้อ / รายละเอียด', type: 'textarea', ph: 'กรอกหัวข้อและรายละเอียด' },
+                { name: 'week_clo[]', label: 'CLOs', type: 'text', ph: 'เช่น CLO1' },
+                { name: 'hours[]', label: 'ชั่วโมง', type: 'number', ph: 'เช่น 4', min: '0', step: '0.5' },
+                { name: 'activities[]', label: 'กิจกรรมการเรียนการสอน', type: 'textarea', ph: 'เช่น บรรยาย + ฝึกปฏิบัติ' },
+                { name: 'media[]', label: 'สื่อที่ใช้', type: 'text', ph: 'สื่อที่ใช้' },
+                { name: 'teacher[]', label: 'ผู้สอน', type: 'text', ph: 'ผู้สอน' }
+            ]
+        },
+        assess: {
+            tableId: 'assessTable', dataId: 'assessData', noun: 'รายการประเมิน',
+            fields: [
+                { name: 'assess_clo[]', label: 'CLO', type: 'textarea', ph: 'กรอก CLO' },
+                { name: 'assess_activity[]', label: 'กิจกรรมการประเมิน', type: 'textarea', ph: 'กิจกรรมการประเมิน' },
+                { name: 'assess_week[]', label: 'กำหนดการ (สัปดาห์)', type: 'text', ph: 'เช่น สัปดาห์ที่ 16' },
+                { name: 'assess_pct[]', label: 'สัดส่วน (%)', type: 'number', ph: 'เช่น 30', min: '0', max: '100', step: '1' }
+            ]
+        }
+    };
+
+    const modal = document.getElementById('rowModal');
+    const titleEl = document.getElementById('rowModalTitle');
+    const fieldsEl = document.getElementById('rowModalFields');
+    let current = null; // { type, mode, row }
+
+    function rowHasContent(cfg, values) {
+        return cfg.fields.some(f => String(values[f.name] || '').trim() !== '');
+    }
+
+    function makeEmptyRow(type) {
+        const cfg = CONFIGS[type];
+        const tr = document.createElement('tr');
+        tr.className = 'qtf-empty-row';
+        const td = document.createElement('td');
+        td.colSpan = cfg.fields.length + 1;
+        td.className = 'text-center text-table';
+        td.textContent = 'ยังไม่มีข้อมูล — กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
+        tr.appendChild(td);
+        return tr;
+    }
+
+    function makeRow(type, values) {
+        const cfg = CONFIGS[type];
+        const tr = document.createElement('tr');
+        tr.dataset.type = type;
+        cfg.fields.forEach(f => {
+            const td = document.createElement('td');
+            const v = String(values[f.name] || '');
+            if (v.trim() === '') {
+                const span = document.createElement('span');
+                span.className = 'text-muted';
+                span.textContent = '—';
+                td.appendChild(span);
+            } else {
+                td.style.whiteSpace = 'pre-wrap';
+                td.textContent = v;
+            }
+            tr.appendChild(td);
+        });
+
+        const actTd = document.createElement('td');
+        actTd.className = 'text-center';
+        // Hidden inputs carry the real form values (submitted as name[] arrays).
+        cfg.fields.forEach(f => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = f.name;
+            inp.value = String(values[f.name] || '');
+            actTd.appendChild(inp);
+        });
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:flex; gap:0.4rem; justify-content:center;';
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn btn-outline-primary btn-compact';
+        editBtn.textContent = 'แก้ไข';
+        editBtn.addEventListener('click', () => openEdit(tr));
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-outline-danger btn-compact';
+        delBtn.textContent = 'ลบ';
+        delBtn.addEventListener('click', () => removeRow(tr));
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        actTd.appendChild(actions);
+        tr.appendChild(actTd);
+        return tr;
+    }
+
+    function readRowValues(tr) {
+        const values = {};
+        tr.querySelectorAll('input[type="hidden"]').forEach(inp => {
+            values[inp.name] = inp.value;
+        });
+        return values;
+    }
+
+    function renderTable(type) {
+        const cfg = CONFIGS[type];
+        const tbody = document.querySelector('#' + cfg.tableId + ' tbody');
+        const dataEl = document.getElementById(cfg.dataId);
+        let rows = [];
+        try { rows = JSON.parse(dataEl.textContent || '[]'); } catch (e) { rows = []; }
+        rows = rows.filter(r => rowHasContent(cfg, r));
+        tbody.innerHTML = '';
+        if (!rows.length) {
+            tbody.appendChild(makeEmptyRow(type));
             return;
         }
-        row.querySelectorAll('input, textarea').forEach((el) => (el.value = ''));
+        rows.forEach(r => tbody.appendChild(makeRow(type, r)));
     }
 
-    function addCloRow() {
-        const tbody = document.querySelector('#cloTable tbody');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><textarea name="clo_text[]" class="form-control" rows="2" placeholder="เช่น สามารถอธิบาย..."></textarea></td>
-            <td><input type="text" name="plo[]" class="form-control" placeholder="เช่น PLO4" /></td>
-            <td><input type="text" name="teach_strategy[]" class="form-control" placeholder="เช่น บรรยาย/ฝึกปฏิบัติ" /></td>
-            <td><input type="text" name="assess_strategy[]" class="form-control" placeholder="เช่น สอบ/งานในชั้น" /></td>
-            <td class="text-center"><button type="button" class="btn btn-outline-danger" onclick="removeRow(this)">ลบ</button></td>
-        `;
-        tbody.appendChild(tr);
+    function buildFields(cfg, values) {
+        fieldsEl.innerHTML = '';
+        cfg.fields.forEach((f, idx) => {
+            const grp = document.createElement('div');
+            grp.className = 'form-group';
+            const label = document.createElement('label');
+            label.textContent = f.label;
+            grp.appendChild(label);
+            let input;
+            if (f.type === 'textarea') {
+                input = document.createElement('textarea');
+                input.rows = 3;
+            } else {
+                input = document.createElement('input');
+                input.type = f.type || 'text';
+                if (f.min != null) input.min = f.min;
+                if (f.max != null) input.max = f.max;
+                if (f.step != null) input.step = f.step;
+            }
+            input.className = 'form-control';
+            input.id = 'rowf_' + idx;
+            input.dataset.field = f.name;
+            if (f.ph) input.placeholder = f.ph;
+            input.value = values ? String(values[f.name] || '') : '';
+            grp.appendChild(input);
+            fieldsEl.appendChild(grp);
+        });
     }
 
-    function addWeeklyRow() {
-        const tbody = document.querySelector('#weeklyTable tbody');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><input type="text" name="week[]" class="form-control" placeholder="เช่น 2" /></td>
-            <td><textarea name="topic[]" class="form-control" rows="2" placeholder="กรอกหัวข้อและรายละเอียด"></textarea></td>
-            <td><input type="text" name="week_clo[]" class="form-control" placeholder="เช่น CLO2" /></td>
-            <td><input type="number" name="hours[]" class="form-control" min="0" step="0.5" placeholder="เช่น 4" /></td>
-            <td><textarea name="activities[]" class="form-control" rows="2" placeholder="กิจกรรมการเรียนการสอน"></textarea></td>
-            <td><input type="text" name="media[]" class="form-control" placeholder="สื่อที่ใช้" /></td>
-            <td><input type="text" name="teacher[]" class="form-control" placeholder="ผู้สอน" /></td>
-            <td class="text-center"><button type="button" class="btn btn-outline-danger" onclick="removeRow(this)">ลบ</button></td>
-        `;
-        tbody.appendChild(tr);
+    function openModal() {
+        modal.style.display = 'flex';
+        const first = fieldsEl.querySelector('input, textarea');
+        if (first) setTimeout(() => first.focus(), 50);
     }
 
-    function addAssessRow() {
-        const tbody = document.querySelector('#assessTable tbody');
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td><textarea name="assess_clo[]" class="form-control" rows="2" placeholder="กรอก CLO"></textarea></td>
-            <td><textarea name="assess_activity[]" class="form-control" rows="2" placeholder="กิจกรรมการประเมิน"></textarea></td>
-            <td><input type="text" name="assess_week[]" class="form-control" placeholder="เช่น สัปดาห์ที่ 16" /></td>
-            <td><input type="number" name="assess_pct[]" class="form-control" min="0" max="100" step="1" placeholder="เช่น 20" /></td>
-            <td class="text-center"><button type="button" class="btn btn-outline-danger" onclick="removeRow(this)">ลบ</button></td>
-        `;
-        tbody.appendChild(tr);
+    function openAdd(type) {
+        const cfg = CONFIGS[type];
+        current = { type: type, mode: 'add', row: null };
+        titleEl.textContent = 'เพิ่ม' + cfg.noun;
+        buildFields(cfg, null);
+        openModal();
     }
+
+    function openEdit(tr) {
+        const type = tr.dataset.type;
+        const cfg = CONFIGS[type];
+        current = { type: type, mode: 'edit', row: tr };
+        titleEl.textContent = 'แก้ไข' + cfg.noun;
+        buildFields(cfg, readRowValues(tr));
+        openModal();
+    }
+
+    function save() {
+        if (!current) return;
+        const cfg = CONFIGS[current.type];
+        const values = {};
+        fieldsEl.querySelectorAll('[data-field]').forEach(el => {
+            values[el.dataset.field] = el.value;
+        });
+        if (!rowHasContent(cfg, values)) {
+            alert('กรุณากรอกข้อมูลอย่างน้อยหนึ่งช่อง');
+            return;
+        }
+        const tbody = document.querySelector('#' + cfg.tableId + ' tbody');
+        const newRow = makeRow(current.type, values);
+        if (current.mode === 'edit' && current.row) {
+            current.row.replaceWith(newRow);
+        } else {
+            const empty = tbody.querySelector('.qtf-empty-row');
+            if (empty) empty.remove();
+            tbody.appendChild(newRow);
+        }
+        close();
+    }
+
+    function removeRow(tr) {
+        const type = tr.dataset.type;
+        const cfg = CONFIGS[type];
+        const tbody = tr.parentNode;
+        tr.remove();
+        if (!tbody.querySelector('tr')) {
+            tbody.appendChild(makeEmptyRow(type));
+        }
+    }
+
+    function close() {
+        modal.style.display = 'none';
+        current = null;
+    }
+
+    function init() {
+        Object.keys(CONFIGS).forEach(renderTable);
+        modal.addEventListener('click', e => { if (e.target === modal) close(); });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && modal.style.display !== 'none') close();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    return { openAdd: openAdd, save: save, close: close };
+})();
 </script>
 {% endblock %}

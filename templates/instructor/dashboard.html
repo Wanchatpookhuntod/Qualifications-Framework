@@ -58,19 +58,25 @@
 
         <div class="table-wrapper">
             <table class="data-table">
+                <colgroup>
+                    <col style="width: 40%;">
+                    <col style="width: 15%;">
+                    <col style="width: 15%;">
+                    <col style="width: 30%;">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>รายวิชา / กลุ่ม</th>
                         <th class="text-center">มคอ.3</th>
                         <th class="text-center">มคอ.5</th>
-                        <th class="text-center">การดำเนินการ</th>
+                        <th class="text-right">การดำเนินการ</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for section in group.sections %}
                     <tr>
                         <td>
-                            <div class="fw-bold">{{ section.course.code if section.course else '' }} {{ section.course.name_th if section.course else '' }}</div>
+                            <div class="text-table">{{ section.course.code if section.course else '' }} {{ (section.course.name_th if section.course else '') | thai_wrap }}</div>
                             <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                         </td>
                         <td>
@@ -97,7 +103,7 @@
                             <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="text-right">
                             <div class="inline-actions justify-center">
                                     <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
                                        class="btn btn-secondary btn-compact{% if not group.tqf3_open %} btn-disabled{% endif %}"

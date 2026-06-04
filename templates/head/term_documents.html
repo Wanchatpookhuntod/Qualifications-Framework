@@ -5,11 +5,13 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <a href="{{ url_for('head_dashboard', term_id=term.id) }}" class="text-muted text-xs">← กลับไปที่ Dashboard</a>
-        <h2>📚 รวม มคอ. ตามเทอม (สำหรับหัวหน้าสาขา)</h2>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('head_dashboard', term_id=term.id) }}">Dashboard</a>
+        </nav>
+        <h2>รวม มคอ. ตามเทอม (สำหรับหัวหน้าสาขา)</h2>
         <p class="text-muted">เทอม {{ term.semester }}/{{ term.year }}</p>
     </div>
-    <a href="{{ url_for('head_tqf5_summary', term_id=term.id) }}" class="btn btn-secondary">🧾 {{ 'แก้ไข' if summary else 'สร้าง' }} สรุป มคอ.5</a>
+    <a href="{{ url_for('head_tqf5_summary', term_id=term.id) }}" class="btn btn-secondary">{{ '' if summary else 'สร้าง' }} สรุป มคอ.5</a>
 </div>
 
 <div class="stat-grid stat-grid-compact">
@@ -30,56 +32,67 @@
 <div class="glass panel">
     <div class="table-wrapper">
         <table class="data-table">
+
+            <colgroup>
+                <col style="width: 40%;">
+                <col style="width: 30%;">
+                <col style="width: 15%;">
+                <col style="width: 15%;">
+               
+            </colgroup>
+
             <thead>
                 <tr>
                     <th>รายวิชา / กลุ่ม</th>
                     <th>อาจารย์ผู้สอน</th>
-                    <th>มคอ.3</th>
-                    <th>มคอ.5</th>
+                    <th class="text-right">มคอ.3</th>
+                    <th class="text-right">มคอ.5</th>
                 </tr>
             </thead>
             <tbody>
                 {% for section in sections %}
                 <tr>
-                    <td>
-                        <div class="fw-bold">{{ section.course.code if section.course else '' }} {{ section.course.name_th if section.course else '' }}</div>
+                    <td class="table-t">
+                        <div class="text-table">{{ section.course.code if section.course else '' }} {{ (section.course.name_th if section.course else '') | thai_wrap }}</div>
                         <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                     </td>
-                    <td>
+                    <td class="table-t">
                         {% if section.instructor %}
-                        <div class="fw-bold">{{ section.instructor.full_name }}</div>
+                        <div class="text-table">{{ section.instructor.full_name }}</div>
                         {% else %}
                         <span class="text-muted text-xs">ยังไม่มอบหมายผู้สอน</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="text-right">
                         {% if section.tqf3 %}
                         {% set s = section.tqf3.status %}
                         <div class="mb-2">
                             {% if s in ['SUBMITTED', 'APPROVED'] %}
-                            <span class="status-badge status-submitted">รอตรวจสอบ</span>
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}">
+                            <span class="status-badge status-submitted">รอตรวจสอบ</span></a>
                             {% else %}
-                            <span class="status-badge role-instructor">ร่าง</span>
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}">
+                            <span class="status-badge role-instructor">ร่าง</span></a>
                             {% endif %}
                         </div>
-                        <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" class="btn btn-secondary btn-compact">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>
                         {% else %}
-                        <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
+                        <span class="text-muted text-xs">-</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="text-right">
                         {% if section.tqf5 %}
                         {% set s = section.tqf5.status %}
                         <div class="mb-2">
                             {% if s in ['SUBMITTED', 'APPROVED'] %}
-                            <span class="status-badge status-submitted">รอตรวจสอบ</span>
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}">
+                            <span class="status-badge status-submitted">รอตรวจสอบ</span></a>
                             {% else %}
-                            <span class="status-badge role-instructor">ร่าง</span>
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}">
+                            <span class="status-badge role-instructor">ร่าง</span></a>
                             {% endif %}
                         </div>
-                        <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" class="btn btn-secondary btn-compact">{% if s == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดู{% endif %}</a>
                         {% else %}
-                        <span class="text-muted text-xs">ยังไม่มีเอกสาร</span>
+                        <span class="text-muted text-xs">-</span>
                         {% endif %}
                     </td>
                 </tr>

@@ -17,14 +17,14 @@
         <div class="mt-3">
             <span class="text-muted"><h5>สถาบันการศึกษา:</h5></span>
             <span>{{ general.get('university') or 'มหาวิทยาลัยราชภัฏเทพสตรี' }}</span>
-            <span>คณะ{{ general.get('faculty') or (_fac.name if _fac else '-') }}</span>
-            <span>หลักสูตร {{ general.get('program') or (_prog.name if _prog else '-') }}</span>
+            <span>คณะ{{ (general.get('faculty') or (_fac.name if _fac else '-')) | thai_wrap }}</span>
+            <span>หลักสูตร {{ (general.get('program') or (_prog.name if _prog else '-')) | thai_wrap }}</span>
         </div>
 
         <div class="mt-2">
             <span class="text-muted"><h5>รายวิชา:</h5></span>
             <span>{{ general.get('course_code', course.code if course else '-') }}</span>
-            <span>{{ general.get('course_name', course.name_th if course else '-') }}</span>
+            <span>{{ general.get('course_name', course.name_th if course else '-') | thai_wrap }}</span>
             <span>หมู่เรียนที่ {{ general.get('class_group', section.section_number if section else '-') }}</span>
             <span>จำนวน {{ general.get('credits', course.credits if course else '-') }} หน่วยกิต </span>
             <span>ชั้นปี {{ general.get('year_level', '-') }} </span>

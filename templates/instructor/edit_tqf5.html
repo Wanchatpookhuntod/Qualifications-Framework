@@ -23,7 +23,7 @@
             <a href="{{ url_for('instructor_dashboard') }}">Dashboard</a> /
             <span class="text-muted">แก้ไข มคอ.5</span>
         </nav>
-        <h2>มคอ.5: {{ section.course.code }} {{ section.course.name_th }}</h2>
+        <h2>มคอ.5: {{ section.course.code }} {{ section.course.name_th | thai_wrap }}</h2>
         <div class="flex-center-gap">
             {% set badge_class = 'status-draft' %}
             {% if tqf5.status == 'APPROVED' %}
@@ -68,7 +68,7 @@
                     <div>
                         <div>{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }} {{ data.get('faculty', gi.get('faculty', '')) }}</div>
                         <div>หลักสูตร {{ data.get('program', gi.get('program', '')) }}</div>
-                        <div>รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) }}</div>
+                        <div>รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) | thai_wrap }}</div>
                         <div>ผู้สอน {{ instructors_val }}</div>
                         <input type="hidden" name="instructors" value="{{ instructors_val }}">
                         <input type="hidden" name="university" value="{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }}">

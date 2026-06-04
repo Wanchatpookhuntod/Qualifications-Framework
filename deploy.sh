@@ -28,13 +28,7 @@ echo "Region  : $REGION"
 echo "Image   : $IMAGE"
 echo ""
 
-# -- SECRET_KEY -------------------------------------------------------
-# Use an existing env var, or generate a fresh random key each deploy.
-if [ -z "$SECRET_KEY" ]; then
-  SECRET_KEY=$(python3 -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null \
-    || openssl rand -hex 32)
-  echo ">> Generated new SECRET_KEY (stored only in this shell session)"
-fi
+SECRET_NAME="tqf-secret-key"
 
 # 1. Set active project
 gcloud config set project "$PROJECT_ID"
@@ -46,6 +40,7 @@ gcloud services enable \
   cloudbuild.googleapis.com \
   artifactregistry.googleapis.com \
   firestore.googleapis.com \
+  secretmanager.googleapis.com \
   --project "$PROJECT_ID"
 
 # 3. Create Artifact Registry repo (idempotent — skips if already exists)
@@ -61,7 +56,29 @@ gcloud artifacts repositories describe "$REPO_NAME" \
 # 4. Configure Docker auth for Artifact Registry
 gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
 
-# 5. Build & push image via Cloud Build
+# 5. Provision SECRET_KEY in Secret Manager (create once; never regenerate)
+echo ">> Ensuring Secret Manager secret exists..."
+if ! gcloud secrets describe "$SECRET_NAME" --project "$PROJECT_ID" > /dev/null 2>&1; then
+  GENERATED=$(python3 -c "import secrets; print(secrets.token_hex(32))" 2>/dev/null \
+    || openssl rand -hex 32)
+  echo -n "$GENERATED" | gcloud secrets create "$SECRET_NAME" \
+    --data-file=- \
+    --replication-policy automatic \
+    --project "$PROJECT_ID"
+  echo ">> Created new secret '$SECRET_NAME' in Secret Manager."
+else
+  echo ">> Secret '$SECRET_NAME' already exists — keeping existing value."
+fi
+
+# Grant the Cloud Run service account access to the secret
+SA_EMAIL="$(gcloud projects describe "$PROJECT_ID" \
+  --format='value(projectNumber)')"-compute@developer.gserviceaccount.com
+gcloud secrets add-iam-policy-binding "$SECRET_NAME" \
+  --member="serviceAccount:${SA_EMAIL}" \
+  --role="roles/secretmanager.secretAccessor" \
+  --project "$PROJECT_ID" > /dev/null
+
+# 5b. Build & push image via Cloud Build
 echo ">> Building image..."
 gcloud builds submit --tag "$IMAGE" .
 
@@ -77,7 +94,8 @@ gcloud run deploy "$SERVICE_NAME" \
   --concurrency 80 \
   --min-instances 0 \
   --max-instances 5 \
-  --set-env-vars "FLASK_ENV=production,SECRET_KEY=${SECRET_KEY}" \
+  --set-env-vars "FLASK_ENV=production" \
+  --update-secrets "SECRET_KEY=${SECRET_NAME}:latest" \
   --project "$PROJECT_ID"
 
 echo ""

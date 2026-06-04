@@ -15,7 +15,7 @@
         
         <h2>ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}:
             {% if tqf.section and tqf.section.course %}
-            {{ tqf.section.course.code }} {{ tqf.section.course.name_th }}
+            {{ tqf.section.course.code }} {{ tqf.section.course.name_th | thai_wrap }}
             {% else %}
             (ไม่พบข้อมูลรายวิชา)
             {% endif %}

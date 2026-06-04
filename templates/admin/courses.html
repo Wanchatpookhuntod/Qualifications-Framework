@@ -38,7 +38,7 @@
 
 {% for prog_name, courses in grouped_courses.items() %}
 <div class="glass panel" style="margin-bottom:1rem;">
-    <h4 class="course-section-title">หลักสูตร: {{ prog_name }}</h4>
+    <h4 class="course-section-title">หลักสูตร: {{ prog_name | thai_wrap }}</h4>
     <div class="muted mb-5">จำนวนรายวิชา: {{ courses|length }}</div>
     <div class="table-scroll">
         <table class="course-table">
@@ -55,7 +55,7 @@
                 <tr>
                     <td class="course-code">{{ course.code }}</td>
                     <td>
-                        <div class="course-name">{{ course.name_th }}</div>
+                        <div class="course-name">{{ course.name_th | thai_wrap }}</div>
                         <div class="muted">{{ course.name_en }}</div>
                     </td>
                     <td>{{ course.credits }}</td>

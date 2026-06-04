@@ -14,7 +14,6 @@
     </div>
     <div class="inline-actions">
         <button type="button" class="btn btn-primary" onclick="document.getElementById('addTermModal').style.display='flex'">+ เพิ่มปีการศึกษาใหม่</button>
-        <a href="{{ url_for('academic_dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
     </div>
 </div>
 
@@ -27,7 +26,7 @@
                     <th>ภาคเรียน/ปีการศึกษา</th>
                     <th>ช่วงเวลา</th>
                     <th>สถานะ</th>
-                    <th class="col-120">จัดการ</th>
+                    <th class="col-140">จัดการ</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,7 +41,8 @@
                         {% endif %}
                     </td>
                     <td>
-                        <span class="status-badge status-approved">พร้อมใช้งาน</span>
+                        <span class="status-badge {{ 'status-approved' if term.is_open_tqf3 else 'status-returned' }}">มคอ.3 {{ 'เปิด' if term.is_open_tqf3 else 'ปิด' }}</span>
+                        <span class="status-badge {{ 'status-approved' if term.is_open_tqf5 else 'status-returned' }}">มคอ.5 {{ 'เปิด' if term.is_open_tqf5 else 'ปิด' }}</span>
                     </td>
                     <td>
                         <div style="display:flex; gap:0.5rem; align-items:center;">
@@ -165,15 +165,18 @@ document.getElementById('editTermModal').addEventListener('click', function(e) {
     if (e.target === this) this.style.display = 'none';
 });
 
+var _editTermUrlBase = '{{ url_for("edit_term", term_id="__ID__") }}'.replace('__ID__', '');
+
 function beToMonthInput(month, beYear) {
     // convert BE year to CE for <input type="month"> value
-    if (!month || !beYear) return '';
-    var ce = parseInt(beYear) - 543;
-    return ce + '-' + String(month).padStart(2, '0');
+    var m = parseInt(month), y = parseInt(beYear);
+    if (!m || !y) return '';
+    var ce = y - 543;
+    return ce + '-' + String(m).padStart(2, '0');
 }
 
 function openEditModal(id, year, semester, startMonth, startYear, endMonth, endYear) {
-    document.getElementById('editTermForm').action = '/academic/edit-term/' + id;
+    document.getElementById('editTermForm').action = _editTermUrlBase + id;
     document.getElementById('edit_year').value = year;
     document.getElementById('edit_semester').value = semester;
     document.getElementById('edit_start_date').value = beToMonthInput(startMonth, startYear);

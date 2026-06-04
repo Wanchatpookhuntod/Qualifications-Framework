@@ -9,14 +9,6 @@
         <p class="text-muted mb-0">จัดการรายวิชาเปิดสอนและติดตามความคืบหน้าการส่ง มคอ.</p>
     </div>
     <div class="action-bar">
-        <form method="GET" action="{{ url_for('academic_dashboard') }}" class="flex-center-gap">
-            <select name="term_id" class="form-control select-wide" onchange="this.form.submit()">
-                <option value="" {% if selected_term_id == '' %}selected{% endif %}>ทุกปีการศึกษา</option>
-                {% for t in terms %}
-                <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
-                {% endfor %}
-            </select>
-        </form>
         <a href="{{ url_for('manage_terms') }}" class="btn btn-secondary">จัดการปีการศึกษา</a>
     </div>
 </div>
@@ -38,6 +30,19 @@
     </div>
 </div>
 {% endif %}
+
+<div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+    <span>ปีการศึกษา</span>
+    <form method="GET" action="{{ url_for('academic_dashboard') }}">
+        <select name="term_id" class="form-control select-wide" onchange="this.form.submit()">
+            <option value="" {% if selected_term_id == '' %}selected{% endif %}>ทุกปีการศึกษา</option>
+            {% for t in terms %}
+            <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
 
 <div class="dashboard-hierarchy">
     {% for term_label, term_data in grouped_data.items() %}
@@ -64,7 +69,7 @@
             <span>
                 <a style="height: 2.75rem; display: flex;align-items: center;justify-content: center;"
                     class="btn btn-secondary btn-link"
-                    href="{{ url_for('academic_term_documents', term_id=term_data.term_id) }}">รายการ มคอ.</a>
+                    href="{{ url_for('academic_term_documents', term_id=term_data.term_id) }}">รวม มคอ.</a>
             </span>
 
             <span class="material-symbols-rounded"
@@ -103,7 +108,7 @@
                             <td>
                                 <a href="{{ url_for('academic_term_program', term_id=term_data.term_id, program_id=program_id) }}"
                                     style="text-decoration: none; color: inherit;">
-                                    <div class="fw-bold">{{ program_data.name }}{% if program_data.year %} ({{
+                                    <div class="text-table">{{ program_data.name | thai_wrap }}{% if program_data.year %} ({{
                                         program_data.year }}){% endif %}</div>
                                     <div class="text-muted text-xs">คลิกเพื่อเข้าไปเพิ่มรายวิชา / มอบหมายผู้สอน /
                                         ติดตามสถานะเอกสาร</div>
@@ -112,7 +117,7 @@
                             <td>
                                 <div class="inline-actions" style="display: flex; gap: 1rem; justify-content: flex-end; align-items: center;">
                                     <a href="{{ url_for('academic_term_program', term_id=term_data.term_id, program_id=program_id) }}"
-                                        class="btn btn-secondary btn-compact">เปิดรายละเอียด</a>
+                                        class="custom-link text-link" style="color: #0f83a6; transition: color 0.15s;">เปิดรายละเอียด</a>
                                     <form method="POST" action="{{ url_for('academic_remove_program_from_term') }}"
                                         onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้ออกจากเทอม? (ต้องไม่มีรายวิชาที่เปิดสอนแล้ว)')">
                                         <input type="hidden" name="term_id" value="{{ term_data.term_id }}">

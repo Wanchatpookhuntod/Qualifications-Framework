@@ -16,7 +16,7 @@
             <div class="summary-section-anchor">{{ title }}</div>
             {% if subtitle %}<div class="summary-panel-subtitle">{{ subtitle }}</div>{% endif %}
         </div>
-        <span class="summary-source-chip">ข้อมูลจากผู้สอน</span>
+        <!-- <span class="summary-source-chip">ข้อมูลจากผู้สอน</span> -->
     </div>
     <div class="summary-panel-body">
         <div class="summary-table-wrap">
@@ -105,11 +105,22 @@
 </section>
 {% endmacro %}
 
+<div class="mb-3">
+    <nav class="breadcrumb">
+        <a href="{{ back_href }}">Dashboard <span class="text-muted"> / สรุป มคอ.5</span> </a>
+        
+    </nav>
+</div>
+
 <div class="summary-shell">
     <section class="summary-hero">
         <div class="summary-hero-top">
             <div>
-                <a href="{{ back_href }}" class="text-muted text-xs">← กลับ</a>
+                <!-- <nav class="breadcrumb">
+                    <a href="{{ back_href }}">Dashboard</a> /
+                    <span class="text-muted">สรุป มคอ.5</span>
+                </nav> -->
+                
                 <h1 class="summary-title">{{ hero_title }}</h1>
                 <div class="summary-meta">
                     {{ hero_scope }}{% if hero_faculty %} | {{ hero_faculty }}{% endif %}
@@ -171,72 +182,70 @@
 
                 {{ render_table('10. ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร', '', ['ที่', 'รหัสวิชาและชื่อวิชา', 'รายละเอียด'], summary_data.get('committee_suggestion_rows', []), 'feedback', can_edit, 'committee_suggestion_rows') }}
             </div>
+        </div>
 
-            <div class="summary-side">
-                <div class="summary-panel">
-                    <div class="summary-panel-head">
-                        <div>
-                            <div class="summary-section-anchor">ส่วนของหัวหน้า</div>
-                            <div class="summary-panel-subtitle">ตรวจทานข้อมูลจากผู้สอน แล้วแก้ไข/สรุปก่อนส่งฝ่ายวิชาการ</div>
-                        </div>
-                        {% if can_edit %}<span class="summary-source-chip">แก้ไขได้</span>{% endif %}
-                    </div>
-                    <div class="summary-panel-body">
-                        <div class="summary-alert">
-                            การแก้ไขในหน้านี้จะบันทึกเฉพาะเอกสารสรุปของหัวหน้า และไม่กระทบ มคอ.5 ต้นฉบับของผู้สอน
-                        </div>
-                        <div class="summary-form-grid two">
-                            <div class="summary-form-card">
-                                <label for="faculty_name">คณะ</label>
-                                {% if can_edit %}
-                                <input id="faculty_name" name="faculty_name" class="form-control" value="{{ summary_data.get('faculty_name', '') }}">
-                                {% else %}
-                                <div class="summary-readonly">{{ summary_data.get('faculty_name', '-') }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="summary-form-card">
-                                <label for="program_names">หลักสูตรที่สรุป</label>
-                                {% if can_edit %}
-                                <input id="program_names" name="program_names" class="form-control" value="{{ summary_data.get('program_names', '') }}">
-                                {% else %}
-                                <div class="summary-readonly">{{ summary_data.get('program_names', '-') }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div class="summary-form-card">
-                            <label for="meeting_text">ข้อความการประชุม/รับรองรายงาน</label>
-                            {% if can_edit %}
-                            <textarea id="meeting_text" name="meeting_text" class="form-control" rows="3" placeholder="เช่น มีมติการประชุมคณะกรรมการบริหารหลักสูตร ...">{{ summary_data.get('meeting_text', '') }}</textarea>
-                            {% else %}
-                            <div class="summary-readonly">{{ summary_data.get('meeting_text', '-') }}</div>
-                            {% endif %}
-                        </div>
-
-                        {% for field_name, label, rows in [
-                            ('grade_summary', 'สรุปผลการเรียน/การกระจายเกรดภาพรวม', 4),
-                            ('head_conclusion', 'ข้อเสนอแนะสำหรับการปรับปรุงหลักสูตร', 6),
-                            ('head_recommendation', 'ผลการประชุมของคณะกรรมการบริหารหลักสูตร', 6)
-                        ] %}
-                        <div class="summary-form-card">
-                            <label for="{{ field_name }}">{{ label }}</label>
-                            {% if can_edit %}
-                            <textarea id="{{ field_name }}" name="{{ field_name }}" class="form-control" rows="{{ rows }}">{{ summary_data.get(field_name, '') }}</textarea>
-                            {% else %}
-                            <div class="summary-readonly">{{ summary_data.get(field_name, '-') }}</div>
-                            {% endif %}
-                        </div>
-                        {% endfor %}
-
+        <div class="summary-panel mt-4">
+            <div class="summary-panel-head">
+                <div>
+                    <div class="summary-section-anchor">ส่วนของหัวหน้า</div>
+                    <div class="summary-panel-subtitle">ตรวจทานข้อมูลจากผู้สอน แล้วแก้ไข/สรุปก่อนส่งฝ่ายวิชาการ</div>
+                </div>
+                {% if can_edit %}<span class="summary-source-chip">แก้ไขได้</span>{% endif %}
+            </div>
+            <div class="summary-panel-body">
+                <div class="summary-alert mt-3">
+                    การแก้ไขในหน้านี้จะบันทึกเฉพาะเอกสารสรุปของหัวหน้า และไม่กระทบ มคอ.5 ต้นฉบับของผู้สอน
+                </div>
+                <div class="summary-form-grid two mt-3">
+                    <div class="summary-form-card">
+                        <label for="faculty_name">คณะ</label>
                         {% if can_edit %}
-                        <div class="grid-gap-sm mt-3">
-                            <button type="submit" name="action" value="regenerate" class="btn btn-secondary">อัปเดตจากเอกสารผู้สอน</button>
-                            <button type="submit" name="action" value="save" class="btn btn-secondary">บันทึกร่างของหัวหน้า</button>
-                            <button type="submit" name="action" value="submit" class="btn btn-primary">ส่งฝ่ายวิชาการ</button>
-                        </div>
+                        <input id="faculty_name" name="faculty_name" class="form-control" value="{{ summary_data.get('faculty_name', '') }}">
+                        {% else %}
+                        <div class="summary-readonly">{{ summary_data.get('faculty_name', '-') }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="summary-form-card">
+                        <label for="program_names">หลักสูตรที่สรุป</label>
+                        {% if can_edit %}
+                        <input id="program_names" name="program_names" class="form-control" value="{{ summary_data.get('program_names', '') }}">
+                        {% else %}
+                        <div class="summary-readonly">{{ summary_data.get('program_names', '-') }}</div>
                         {% endif %}
                     </div>
                 </div>
+
+                <div class="summary-form-card mt-3">
+                    <label for="meeting_text">ข้อความการประชุม/รับรองรายงาน</label>
+                    {% if can_edit %}
+                    <textarea id="meeting_text" name="meeting_text" class="form-control" rows="3" placeholder="เช่น มีมติการประชุมคณะกรรมการบริหารหลักสูตร ...">{{ summary_data.get('meeting_text', '') }}</textarea>
+                    {% else %}
+                    <div class="summary-readonly">{{ summary_data.get('meeting_text', '-') }}</div>
+                    {% endif %}
+                </div>
+
+                {% for field_name, label, rows in [
+                    ('grade_summary', 'สรุปผลการเรียน/การกระจายเกรดภาพรวม', 4),
+                    ('head_conclusion', 'ข้อเสนอแนะสำหรับการปรับปรุงหลักสูตร', 6),
+                    ('head_recommendation', 'ผลการประชุมของคณะกรรมการบริหารหลักสูตร', 6)
+                ] %}
+                <div class="summary-form-card mt-3">
+                    <label for="{{ field_name }}">{{ label }}</label>
+                    {% if can_edit %}
+                    <textarea id="{{ field_name }}" name="{{ field_name }}" class="form-control" rows="{{ rows }}">{{ summary_data.get(field_name, '') }}</textarea>
+                    {% else %}
+                    <div class="summary-readonly">{{ summary_data.get(field_name, '-') }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                {% if can_edit %}
+                <div class="qtf-grid three mt-3">
+                    <button type="submit" name="action" value="regenerate" class="btn btn-secondary">อัปเดตจากเอกสารผู้สอน</button>
+                    <button type="submit" name="action" value="save" class="btn btn-secondary">บันทึกร่างของหัวหน้า</button>
+                    <button type="submit" name="action" value="submit" class="btn btn-primary">ส่งฝ่ายวิชาการ</button>
+                </div>
+                {% endif %}
             </div>
         </div>
     </form>

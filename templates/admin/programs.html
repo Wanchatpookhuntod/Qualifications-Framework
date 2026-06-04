@@ -36,11 +36,11 @@
             <tbody>
                 {% for program in programs %}
                 <tr>
-                    <td class="fw-bold">{{ program.name }}</td>
+                    <td class="fw-bold">{{ program.name | thai_wrap }}</td>
                     <td>{{ program.year if program.year else '-' }}</td>
                     <td>
-                        <div>{{ department_name_by_id.get(program.department_id) or '-' }}</div>
-                        <div class="text-muted text-xs">{{ faculty_name_by_id.get(program.faculty_id) or '-' }}</div>
+                        <div>{{ (department_name_by_id.get(program.department_id) or '-') | thai_wrap }}</div>
+                        <div class="text-muted text-xs">{{ (faculty_name_by_id.get(program.faculty_id) or '-') | thai_wrap }}</div>
                     </td>
                     <td class="text-center">
                         <span class="status-badge role-academic">

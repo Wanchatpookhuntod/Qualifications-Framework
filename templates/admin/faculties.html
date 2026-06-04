@@ -39,7 +39,7 @@
             <tbody>
                 {% for faculty in faculties %}
                 <tr>
-                    <td><strong>{{ faculty.name }}</strong></td>
+                    <td><strong>{{ faculty.name | thai_wrap }}</strong></td>
                     <td style="text-align:center;">
                         <span class="status-badge role-instructor">{{ faculty.departments|length }}</span>
                     </td>

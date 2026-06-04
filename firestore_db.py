@@ -1,3 +1,4 @@
+import glob
 import os
 from typing import Optional
 
@@ -26,22 +27,14 @@ def get_firestore_client() -> firestore.Client:
         if cred_path and os.path.exists(cred_path):
             firebase_admin.initialize_app(credentials.Certificate(cred_path))
         else:
-            # Try Application Default Credentials (works on Cloud Run automatically)
-            try:
+            # Prefer local instance/ JSON (dev), fall back to ADC (Cloud Run)
+            matches = glob.glob(
+                os.path.join(os.path.dirname(__file__), "instance", "qualificationsframework-*.json")
+            )
+            if matches:
+                firebase_admin.initialize_app(credentials.Certificate(matches[0]))
+            else:
                 firebase_admin.initialize_app(credentials.ApplicationDefault())
-            except Exception:
-                # Last resort: local instance JSON
-                fallback = os.path.join(
-                    os.path.dirname(__file__),
-                    "instance",
-                    "qualificationsframework-34219c0bd960.json",
-                )
-                if not os.path.exists(fallback):
-                    raise FileNotFoundError(
-                        "Firestore credentials not found. "
-                        "Set GOOGLE_APPLICATION_CREDENTIALS or run on Google Cloud."
-                    )
-                firebase_admin.initialize_app(credentials.Certificate(fallback))
 
     _firestore_client = firestore.client()
     return _firestore_client

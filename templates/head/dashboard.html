@@ -10,7 +10,7 @@
     </div>
     <div class="inline-actions">
         <form method="GET" action="{{ url_for('head_dashboard') }}" class="filter-form">
-            <label class="text-muted text-xs mb-0">เทอม</label>
+            <label class="text-muted text-xs mb-0">ปีการศึกษา</label>
             <select name="term_id" class="form-control select-inline min-200" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
@@ -47,19 +47,18 @@
                 {% endif %}
             </div>
             <div class="inline-actions" style="flex-wrap: nowrap; align-items: stretch;">
-                <a class="btn btn-secondary btn-compact" style="white-space: nowrap; display: flex; align-items: center;" href="{{ url_for('head_term_documents', term_id=group.term.id) }}">รวม มคอ.</a>
+                <a class="btn btn-secondary btn-compact" style="white-space: nowrap; display: flex; align-items: center;" href="{{ url_for('head_term_documents', term_id=group.term.id) }}">มคอ. ทั้งหมด</a>
                 <a class="btn btn-secondary btn-compact" style="white-space: nowrap; display: flex; align-items: center;" href="{{ url_for('head_tqf5_summary', term_id=group.term.id) }}">สรุป มคอ.5</a>
-                <button type="submit" class="btn btn-primary btn-compact" style="white-space: nowrap; width: auto; display: flex; align-items: center;">บันทึก</button>
             </div>
         </div>
 
         <div class="table-wrapper">
             <table class="data-table" style="table-layout: fixed; width: 100%;">
                 <colgroup>
-                    <col style="width: 56%;">
-                    <col style="width: 26%;">
-                    <col style="width: 12%;">
-                    <col style="width: 12%;">
+                    <col style="width: 46%;">
+                    <col style="width: 36%;">
+                    <col style="width: 15%;">
+                    <col style="width: 15%;">
                 </colgroup>
                 <thead>
                     <tr>
@@ -73,7 +72,7 @@
                     {% for section in group.sections %}
                     <tr>
                         <td>
-                            <div class="fw-bold">{{ section.course.code }} {{ section.course.name_th }}</div>
+                            <div class="text-table">{{ section.course.code }} {{ section.course.name_th | thai_wrap }}</div>
                             <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                         </td>
                         <td>
@@ -114,8 +113,12 @@
                     {% endfor %}
                 </tbody>
             </table>
+            <!-- <button type="submit" class="btn btn-primary btn-compact mt-3" style="white-space: nowrap; width: auto; display: block; align-items: center; margin: 1rem 0 0 auto;">บันทึก</button> -->
+            <button type="submit" class="btn btn-primary btn-compact mt-3" style="white-space: nowrap; width: auto; display: block; align-items: center;">บันทึก</button>
+
         </div>
     </div>
+
     </form>
     {% endfor %}
 {% else %}

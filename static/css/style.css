@@ -3,6 +3,16 @@ h2 {
     font-weight: 500;
 }
 
+h3 {
+    font-family: 'Kanit', 'Sarabun', sans-serif;
+    font-weight: 500;
+}
+
+th {
+    font-family: 'Kanit', 'Sarabun', sans-serif;
+    font-weight: 500;
+}
+
 :root {
     --primary-color: #0f83a6;
     --primary-hover: #0c6a85;
@@ -66,12 +76,14 @@ fieldset {
     padding: 2rem;
     border-radius: var(--radius-xl);
     box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
 }
 
 .glass-card-sm {
     padding: 1.5rem;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
+    border: 1px solid var(--border-color);
 }
 
 .glass-form {
@@ -196,6 +208,63 @@ fieldset {
     font-size: 0.95em;
 }
 
+.text-table{
+    font-family: 'Sarabun', sans-serif;
+    font-size: 0.9em;
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.text-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: color 0.15s;
+}
+
+.custom-link{
+    text-decoration: none;
+    color: inherit;
+}
+.custom-link:visited{
+    color: inherit;
+}
+
+.text-link:hover {
+    transform: translateY(3px);
+}
+
+/* Thai word-break: allow browsers to break at zero-width spaces inserted by thai_wrap filter */
+.data-table td,
+.data-table th,
+.summary-table td,
+.summary-table th,
+.qtf-table td,
+.qtf-table th,
+.course-table td,
+.course-table th {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.course-name,
+.course-card h3,
+.qtf-card {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+.table-t{
+    vertical-align: top;
+}
+
+.text-title{
+    font-family: 'Kanit', 'Sarabun', sans-serif;
+    font-weight: 500;
+    font-size: 1.25rem;
+}
+
+
+
 .text-xs {
     font-size: 0.8125rem;
 }
@@ -248,6 +317,10 @@ fieldset {
 
 .text-left {
     text-align: left;
+}
+
+.text-right {
+    text-align: right;
 }
 
 .no-margin {
@@ -585,6 +658,7 @@ fieldset {
     margin-bottom: 2rem;
     border-radius: var(--radius-xl);
     padding: 1.25rem 1.5rem;
+    border: 1px solid var(--border-color);
 }
 
 .accordion-card summary {
@@ -749,6 +823,7 @@ fieldset {
 }
 
 .summary-title {
+    font-family: 'Kanit', 'Sarabun', sans-serif;
     margin: 0.75rem 0 0.35rem;
     font-size: 1.55rem;
     line-height: 1.35;
@@ -797,13 +872,12 @@ fieldset {
 
 .summary-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.7fr) minmax(280px, 1fr);
+    grid-template-columns: 1fr;
     gap: 1.5rem;
     align-items: start;
 }
 
-.summary-main,
-.summary-side {
+.summary-main {
     display: grid;
     gap: 1.25rem;
 }
@@ -845,8 +919,9 @@ fieldset {
 
 .summary-table-wrap {
     overflow-x: auto;
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border-color);
+    /* border-radius: var(--radius-lg); */
+    /* border-radius: 10px; */
+    /* border: 1px solid var(--border-color); */
 }
 
 .summary-table {
@@ -933,23 +1008,8 @@ fieldset {
     font-size: 0.95rem;
 }
 
-.summary-side .summary-panel {
-    position: sticky;
-    top: 4rem;
-}
-
 .preserve-text {
     white-space: pre-wrap;
-}
-
-@media (max-width: 1100px) {
-    .summary-layout {
-        grid-template-columns: 1fr;
-    }
-
-    .summary-side .summary-panel {
-        position: static;
-    }
 }
 
 @media (max-width: 600px) {
@@ -1953,7 +2013,7 @@ a.status-submitted:hover {
 }
 
 .breadcrumb a:hover {
-    text-decoration: underline;
+    text-decoration: none;
 }
 
 .text-muted {

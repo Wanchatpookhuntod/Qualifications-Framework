@@ -8,9 +8,9 @@
         <nav class="breadcrumb">
             <a href="{{ url_for('academic_dashboard') }}">Dashboard ฝ่ายวิชาการ</a> /
             <span class="text-muted">ปีการศึกษา {{ term.semester }}/{{ term.year }}</span> /
-            <span class="text-muted">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</span>
+            <span class="text-muted">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %}</span>
         </nav>
-        <h2>{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %}</h2>
+        <h2>{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %}</h2>
         <p class="text-muted mb-0">ปีการศึกษา {{ term.semester }}/{{ term.year }}</p>
     </div>
 </div>
@@ -69,11 +69,6 @@
             </div>
         </div>
 
-
-
-
-
-
     <div class="table-wrapper mt-3">
         <table class="data-table" style="table-layout: fixed;">
             <colgroup>
@@ -98,10 +93,10 @@
                 {% for section in sections %}
                 <tr data-section-row>
                     <td class="text-center text-muted">{{ loop.index }}</td>
-                    <td>
+                    <td class="table-t">
                         {% if section.course %}
-                        <div class="fw-bold">{{ section.course.code }}</div>
-                        <div class="text-muted text-xs">{{ section.course.name_th }} (กลุ่ม {{ section.section_number }})</div>
+                        <div class="text-table">{{ section.course.code }}</div>
+                        <div class="text-muted text-xs">{{ section.course.name_th | thai_wrap }} (กลุ่ม {{ section.section_number }})</div>
                         {% else %}
                         <span class="text-muted text-xs">-</span>
                         {% endif %}
@@ -172,7 +167,7 @@
         <div class="modal-header">
             <div>
                 <div class="fw-bold">เพิ่มรายวิชา (หลายวิชา)</div>
-                <div class="text-muted text-xs">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+                <div class="text-muted text-xs">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
             </div>
             <button type="button" class="modal-close-btn" onclick="closeBulkModal()"><span class="material-symbols-rounded">close</span></button>
         </div>
@@ -216,7 +211,7 @@
                         <tr class="bulk-row" data-text="{{ (c.code ~ ' ' ~ c.name_th)|lower }}">
                             <td><input type="checkbox" name="course_ids" value="{{ c.id }}"></td>
                             <td class="text-mono">{{ c.code }}</td>
-                            <td>{{ c.name_th }}</td>
+                            <td>{{ c.name_th | thai_wrap }}</td>
                             <td class="text-muted text-xs">{{ c.credits }}</td>
                         </tr>
                         {% endfor %}
@@ -237,7 +232,7 @@
         <div class="modal-header">
             <div>
                 <div class="fw-bold">เปิดรายวิชาสอน (ทีละวิชา)</div>
-                <div class="text-muted text-xs">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+                <div class="text-muted text-xs">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
             </div>
             <button type="button" class="modal-close-btn" onclick="closeSingleModal()"><span class="material-symbols-rounded">close</span></button>
         </div>

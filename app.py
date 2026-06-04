@@ -52,7 +52,27 @@ if load_dotenv:
     load_dotenv()
 
 
+try:
+    from pythainlp.tokenize import word_tokenize as _thai_tokenize
+    _PYTHAINLP_AVAILABLE = True
+except ImportError:  # pragma: no cover
+    _PYTHAINLP_AVAILABLE = False
+
 app = Flask(__name__)
+
+
+def _thai_wrap(text: str) -> "Markup":
+    """Insert zero-width spaces at Thai word boundaries for proper line wrapping."""
+    from markupsafe import Markup, escape
+    if not text:
+        return Markup("")
+    if not _PYTHAINLP_AVAILABLE:
+        return Markup(str(escape(text)))
+    tokens = _thai_tokenize(str(text), engine="newmm", keep_whitespace=True)
+    return Markup("​".join(str(escape(t)) for t in tokens))
+
+
+app.jinja_env.filters["thai_wrap"] = _thai_wrap
 
 
 def _resolve_secret_key() -> str:

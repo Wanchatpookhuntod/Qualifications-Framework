@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการ PLOs - หัวหน้าสาขา{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('head_dashboard') }}">Dashboard</a> /
+            <span class="text-muted">จัดการ PLOs</span>
+        </nav>
+        <h2>จัดการผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs)</h2>
+        <p class="text-muted mb-0">กำหนด PLOs ของหลักสูตร เพื่อใช้อ้างอิงในการจัดทำ มคอ.</p>
+    </div>
+    {% if selected_program %}
+    <div>
+        <button class="btn btn-primary" onclick="document.getElementById('modal-create-plo').style.display='flex'">
+            + เพิ่ม PLO
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+{% if programs %}
+{% if programs|length > 1 %}
+<div class="glass panel mb-3">
+    <form method="GET" action="{{ url_for('head_manage_plos') }}" class="filter-form">
+        <label class="text-muted mb-0">หลักสูตร</label>
+        <select name="program_id" class="form-control select-inline min-200" onchange="this.form.submit()">
+            {% for p in programs %}
+            <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+                {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+{% endif %}
+
+<div class="glass panel">
+    <h3 class="panel-title">
+        PLOs ของหลักสูตร{% if selected_program %} : {{ selected_program.name }}{% if selected_program.year %} ({{ selected_program.year }}){% endif %}{% endif %}
+    </h3>
+    <div class="table-wrapper">
+        <table class="data-table" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+                <col style="width: 15%;">
+                <col style="width: 65%;">
+                <col style="width: 20%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="text-center">รหัส</th>
+                    <th>คำอธิบาย</th>
+                    <th class="text-center">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plo in plos %}
+                <tr>
+                    <td class="text-center text-table">{{ plo.code }}</td>
+                    <td class="text-table">{{ plo.description | thai_wrap }}</td>
+                    <td class="text-center">
+                        <div class="inline-actions" style="justify-content: center; gap: 0.4rem;">
+                            <button type="button" class="btn btn-secondary btn-compact"
+                                onclick="document.getElementById('modal-edit-plo-{{ plo.id }}').style.display='flex'">
+                                แก้ไข
+                            </button>
+                            <form action="{{ url_for('head_delete_plo', plo_id=plo.id) }}" method="POST"
+                                onsubmit="return confirm('ยืนยันการลบ PLO นี้?')">
+                                <button type="submit" class="btn btn-outline-danger btn-compact" formnovalidate>ลบ</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="empty-state text-center text-muted">ยังไม่มี PLO ในหลักสูตรนี้</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: เพิ่ม PLO -->
+{% if selected_program %}
+<div id="modal-create-plo" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:520px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">เพิ่ม PLO</h3>
+            <button onclick="document.getElementById('modal-create-plo').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form method="POST" action="{{ url_for('head_manage_plos') }}">
+            <input type="hidden" name="program_id" value="{{ selected_program.id }}">
+            <div class="form-group">
+                <label>หมายเลข PLO</label>
+                <input type="number" name="number" class="form-control" min="1" step="1" placeholder="เช่น 1" value="{{ next_number }}" required>
+                <small class="text-muted">กรอกเฉพาะตัวเลข ระบบจะแสดงผลเป็น PLO1, PLO2, … (เติมเลขถัดไปให้อัตโนมัติ แก้ไขได้)</small>
+            </div>
+            <div class="form-group">
+                <label>คำอธิบาย</label>
+                <textarea name="description" class="form-control" rows="3" placeholder="ระบุผลลัพธ์การเรียนรู้ตามเล่มหลักสูตร (มคอ.2)" required></textarea>
+            </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกข้อมูล</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-create-plo').style.display='none'">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modals: แก้ไข PLO -->
+{% for plo in plos %}
+<div id="modal-edit-plo-{{ plo.id }}" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:520px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">แก้ไข PLO</h3>
+            <button onclick="document.getElementById('modal-edit-plo-{{ plo.id }}').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form method="POST" action="{{ url_for('head_update_plo', plo_id=plo.id) }}">
+            <div class="form-group">
+                <label>หมายเลข PLO</label>
+                <input type="number" name="number" class="form-control" min="1" step="1"
+                    value="{{ plo.order if plo.order is not none else (plo.code | replace('PLO', '')) }}" required>
+                <small class="text-muted">กรอกเฉพาะตัวเลข ระบบจะแสดงผลเป็น PLO1, PLO2, …</small>
+            </div>
+            <div class="form-group">
+                <label>คำอธิบาย</label>
+                <textarea name="description" class="form-control" rows="3" required>{{ plo.description }}</textarea>
+            </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกการแก้ไข</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-edit-plo-{{ plo.id }}').style.display='none'">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+
+{% else %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="th">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ doc_title }} - {{ section.course.code if section and section.course else '' }}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        :root { --doc-ink: #111; --doc-head: #1f3a5f; --doc-line: #888; }
+
+        /* A4 sheet, centred on screen with a paper shadow; flattened for print. */
+        @page { size: A4; margin: 18mm 16mm 20mm 16mm; }
+
+        body {
+            background: #e9edf2;
+            color: var(--doc-ink);
+            font-family: 'Sarabun', sans-serif;
+            font-size: 16px;
+            line-height: 1.55;
+            margin: 0;
+            padding: 24px 0;
+        }
+
+        .doc-sheet {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 18mm 16mm 20mm;
+            background: #fff;
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.18);
+            box-sizing: border-box;
+        }
+
+        /* Formal document header. */
+        .doc-header { text-align: center; margin-bottom: 18px; }
+        .doc-org { font-size: 18px; font-weight: 700; color: var(--doc-head); }
+        .doc-title { font-size: 21px; font-weight: 700; color: var(--doc-head); margin-top: 4px; }
+        .doc-subtitle { font-size: 16px; color: #444; margin-top: 2px; }
+        .doc-course { font-size: 17px; font-weight: 700; margin-top: 10px; }
+        .doc-meta { font-size: 14px; color: #444; margin-top: 2px; }
+        .doc-rule { border: none; border-top: 2px solid var(--doc-head); margin: 12px 0 18px; }
+
+        /* Flatten the glass/card theme into a continuous document. */
+        .tqf-doc .glass,
+        .tqf-doc .glass-card,
+        .tqf-doc .qtf-card,
+        .tqf-doc .qtf-card.qtf-highlight {
+            background: #fff !important;
+            color: var(--doc-ink) !important;
+            box-shadow: none !important;
+            backdrop-filter: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            margin: 0 0 6px !important;
+        }
+
+        /* Hide the on-screen "อ่านอย่างเดียว" wrapper heading; the doc header replaces it. */
+        .tqf-doc > .glass-card > h3.text-primary { display: none !important; }
+
+        /* Numbered section headings → formal underlined headings. */
+        .tqf-doc .qtf-card > h3 {
+            font-size: 17px;
+            font-weight: 700;
+            color: var(--doc-head);
+            margin: 16px 0 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid #c5ccd6;
+            page-break-after: avoid;
+        }
+
+        /* Field labels: inline bold instead of large block headings. */
+        .tqf-doc h5 {
+            display: inline;
+            font-size: 1em;
+            font-weight: 700;
+            margin: 0;
+            color: var(--doc-head);
+        }
+        .tqf-doc .text-muted { color: var(--doc-head) !important; }
+        .tqf-doc .mt-2 { margin-top: 4px !important; }
+        .tqf-doc .mt-3 { margin-top: 8px !important; }
+        .tqf-doc .preserve-text { white-space: pre-wrap; }
+
+        /* Tables: fit the page, formal borders, no horizontal scroll. */
+        .tqf-doc .qtf-table-wrapper { overflow: visible !important; }
+        .tqf-doc .qtf-table {
+            width: 100% !important;
+            min-width: 0 !important;
+            border-collapse: collapse;
+            margin: 6px 0 4px;
+            font-size: 13px;
+        }
+        .tqf-doc .qtf-table th,
+        .tqf-doc .qtf-table td {
+            border: 1px solid #9aa3ad !important;
+            padding: 5px 7px !important;
+            vertical-align: top;
+            word-break: break-word;
+        }
+        .tqf-doc .qtf-table th {
+            background: #eef2f7 !important;
+            color: var(--doc-ink) !important;
+            font-weight: 700;
+            text-align: center;
+        }
+        .tqf-doc .qtf-table thead { display: table-header-group; }
+        .tqf-doc .qtf-table tr { page-break-inside: avoid; }
+
+        /* Signature block. */
+        .doc-signatures {
+            display: flex;
+            justify-content: space-around;
+            gap: 40px;
+            margin-top: 40px;
+            page-break-inside: avoid;
+        }
+        .doc-sign { text-align: center; flex: 1; font-size: 15px; }
+        .doc-sign .line { margin-bottom: 6px; }
+        .doc-sign .role { white-space: nowrap; }
+
+        /* Toolbar (screen only). */
+        .print-toolbar {
+            position: sticky;
+            top: 0;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            justify-content: flex-end;
+            max-width: 210mm;
+            margin: 0 auto 16px;
+            padding: 10px 16px;
+            background: rgba(255, 255, 255, 0.96);
+            border: 1px solid #d0d0d0;
+            border-radius: 10px;
+        }
+        .print-toolbar button, .print-toolbar a {
+            font-family: 'Sarabun', sans-serif;
+            font-size: 15px;
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--doc-head);
+            background: var(--doc-head);
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+        }
+        .print-toolbar a.secondary { background: #fff; color: var(--doc-head); }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .doc-sheet {
+                width: auto;
+                min-height: 0;
+                margin: 0;
+                padding: 0;
+                box-shadow: none;
+            }
+            .print-toolbar { display: none !important; }
+            .tqf-doc .qtf-card { page-break-inside: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-toolbar">
+        <span style="margin-right:auto;color:#444;font-size:14px;">
+            บันทึกเป็น PDF: เลือกปลายทาง “Save as PDF / บันทึกเป็น PDF” ในหน้าต่างพิมพ์
+        </span>
+        <button type="button" onclick="window.print()">พิมพ์ / บันทึก PDF</button>
+        <a class="secondary" href="#" onclick="window.close();return false;">ปิด</a>
+    </div>
+
+    {% set course = section.course if section and section.course else None %}
+    {% set program = course.program if course else None %}
+    {% set term = section.term if section and section.term else None %}
+    {% if tqf_type == 'tqf3' %}
+        {% set main_title = 'ประมวลการสอนและแผนการจัดการเรียนรู้' %}
+    {% elif tqf_type == 'tqf4' %}
+        {% set main_title = 'ประมวลการสอนและแผนการจัดการเรียนรู้รายวิชาประสบการณ์ภาคสนาม' %}
+    {% else %}
+        {% set main_title = 'รายงานผลการจัดการเรียนรู้ระดับรายวิชาของหลักสูตร' %}
+    {% endif %}
+
+    <div class="doc-sheet">
+        <div class="doc-header">
+            <div class="doc-org">มหาวิทยาลัยราชภัฏเทพสตรี</div>
+            <div class="doc-title">{{ main_title }}</div>
+            <div class="doc-subtitle">({{ doc_title }})</div>
+            <div class="doc-course">
+                {{ course.code if course else '' }} {{ (course.name_th if course else '') | thai_wrap }}
+            </div>
+            <div class="doc-meta">
+                {% if program %}หลักสูตร{{ program.name | thai_wrap }}{% endif %}
+                {% if term %} · ภาคการศึกษา {{ term.semester }}/{{ term.year }}{% endif %}
+                {% if section %} · หมู่เรียน {{ section.section_number }}{% endif %}
+            </div>
+        </div>
+        <hr class="doc-rule">
+
+        <div class="tqf-doc">
+            {% if tqf_type == 'tqf3' %}
+                {% include 'shared/tqf3_readonly.html' %}
+            {% elif tqf_type == 'tqf4' %}
+                {% include 'shared/tqf4_readonly.html' %}
+            {% else %}
+                {% include 'shared/tqf5_readonly.html' %}
+            {% endif %}
+        </div>
+
+        <div class="doc-signatures">
+            <div class="doc-sign">
+                <div class="line">
+                    {% if tqf_type == 'tqf4' %}ลงชื่อ อาจารย์ผู้รับผิดชอบรายวิชา{% else %}ลงชื่อ อาจารย์ผู้สอน{% endif %}
+                </div>
+                <div class="line">....................................................</div>
+                <div class="role">(......................................................)</div>
+                <div class="line">วันที่ ......... / ......... / .........</div>
+            </div>
+            <div class="doc-sign">
+                <div class="line">ลงชื่อ ประธานบริหารหลักสูตร</div>
+                <div class="line">....................................................</div>
+                <div class="role">(......................................................)</div>
+                <div class="line">วันที่ ......... / ......... / .........</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.addEventListener('load', function () {
+            // Give Thai webfonts a moment to load before opening the dialog.
+            setTimeout(function () { window.print(); }, 400);
+        });
+    </script>
+</body>
+</html>

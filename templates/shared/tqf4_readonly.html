@@ -1,0 +1,267 @@
+{# Read-only view of TQF4 (field experience, มคอ.4). #}
+
+<div class="glass glass-card">
+    <h3 class="mb-6 text-primary">ข้อมูลฉบับเต็ม (อ่านอย่างเดียว)</h3>
+
+    {% set general = tqf4.general_info or {} %}
+    {% set course = section.course if section and section.course else None %}
+    {% set term = section.term if section and section.term else None %}
+    {% set _prog = course.program if course else None %}
+    {% set _fac = _prog.faculty if _prog else None %}
+
+    <!-- 1) ข้อมูลรายวิชา -->
+    <div class="qtf-card">
+        <h3>1) ข้อมูลรายวิชา (ประสบการณ์ภาคสนาม)</h3>
+        <div class="mt-3">
+            <span class="text-muted"><h5>สถาบันการศึกษา:</h5></span>
+            <span>{{ general.get('university') or 'มหาวิทยาลัยราชภัฏเทพสตรี' }}</span>
+            <span>คณะ{{ (general.get('faculty') or (_fac.name if _fac else '-')) | thai_wrap }}</span>
+            <span>หลักสูตร {{ (general.get('program') or (_prog.name if _prog else '-')) | thai_wrap }}</span>
+        </div>
+        <div class="mt-2">
+            <span class="text-muted"><h5>รายวิชา:</h5></span>
+            <span>{{ general.get('course_code', course.code if course else '-') }}</span>
+            <span>{{ general.get('course_name', course.name_th if course else '-') | thai_wrap }}</span>
+            <span>จำนวน {{ general.get('credits', course.credits if course else '-') }} หน่วยกิต</span>
+            <span>ชั้นปี {{ general.get('year_level', '-') }}</span>
+        </div>
+        <div style="display: grid; grid-template-columns: 33% 33% 34%; gap: 16px;" class="mt-2">
+            <div><span class="text-muted"><h5>สถานภาพของวิชา:</h5></span><span> {{ general.get('course_status', '-') }} </span></div>
+            <div><span class="text-muted"><h5>ประเภทนักศึกษา:</h5></span><span> {{ general.get('student_type', '-') }} </span></div>
+            <div><span class="text-muted"><h5>วิชาเอก:</h5></span><span> {{ general.get('major', '-') }} </span></div>
+        </div>
+        <div class="mt-2">
+            <span class="text-muted"><h5>ปีการศึกษา:</h5></span>
+            <span> {{ general.get('semester', term.semester if term else '-') }} / {{ general.get('academic_year', term.year if term else '-') }} </span>
+        </div>
+        <div class="mt-2">
+            <span class="text-muted"><h5>คำอธิบายรายวิชา:</h5></span>
+            <span class="preserve-text">{{ general.get('description', course.description if course else '-') }}</span>
+        </div>
+        <div class="mt-2">
+            <span class="text-muted"><h5>รายวิชาที่เรียนก่อน:</h5></span>
+            <span> {{ general.get('prereq', '-') }} </span>
+        </div>
+        <div class="mt-2">
+            <span class="text-muted"><h5>เงื่อนไขที่สำคัญของการฝึกประสบการณ์:</h5></span>
+            <div class="preserve-text">{{ general.get('field_condition', '-') }}</div>
+        </div>
+        <div style="display: grid; grid-template-columns: 34% 33% 33%; gap: 16px;" class="mt-2">
+            <div><span class="text-muted"><h5>อาจารย์ที่ปรึกษา/นิเทศ:</h5></span><span> {{ general.get('advisor', '-') }} </span></div>
+            <div><span class="text-muted"><h5>ห้องพัก:</h5></span><span> {{ general.get('office', '-') }} </span></div>
+            <div><span class="text-muted"><h5>โทรศัพท์:</h5></span><span> {{ general.get('phone', '-') }} </span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 34% 33% 33%; gap: 16px;" class="mt-2">
+            <div><span class="text-muted"><h5>ห้องเรียน/สถานที่:</h5></span><span> {{ general.get('location', '-') }} </span></div>
+            <div><span class="text-muted"><h5>ระบบออนไลน์:</h5></span><span> {{ general.get('online_system', '-') }} </span></div>
+            <div><span class="text-muted"><h5>กรณีฝึกภายนอกมหาวิทยาลัย:</h5></span><span> {{ general.get('external_location', '-') }} </span></div>
+        </div>
+    </div>
+
+    <!-- 2) จุดประสงค์ + ภาระงาน -->
+    <div class="qtf-card">
+        <h3>2) จุดประสงค์การจัดการเรียนรู้และภาระงาน</h3>
+        <div class="mt-3">
+            <span class="text-muted"><h5>จุดประสงค์การจัดการเรียนรู้ของการฝึกประสบการณ์ภาคสนาม:</h5></span>
+            <div class="preserve-text">{{ general.get('field_objective', general.get('objectives', '-')) }}</div>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;" class="mt-3">
+            <div><span class="text-muted"><h5>ชม.บรรยาย:</h5></span><span> {{ general.get('lecture_hours', '-') }} </span></div>
+            <div><span class="text-muted"><h5>ชม.เตรียมพร้อม:</h5></span><span> {{ general.get('prep_hours', '-') }} </span></div>
+            <div><span class="text-muted"><h5>ชม.ฝึกปฏิบัติ:</h5></span><span> {{ general.get('practice_hours', '-') }} </span></div>
+            <div><span class="text-muted"><h5>ชม.ศึกษาเอง:</h5></span><span> {{ general.get('self_hours', '-') }} </span></div>
+            <div><span class="text-muted"><h5>ชม.นิเทศ/สัปดาห์:</h5></span><span> {{ general.get('advisor_consult_hours', '-') }} </span></div>
+        </div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>ช่องทางสำหรับอุทธรณ์การเรียน:</h5></span>
+            <div class="preserve-text">{{ general.get('appeal_channel', '-') }}</div>
+        </div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>การจัดการเรียนรู้รายวิชาการฝึกประสบการณ์ภาคสนาม:</h5></span>
+            <div class="preserve-text">{{ general.get('field_management', '-') }}</div>
+        </div>
+    </div>
+
+    <!-- 3) งานที่มอบหมาย + ผู้เกี่ยวข้อง -->
+    <div class="qtf-card">
+        <h3>3) งานที่มอบหมายและความรับผิดชอบของผู้เกี่ยวข้อง</h3>
+        {% set rp = general.get('report[]', []) %}
+        {% set rpc = general.get('report_criteria[]', []) %}
+        {% if rp|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูลงานที่มอบหมาย)</div>
+        {% else %}
+        <div class="qtf-table-wrapper">
+            <table class="qtf-table min-760">
+                <thead><tr><th class="col-60p">รายงาน/งานที่มอบหมาย/กำหนดส่งงาน</th><th class="col-40p">เกณฑ์การวัดประเมินผลลัพธ์การเรียนรู้</th></tr></thead>
+                <tbody>
+                    {% for i in range(rp|length) %}
+                    <tr><td class="preserve-text">{{ rp[i] or '-' }}</td><td class="preserve-text">{{ rpc[i] if i < rpc|length else '-' }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+        <div class="mt-3"><span class="text-muted"><h5>การติดตามผลการเรียนรู้:</h5></span><div class="preserve-text">{{ general.get('follow_up', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>หน้าที่และความรับผิดชอบของพี่เลี้ยง:</h5></span><div class="preserve-text">{{ general.get('mentor_duties', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>หน้าที่และความรับผิดชอบของอาจารย์ที่ปรึกษา/นิเทศ:</h5></span><div class="preserve-text">{{ general.get('advisor_duties', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>สิ่งอำนวยความสะดวกที่ต้องการจากสถานประกอบการ:</h5></span><div class="preserve-text">{{ general.get('facilities', '-') }}</div></div>
+    </div>
+
+    <!-- 4) การวางแผนและเตรียมการ -->
+    <div class="qtf-card">
+        <h3>4) การวางแผนและการเตรียมการสำหรับการฝึกประสบการณ์ภาคสนาม</h3>
+        <div class="mt-2"><span class="text-muted"><h5>1. การกำหนดสถานที่ฝึก:</h5></span><div class="preserve-text">{{ general.get('prep_location', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>2. การเตรียมอาจารย์ที่ปรึกษา/นิเทศ:</h5></span><div class="preserve-text">{{ general.get('prep_advisor', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>3. การเตรียมความพร้อมนักศึกษา:</h5></span><div class="preserve-text">{{ general.get('prep_student', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>4. การเตรียมพี่เลี้ยง:</h5></span><div class="preserve-text">{{ general.get('prep_mentor', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>5. การจัดการความเสี่ยง:</h5></span><div class="preserve-text">{{ general.get('risk_mgmt', '-') }}</div></div>
+    </div>
+
+    <!-- 5) การพัฒนานักศึกษา -->
+    <div class="qtf-card">
+        <h3 class="mb-3">5) การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</h3>
+        <div class="mt-2"><span class="text-muted"><h5>PLOs ที่เกี่ยวข้อง:</h5></span><div class="preserve-text">{{ general.get('plos', '-') }}</div></div>
+        {% set clo_texts = general.get('clo_text[]', []) %}
+        {% set clo_plos = general.get('clo_plo[]', []) %}
+        {% set teachs = general.get('teach_strategy[]', []) %}
+        {% set assesses = general.get('assess_strategy[]', []) %}
+        {% if clo_texts|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div class="qtf-table-wrapper mt-2">
+            <table class="qtf-table min-900">
+                <thead><tr>
+                    <th class="col-28p">CLOs ฝึกประสบการณ์ภาคสนาม</th>
+                    <th class="col-16p">PLOs ที่รับผิดชอบ</th>
+                    <th class="col-28p">กลยุทธ์การฝึกตาม CLOs</th>
+                    <th class="col-28p">วิธีการวัดและประเมินผลตาม CLOs</th>
+                </tr></thead>
+                <tbody>
+                    {% for i in range(clo_texts|length) %}
+                    <tr>
+                        <td class="preserve-text">{{ clo_texts[i] or '-' }}</td>
+                        <td class="preserve-text">{{ clo_plos[i] if i < clo_plos|length else '-' }}</td>
+                        <td class="preserve-text">{{ teachs[i] if i < teachs|length else '-' }}</td>
+                        <td class="preserve-text">{{ assesses[i] if i < assesses|length else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 6) แผนการฝึกรายสัปดาห์ -->
+    <div class="qtf-card">
+        <h3 class="mb-3">6) แผนการฝึกประสบการณ์ภาคสนาม</h3>
+        {% set weeks = general.get('week[]', []) %}
+        {% set topics = general.get('topic[]', []) %}
+        {% set week_clos = general.get('week_clo[]', []) %}
+        {% set hours = general.get('hours[]', []) %}
+        {% set activities = general.get('activities[]', []) %}
+        {% set supervisors = general.get('supervisor[]', []) %}
+        {% set notes = general.get('note[]', []) %}
+        {% if topics|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div class="qtf-table-wrapper">
+            <table class="qtf-table min-900">
+                <thead><tr>
+                    <th class="col-90">สัปดาห์</th><th class="min-220">หัวข้อ/รายละเอียด</th><th class="col-140">CLOs</th>
+                    <th class="col-110">ชั่วโมง</th><th class="min-200">กิจกรรมการฝึกภาคสนาม</th><th class="col-140">ผู้ดูแลกิจกรรม</th><th class="col-140">หมายเหตุ</th>
+                </tr></thead>
+                <tbody>
+                    {% for i in range(topics|length) %}
+                    {% set wk = weeks[i] if i < weeks|length and (weeks[i]|string)|trim else (i + 1) %}
+                    <tr>
+                        <td>{{ wk }}</td>
+                        <td class="preserve-text">{{ topics[i] or '-' }}</td>
+                        <td class="preserve-text">{{ week_clos[i] if i < week_clos|length else '-' }}</td>
+                        <td>{{ hours[i] if i < hours|length and (hours[i]|string)|trim else '-' }}</td>
+                        <td class="preserve-text">{{ activities[i] if i < activities|length else '-' }}</td>
+                        <td class="preserve-text">{{ supervisors[i] if i < supervisors|length else '-' }}</td>
+                        <td class="preserve-text">{{ notes[i] if i < notes|length else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 7) แผนการประเมิน -->
+    <div class="qtf-card">
+        <h3 class="mb-3">7) แผนการประเมินตามผลลัพธ์การเรียนรู้</h3>
+        {% set a_clo = general.get('assess_clo[]', []) %}
+        {% set a_act = general.get('assess_activity[]', []) %}
+        {% set a_crit = general.get('assess_plan_criteria[]', []) %}
+        {% set a_pct = general.get('assess_pct[]', []) %}
+        {% set a_eval = general.get('assess_evaluator[]', []) %}
+        {% if a_clo|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div class="qtf-table-wrapper">
+            <table class="qtf-table min-900">
+                <thead><tr>
+                    <th class="col-16p">CLOs</th><th class="col-28p">กิจกรรมการประเมินผลการฝึก</th><th class="col-24p">เกณฑ์การประเมิน</th><th class="col-14p">สัดส่วน (%)</th><th class="col-18p">ผู้ประเมินผล</th>
+                </tr></thead>
+                <tbody>
+                    {% for i in range(a_clo|length) %}
+                    <tr>
+                        <td class="preserve-text">{{ a_clo[i] or '-' }}</td>
+                        <td class="preserve-text">{{ a_act[i] if i < a_act|length else '-' }}</td>
+                        <td class="preserve-text">{{ a_crit[i] if i < a_crit|length else '-' }}</td>
+                        <td>{{ a_pct[i] if i < a_pct|length else '-' }}</td>
+                        <td class="preserve-text">{{ a_eval[i] if i < a_eval|length else '-' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 8) Rubric Score -->
+    <div class="qtf-card">
+        <h3 class="mb-3">8) เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้ (Rubric Score)</h3>
+        {% set r_topic = general.get('rubric_topic[]', []) %}
+        {% set r_l5 = general.get('rubric_l5[]', []) %}
+        {% set r_l4 = general.get('rubric_l4[]', []) %}
+        {% set r_l3 = general.get('rubric_l3[]', []) %}
+        {% set r_l2 = general.get('rubric_l2[]', []) %}
+        {% set r_l1 = general.get('rubric_l1[]', []) %}
+        {% set ns_r = namespace(has=false) %}
+        {% for i in range(r_topic|length) %}{% if (r_topic[i]|string)|trim %}{% set ns_r.has = true %}{% endif %}{% endfor %}
+        {% if not ns_r.has %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+        <div class="qtf-table-wrapper">
+            <table class="qtf-table min-900">
+                <thead><tr><th class="col-22p">ประเด็นการประเมิน</th><th>ระดับ 5</th><th>ระดับ 4</th><th>ระดับ 3</th><th>ระดับ 2</th><th>ระดับ 1</th></tr></thead>
+                <tbody>
+                    {% for i in range(r_topic|length) %}{% if (r_topic[i]|string)|trim %}
+                    <tr>
+                        <td class="preserve-text">{{ r_topic[i] or '-' }}</td>
+                        <td class="preserve-text">{{ r_l5[i] if i < r_l5|length else '-' }}</td>
+                        <td class="preserve-text">{{ r_l4[i] if i < r_l4|length else '-' }}</td>
+                        <td class="preserve-text">{{ r_l3[i] if i < r_l3|length else '-' }}</td>
+                        <td class="preserve-text">{{ r_l2[i] if i < r_l2|length else '-' }}</td>
+                        <td class="preserve-text">{{ r_l1[i] if i < r_l1|length else '-' }}</td>
+                    </tr>
+                    {% endif %}{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- 9) การประเมินจากผู้เกี่ยวข้อง -->
+    <div class="qtf-card">
+        <h3>9) การประเมินและปรับปรุงการจัดการเรียนรู้จากผู้ที่เกี่ยวข้อง</h3>
+        <div class="mt-2"><span class="text-muted"><h5>นักศึกษาที่ฝึกประสบการณ์ภาคสนาม:</h5></span><div class="preserve-text">{{ general.get('eval_student', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>พี่เลี้ยงในสถานประกอบการ:</h5></span><div class="preserve-text">{{ general.get('eval_mentor', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>อาจารย์ที่ปรึกษา/อาจารย์นิเทศ:</h5></span><div class="preserve-text">{{ general.get('eval_advisor', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>อื่นๆ เช่น บัณฑิตจบใหม่:</h5></span><div class="preserve-text">{{ general.get('eval_other', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>กระบวนการยืนยัน (verification) และการวางแผนปรับปรุง:</h5></span><div class="preserve-text">{{ general.get('verification', '-') }}</div></div>
+    </div>
+</div>

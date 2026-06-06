@@ -14,7 +14,7 @@
 </div>
 
 <div class="glass glass-form">
-    <h3 class="text-center text-primary mb-3">📝 ขั้นตอนการเปิดรายวิชาในภาคเรียน</h3>
+    <h3 class="text-center text-primary mb-3">ขั้นตอนการเปิดรายวิชาในภาคเรียน</h3>
 
     <form method="POST">
         <!-- 1. Term Selection -->
@@ -35,7 +35,7 @@
             <select name="course_id" class="form-control" required>
                 <option value="">-- กรุณาเลือกรายวิชา --</option>
                 {% for prog_id, prog_data in grouped_courses.items() %}
-                <optgroup label="📂 {{ prog_data.name }}">
+                <optgroup label="{{ prog_data.name }}">
                     {% for course in prog_data.courses %}
                     <option value="{{ course.id }}">{{ course.code }} - {{ course.name_th }}</option>
                     {% endfor %}

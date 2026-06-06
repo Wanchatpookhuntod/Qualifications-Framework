@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
-{% block title %}ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}{% endblock %}
+{% set doc_label = {'tqf3': '3', 'tqf4': '4', 'tqf5': '5'}.get(tqf_type, '5') %}
+{% block title %}ตรวจสอบ มคอ.{{ doc_label }}{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -13,7 +14,7 @@
         
         
         
-        <h2>ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}:
+        <h2>ตรวจสอบ มคอ.{{ doc_label }}:
             {% if tqf.section and tqf.section.course %}
             {{ tqf.section.course.code }} {{ tqf.section.course.name_th | thai_wrap }}
             {% else %}
@@ -32,6 +33,16 @@
     </div>
     <div>
         <span class="status-badge {% if tqf.status == 'APPROVED' %}status-approved{% elif tqf.status == 'SUBMITTED' %}status-submitted{% elif tqf.status == 'RETURNED' %}status-returned{% else %}role-instructor{% endif %}">สถานะปัจจุบัน: {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf.status, tqf.status) }}</span>
+        {% if tqf.section %}
+        <div class="flex-center-gap mt-2">
+            <a class="btn btn-secondary btn-compact" href="{{ url_for('export_' ~ tqf_type ~ '_word', section_id=tqf.section.id) }}">
+                ดาวน์โหลด Word
+            </a>
+            <a class="btn btn-secondary btn-compact" href="{{ url_for('export_' ~ tqf_type ~ '_pdf', section_id=tqf.section.id) }}" target="_blank" rel="noopener">
+                บันทึก PDF
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -80,7 +91,20 @@
         </div>
         <div class="preview-block">
             <h4 class="preview-label">จำนวน CLO ที่ระบุ</h4>
-            <p>{{ tqf.general_info.get('clo_code[]', [])|length }} รายการ</p>
+            <p>{{ tqf.general_info.get('clo_text[]', tqf.general_info.get('clo_code[]', []))|length }} รายการ</p>
+        </div>
+        {% elif tqf_type == 'tqf4' %}
+        <div class="preview-block">
+            <h4 class="preview-label">จุดประสงค์การจัดการเรียนรู้ของการฝึก</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('field_objective', tqf.general_info.get('objectives', 'ไม่ได้ระบุ')) }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">คำอธิบายรายวิชา</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">จำนวน CLO ที่ระบุ</h4>
+            <p>{{ tqf.general_info.get('clo_text[]', [])|length }} รายการ</p>
         </div>
         {% else %}
         <div class="preview-block">
@@ -109,6 +133,10 @@
             {% set section = tqf.section if tqf.section else None %}
             {% set tqf3 = tqf %}
             {% include 'shared/tqf3_readonly.html' %}
+        {% elif tqf_type == 'tqf4' %}
+            {% set section = tqf.section if tqf.section else None %}
+            {% set tqf4 = tqf %}
+            {% include 'shared/tqf4_readonly.html' %}
         {% else %}
             {% set section = tqf.section if tqf.section else None %}
             {% set tqf5 = tqf %}

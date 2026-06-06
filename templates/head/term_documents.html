@@ -64,19 +64,22 @@
                         {% endif %}
                     </td>
                     <td class="text-right">
-                        {% if section.tqf3 %}
-                        {% set s = section.tqf3.status %}
+                        {% set spec_doc = section.tqf4 if section.is_field else section.tqf3 %}
+                        {% set spec_type = 'tqf4' if section.is_field else 'tqf3' %}
+                        {% if spec_doc %}
+                        {% set s = spec_doc.status %}
                         <div class="mb-2">
+                            {% if section.is_field %}<span class="text-muted text-xs">มคอ.4</span><br>{% endif %}
                             {% if s in ['SUBMITTED', 'APPROVED'] %}
-                            <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}">
+                            <a href="{{ url_for('review_tqf', tqf_type=spec_type, tqf_id=spec_doc.id) }}">
                             <span class="status-badge status-submitted">รอตรวจสอบ</span></a>
                             {% else %}
-                            <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}">
+                            <a href="{{ url_for('review_tqf', tqf_type=spec_type, tqf_id=spec_doc.id) }}">
                             <span class="status-badge role-instructor">ร่าง</span></a>
                             {% endif %}
                         </div>
                         {% else %}
-                        <span class="text-muted text-xs">-</span>
+                        <span class="text-muted text-xs">-{% if section.is_field %} (มคอ.4){% endif %}</span>
                         {% endif %}
                     </td>
                     <td class="text-right">

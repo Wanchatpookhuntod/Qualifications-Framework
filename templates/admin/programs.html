@@ -37,7 +37,7 @@
                     <th class="text-center">ปี</th>
                     <th class="text-center">สาขา/คณะที่สังกัด</th>
                     <th class="text-center">จำนวนรายวิชา</th>
-                    <th class="text-center">จัดการ</th>
+                    <th class="text-center">เพิ่มรายวิชา</th>
                     <th class="text-center">ลบ</th>
                 </tr>
             </thead>
@@ -47,7 +47,7 @@
                     <td class="text-table">{{ program.name | thai_wrap }}</td>
                     <td>{{ program.year if program.year else '-' }}</td>
                     <td>
-                        <div>{{ (department_name_by_id.get(program.department_id) or '-') | thai_wrap }}</div>
+                        <div class="text-table">{{ (department_name_by_id.get(program.department_id) or '-') | thai_wrap }}</div>
                         <div class="text-muted text-xs">{{ (faculty_name_by_id.get(program.faculty_id) or '-') | thai_wrap }}</div>
                     </td>
                     <td class="text-center">
@@ -102,7 +102,7 @@
                 <select name="department_id" class="form-control" required>
                     <option value="">-- เลือกสาขาวิชา --</option>
                     {% for dept in departments %}
-                    <option value="{{ dept.id }}">{{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}</option>
+                    <option value="{{ dept.id }}">{{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}{% if dept.major %} ({{ dept.major }}){% endif %}</option>
                     {% endfor %}
                 </select>
             </div>

@@ -75,8 +75,8 @@
                             <div class="text-table">{{ section.course.code }} {{ section.course.name_th | thai_wrap }}</div>
                             <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                         </td>
-                        <td>
-                            <select name="instructor_{{ section.id }}" class="form-control text-xs">
+                        <td style="font-size:0.877rem;">
+                            <select name="instructor_{{ section.id }}" class="form-control">
                                 <option value="">-- รอการมอบหมาย --</option>
                                 {% for inst in instructors %}
                                 <option value="{{ inst.id }}" {% if section.instructor_id==inst.id %}selected{% endif %}>{{ inst.full_name }}</option>
@@ -86,13 +86,16 @@
                         {% set status_label_map = {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'} %}
                         {% set status_badge_map = {'APPROVED': 'status-approved', 'SUBMITTED': 'status-submitted', 'RETURNED': 'status-returned', 'DRAFT': 'status-draft'} %}
                         <td style="text-align: right;">
-                            {% if section.tqf3 %}
-                            {% set s3 = section.tqf3.status or 'DRAFT' %}
-                            <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" style="text-decoration: none;">
+                            {% set spec_doc = section.tqf4 if section.is_field else section.tqf3 %}
+                            {% set spec_type = 'tqf4' if section.is_field else 'tqf3' %}
+                            {% if spec_doc %}
+                            {% set s3 = spec_doc.status or 'DRAFT' %}
+                            <a href="{{ url_for('review_tqf', tqf_type=spec_type, tqf_id=spec_doc.id) }}" style="text-decoration: none;">
+                                {% if section.is_field %}<span class="text-muted text-xs">มคอ.4</span><br>{% endif %}
                                 <span class="status-badge {{ status_badge_map.get(s3, 'status-draft') }}">{{ status_label_map.get(s3, s3) }}</span>
                             </a>
                             {% else %}
-                            <span class="text-muted text-xs">รอดำเนินการ</span>
+                            <span class="text-muted text-xs">รอดำเนินการ{% if section.is_field %} (มคอ.4){% endif %}</span>
                             {% endif %}
                         </td>
                         <td style="text-align: right;">

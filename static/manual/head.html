@@ -4,9 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>คู่มือ Head — ระบบ TQF</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Prompt:wght@400;500;600&family=Sarabun:wght@400;600;700&family=Kanit:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
   <link rel="stylesheet" href="/static/manual/_base.css" />
   <style>
-    :root { --role-color: #15803d; --role-bg: #dcfce7; }
+    :root { --role-color: #12a150; --role-bg: #dcfce7; }
     .site-header {
       background: linear-gradient(135deg, #14532d 0%, #15803d 100%);
       color: white; padding: 28px 32px 28px;
@@ -14,11 +18,12 @@
     .site-header .role-tag {
       display: inline-flex; align-items: center; gap: 6px;
       background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3);
-      border-radius: 100px; padding: 4px 14px;
-      font-size: 13px; font-weight: 700; margin-bottom: 10px;
+      border-radius: 100px; padding: 5px 14px;
+      font-size: 13px; font-weight: 600; margin-bottom: 10px;
     }
-    .site-header h1 { font-size: 1.9rem; font-weight: 800; margin-bottom: 6px; }
-    .site-header p { font-size: 14px; opacity: 0.8; }
+    .site-header .role-tag .material-symbols-rounded { font-size: 18px; }
+    .site-header h1 { font-family: 'Kanit','Sarabun',sans-serif; font-size: 1.9rem; font-weight: 600; margin-bottom: 6px; }
+    .site-header p { font-size: 14px; opacity: 0.85; }
   </style>
 </head>
 <body>
@@ -26,11 +31,11 @@
 <header class="site-header">
   <div class="header-topbar">
     <div class="breadcrumb">
-      <a href="/manual">คู่มือการใช้งาน</a> › หัวหน้าสาขา
+      <a href="/manual">คู่มือการใช้งาน</a> <span class="material-symbols-rounded">chevron_right</span> หัวหน้าสาขา
     </div>
-    <a href="/head/dashboard" class="btn-back-dashboard">← กลับหน้าหลัก</a>
+    <a href="/head/dashboard" class="btn-back-dashboard"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
   </div>
-  <div class="role-tag">🎓 Head</div>
+  <div class="role-tag"><span class="material-symbols-rounded">school</span> Head</div>
   <h1>คู่มือหัวหน้าสาขา</h1>
   <p>มอบหมายอาจารย์ผู้สอน ตรวจสอบ และอนุมัติเอกสาร มคอ.3 / มคอ.5</p>
 </header>
@@ -41,8 +46,8 @@
     <!-- TOC -->
     <aside class="toc">
       <div class="toc-nav-actions">
-        <a href="/head/dashboard" class="back-link">← กลับหน้าหลัก</a>
-        <a href="/manual" class="alt-link">เลือกบทบาทอื่น</a>
+        <a href="/head/dashboard" class="back-link"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
+        <a href="/manual" class="alt-link"><span class="material-symbols-rounded">swap_horiz</span> เลือกบทบาทอื่น</a>
       </div>
       <h3>สารบัญ</h3>
       <ul>
@@ -71,7 +76,7 @@
 
       <!-- OVERVIEW -->
       <section id="overview">
-        <h2 class="section-title">🎓 ภาพรวม Head</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">school</span> ภาพรวม Head</h2>
         <p>หัวหน้าสาขาเป็นผู้ควบคุมคุณภาพเอกสาร มคอ. ในสาขาวิชาที่รับผิดชอบ มีหน้าที่หลัก 3 อย่าง</p>
         <table>
           <thead><tr><th>หน้าที่</th><th>รายละเอียด</th></tr></thead>
@@ -85,7 +90,7 @@
 
       <!-- DASHBOARD -->
       <section id="dashboard">
-        <h2 class="section-title">📊 Dashboard</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">dashboard</span> Dashboard</h2>
         <p>หน้า Dashboard แสดงรายวิชาทั้งหมดในสาขา จัดกลุ่มตามภาคการศึกษา</p>
         <ul>
           <li>เห็น <strong>สถานะ มคอ.3 และ มคอ.5</strong> ของแต่ละ Section (DRAFT, SUBMITTED, RETURNED, APPROVED)</li>
@@ -94,13 +99,14 @@
           <li>ข้อมูลอัปเดตทุก 30 วินาที</li>
         </ul>
         <div class="callout callout-info">
-          💡 ใช้ <strong>dropdown ภาคการศึกษา</strong> ด้านบนเพื่อดูข้อมูลของแต่ละภาค
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>ใช้ <strong>dropdown ภาคการศึกษา</strong> ด้านบนเพื่อดูข้อมูลของแต่ละภาค</span>
         </div>
       </section>
 
       <!-- ASSIGN -->
       <section id="assign">
-        <h2 class="section-title">👩‍🏫 มอบหมายอาจารย์ผู้สอน</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">assignment_ind</span> มอบหมายอาจารย์ผู้สอน</h2>
         <p>ทำหลังจาก Academic เปิดรายวิชา (สร้าง Section) แล้ว</p>
         <ol class="steps">
           <li>บน Dashboard เลือก <strong>ภาคการศึกษา</strong> จาก dropdown</li>
@@ -109,18 +115,19 @@
           <li>กดปุ่ม <strong>"บันทึก"</strong> — อาจารย์จะเห็น Section นี้บน Dashboard ของตน</li>
         </ol>
         <div class="callout callout-warning">
-          ⚠️ Section ที่ยังไม่ได้มอบหมายอาจารย์ จะแสดง <em>"-- รอการมอบหมาย --"</em>
-          อาจารย์จะไม่สามารถเห็นหรือกรอก มคอ. ได้จนกว่าจะมอบหมาย
+          <span class="material-symbols-rounded">warning</span>
+          <span>Section ที่ยังไม่ได้มอบหมายอาจารย์ จะแสดง <em>"-- รอการมอบหมาย --"</em>
+          อาจารย์จะไม่สามารถเห็นหรือกรอก มคอ. ได้จนกว่าจะมอบหมาย</span>
         </div>
       </section>
 
       <!-- REVIEW -->
       <section id="review">
-        <h2 class="section-title">✅ ตรวจสอบและอนุมัติเอกสาร มคอ.</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">fact_check</span> ตรวจสอบและอนุมัติเอกสาร มคอ.</h2>
         <p>เมื่ออาจารย์ส่งเอกสาร สถานะจะเปลี่ยนเป็น <span class="status status-submitted">SUBMITTED</span> และปุ่มตรวจสอบจะปรากฏ</p>
 
         <hr id="review-tqf3" />
-        <h3 class="sub-title">📄 ตรวจสอบ มคอ.3</h3>
+        <h3 class="sub-title"><span class="material-symbols-rounded">description</span> ตรวจสอบ มคอ.3</h3>
         <ol class="steps">
           <li>บน Dashboard กดปุ่ม <strong>"ตรวจสอบ"</strong> ที่แถวของ มคอ.3 ที่มีสถานะ SUBMITTED</li>
           <li>หน้า Review จะเปิดขึ้น แสดง:
@@ -137,7 +144,7 @@
         </ol>
 
         <hr id="review-tqf5" />
-        <h3 class="sub-title">📊 ตรวจสอบ มคอ.5</h3>
+        <h3 class="sub-title"><span class="material-symbols-rounded">bar_chart</span> ตรวจสอบ มคอ.5</h3>
         <ol class="steps">
           <li>บน Dashboard กดปุ่ม <strong>"ตรวจสอบ"</strong> ที่แถวของ มคอ.5 ที่มีสถานะ SUBMITTED</li>
           <li>หน้า Review จะแสดง:
@@ -153,33 +160,35 @@
         </ol>
 
         <hr id="approve" />
-        <h3 class="sub-title">🔘 อนุมัติ vs ตีกลับ</h3>
+        <h3 class="sub-title"><span class="material-symbols-rounded">rule</span> อนุมัติ vs ตีกลับ</h3>
         <table>
           <thead><tr><th>การดำเนินการ</th><th>ผล</th><th>เมื่อไหร่ควรใช้</th></tr></thead>
           <tbody>
             <tr>
-              <td>✅ <strong>อนุมัติและรับรอง</strong></td>
+              <td><span class="material-symbols-rounded mi" style="color:#12a150;">check_circle</span> <strong>อนุมัติและรับรอง</strong></td>
               <td>สถานะเปลี่ยนเป็น <span class="status status-approved">APPROVED</span><br/>เอกสารล็อค แก้ไขไม่ได้</td>
               <td>เอกสารถูกต้อง ครบถ้วน</td>
             </tr>
             <tr>
-              <td>↩️ <strong>ตีกลับเพื่อให้แก้ไข</strong></td>
+              <td><span class="material-symbols-rounded mi" style="color:#d84949;">undo</span> <strong>ตีกลับเพื่อให้แก้ไข</strong></td>
               <td>สถานะเปลี่ยนเป็น <span class="status status-returned">RETURNED</span><br/>อาจารย์รับความคิดเห็นและแก้ไขใหม่</td>
               <td>เอกสารมีข้อผิดพลาด หรือไม่ครบถ้วน</td>
             </tr>
           </tbody>
         </table>
         <div class="callout callout-warning">
-          ⚠️ ต้องกรอก <strong>ความคิดเห็น</strong> ทุกครั้ง ทั้งเมื่ออนุมัติและตีกลับ เพื่อเป็นหลักฐานการตรวจสอบ
+          <span class="material-symbols-rounded">warning</span>
+          <span>ต้องกรอก <strong>ความคิดเห็น</strong> ทุกครั้ง ทั้งเมื่ออนุมัติและตีกลับ เพื่อเป็นหลักฐานการตรวจสอบ</span>
         </div>
         <div class="callout callout-danger">
-          🚫 เมื่ออนุมัติ มคอ.3 แล้ว ระบบจะเปิดให้อาจารย์ส่ง มคอ.5 ได้ — ตรวจสอบให้ครบถ้วนก่อนอนุมัติ
+          <span class="material-symbols-rounded">block</span>
+          <span>เมื่ออนุมัติ มคอ.3 แล้ว ระบบจะเปิดให้อาจารย์ส่ง มคอ.5 ได้ — ตรวจสอบให้ครบถ้วนก่อนอนุมัติ</span>
         </div>
       </section>
 
       <!-- SUMMARY -->
       <section id="summary">
-        <h2 class="section-title">📋 รายงานสรุป มคอ.5 ระดับสาขา</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">summarize</span> รายงานสรุป มคอ.5 ระดับสาขา</h2>
         <p>เข้าเมนู <strong>Head → สรุป มคอ.5</strong> ของภาคการศึกษาที่ต้องการ</p>
         <ol class="steps">
           <li>ระบบรวบรวมข้อมูลจากทุก มคอ.5 ที่ APPROVED ในภาคการศึกษา</li>
@@ -188,13 +197,14 @@
           <li>กดปุ่ม <strong>"บันทึก/ส่งรายงานสรุป"</strong></li>
         </ol>
         <div class="callout callout-info">
-          💡 รายงานสรุปนี้เป็นเอกสารระดับสาขา ไม่ใช่ระดับรายวิชา ควรทำหลังจาก มคอ.5 ทุกฉบับได้รับการอนุมัติแล้ว
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>รายงานสรุปนี้เป็นเอกสารระดับสาขา ไม่ใช่ระดับรายวิชา ควรทำหลังจาก มคอ.5 ทุกฉบับได้รับการอนุมัติแล้ว</span>
         </div>
       </section>
 
       <!-- DOCUMENTS -->
       <section id="documents">
-        <h2 class="section-title">📁 ดูเอกสารทั้งหมดในภาคการศึกษา</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">folder</span> ดูเอกสารทั้งหมดในภาคการศึกษา</h2>
         <p>เข้าเมนู <strong>เอกสารประจำภาค</strong> ในแถวภาคการศึกษา</p>
         <ul>
           <li>ดูรายการ มคอ.3 และ มคอ.5 ของทุกรายวิชาในสาขา</li>
@@ -205,31 +215,32 @@
 
       <!-- WORKFLOW -->
       <section id="workflow">
-        <h2 class="section-title">🔄 ขั้นตอนภาพรวม (Head)</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">sync</span> ขั้นตอนภาพรวม (Head)</h2>
         <div class="workflow">
           <div class="wf-step wf-blue">Academic<br/>เปิดรายวิชา</div>
-          <span class="wf-arrow">→</span>
+          <span class="wf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="wf-step wf-blue">Head<br/>มอบหมายอาจารย์</div>
-          <span class="wf-arrow">→</span>
+          <span class="wf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="wf-step wf-yellow">อาจารย์<br/>ส่ง มคอ.3</div>
-          <span class="wf-arrow">→</span>
+          <span class="wf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="wf-step wf-green">Head<br/>อนุมัติ มคอ.3</div>
         </div>
         <div class="workflow" style="margin-top: 8px;">
           <div class="wf-step wf-yellow">อาจารย์<br/>ส่ง มคอ.5</div>
-          <span class="wf-arrow">→</span>
+          <span class="wf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="wf-step wf-green">Head<br/>อนุมัติ มคอ.5</div>
-          <span class="wf-arrow">→</span>
+          <span class="wf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="wf-step wf-green">Head<br/>สรุป มคอ.5</div>
         </div>
         <div class="callout callout-info" style="margin-top:16px;">
-          💡 หากตีกลับ: อาจารย์แก้ไข → ส่งใหม่ → Head ตรวจสอบอีกครั้ง (วนซ้ำจนอนุมัติ)
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>หากตีกลับ: อาจารย์แก้ไข → ส่งใหม่ → Head ตรวจสอบอีกครั้ง (วนซ้ำจนอนุมัติ)</span>
         </div>
       </section>
 
       <!-- ACCOUNT -->
       <section id="account">
-        <h2 class="section-title">⚙️ ตั้งค่าบัญชี</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">settings</span> ตั้งค่าบัญชี</h2>
         <ol class="steps">
           <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
           <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
@@ -240,7 +251,7 @@
 
       <!-- FAQ -->
       <section id="faq">
-        <h2 class="section-title">❓ คำถามที่พบบ่อย</h2>
+        <h2 class="section-title"><span class="material-symbols-rounded">help</span> คำถามที่พบบ่อย</h2>
 
         <h3 class="sub-title">Q: อนุมัติ มคอ.3 ไปแล้ว แต่อยากให้อาจารย์แก้ไขเพิ่มเติม ทำได้ไหม?</h3>
         <p>ไม่ได้โดยตรง เอกสารที่ APPROVED จะล็อค หากต้องการให้แก้ไขต้องติดต่อ Admin หรือ Academic เพื่อดำเนินการในระดับระบบ</p>

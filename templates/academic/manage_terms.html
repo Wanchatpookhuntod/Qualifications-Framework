@@ -21,31 +21,37 @@
     <h3 class="panel-title">ปีการศึกษาที่มีในระบบ</h3>
     <div class="table-wrapper">
         <table class="data-table">
+            <colgroup>
+                <col style="width: 20%;">
+                <col style="width: 30%;">
+                <col style="width: 25%;">
+                <col style="width: 25%;">
+            </colgroup>
             <thead>
                 <tr>
-                    <th>ภาคเรียน/ปีการศึกษา</th>
-                    <th>ช่วงเวลา</th>
-                    <th>สถานะ</th>
-                    <th class="col-140">จัดการ</th>
+                    <th class="text-center">ภาคเรียน/ปีการศึกษา</th>
+                    <th class="text-center">ช่วงเวลา</th>
+                    <th class="text-center">สถานะ</th>
+                    <th class="text-center">จัดการ</th>
                 </tr>
             </thead>
             <tbody>
                 {% for term in terms %}
                 <tr>
-                    <td class="fw-bold">{{ term.semester }}/{{ term.year }}</td>
-                    <td class="text-muted">
+                    <td class="text-table text-center">{{ term.semester }}/{{ term.year }}</td>
+                    <td class="text-table text-center">
                         {% if term.start_month and term.start_year and term.end_month and term.end_year %}
                             {{ month_names[term.start_month] }} {{ term.start_year }} – {{ month_names[term.end_month] }} {{ term.end_year }}
                         {% else %}
                             <span class="text-xs">-</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="text-center">
                         <span class="status-badge {{ 'status-approved' if term.is_open_tqf3 else 'status-returned' }}">มคอ.3 {{ 'เปิด' if term.is_open_tqf3 else 'ปิด' }}</span>
                         <span class="status-badge {{ 'status-approved' if term.is_open_tqf5 else 'status-returned' }}">มคอ.5 {{ 'เปิด' if term.is_open_tqf5 else 'ปิด' }}</span>
                     </td>
-                    <td>
-                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <td class="text-center">
+                        <div style="display:flex; gap:0.5rem; align-items:center; justify-content:center;">
                             <button type="button" class="btn btn-secondary btn-compact"
                                 onclick="openEditModal('{{ term.id }}','{{ term.year }}','{{ term.semester }}','{{ term.start_month or '' }}','{{ term.start_year or '' }}','{{ term.end_month or '' }}','{{ term.end_year or '' }}')">แก้ไข</button>
                             <form action="{{ url_for('delete_term', term_id=term.id) }}" method="POST"

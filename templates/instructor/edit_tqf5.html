@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}แก้ไข มคอ.5 - {{ section.course.code }}{% endblock %}
+{% block title %}แก้ไขรายงานผลการจัดการเรียนรู้ (มคอ.5/6) - {{ section.course.code }}{% endblock %}
 
 {% block content %}
 {% set is_locked = tqf5.status in ['SUBMITTED', 'APPROVED'] %}
@@ -21,9 +21,9 @@
     <div>
         <nav class="breadcrumb">
             <a href="{{ url_for('instructor_dashboard') }}">Dashboard</a> /
-            <span class="text-muted">แก้ไข มคอ.5</span>
+            <span class="text-muted">แก้ไขรายงานผลการจัดการเรียนรู้ (มคอ.5/6)</span>
         </nav>
-        <h2>มคอ.5: {{ section.course.code }} {{ section.course.name_th | thai_wrap }}</h2>
+        <h2>รายงานผลการจัดการเรียนรู้ระดับรายวิชา: {{ section.course.code }} {{ section.course.name_th | thai_wrap }}</h2>
         <div class="flex-center-gap">
             {% set badge_class = 'status-draft' %}
             {% if tqf5.status == 'APPROVED' %}
@@ -39,6 +39,14 @@
             {% endif %}
         </div>
     </div>
+    <div class="flex-center-gap">
+        <a class="btn btn-secondary btn-compact" href="{{ url_for('export_tqf5_word', section_id=section.id) }}">
+            ดาวน์โหลด Word
+        </a>
+        <a class="btn btn-secondary btn-compact" href="{{ url_for('export_tqf5_pdf', section_id=section.id) }}" target="_blank" rel="noopener">
+            บันทึก PDF
+        </a>
+    </div>
 </div>
 
 {% if feedbacks %}
@@ -53,7 +61,7 @@
 </div>
 {% endif %}
 
-<form id="tqf5-form" method="POST" class="glass panel">
+<form id="tqf5-form" method="POST" class="glass panel" {% if not is_locked %}data-autosave{% endif %}>
     {% set data = tqf5.actual_teaching or {} %}
     {% set gi = tqf3.general_info or {} %}
     {% set course_owner_val = (data.get('course_owner') or gi.get('course_owner') or '') %}
@@ -62,7 +70,7 @@
 
     <fieldset {% if is_locked %}disabled{% endif %}>
         <div class="qtf-card qtf-highlight">
-            <div class="qtf-section-title">1) ข้อมูลรายวิชา</div>
+            <div class="qtf-section-title">ข้อมูลรายวิชา</div>
             <div class="qtf-card qtf-highlight">
                 <div class="qtf-grid two">
                     <div>
@@ -79,8 +87,13 @@
                         <div>ปีการศึกษา {{ data.get('semester', section.term.semester) }} / {{ data.get('academic_year', section.term.year) }} ชั้นปีที่ {{ data.get('year_level', '') }}</div>
                         <div class="mt-2">จำนวน {{ data.get('credits', section.course.credits) }} หน่วยกิต</div>
                         <div class="mt-2">หมู่เรียน {{ class_group_val or '-' }}</div>
+                        {% set course_status_val = (data.get('course_status') or gi.get('course_status') or '') %}
+                        {% set student_type_val = (data.get('student_type') or gi.get('student_type') or '') %}
+                        <div class="mt-2">สถานภาพของวิชา {{ course_status_val or '-' }}{% if student_type_val %} • {{ student_type_val }}{% endif %}</div>
                         <div class="mt-2">วันที่จัดทำ/ปรับปรุงครั้งล่าสุด {{ data.get('last_update', '') }}</div>
                         <input type="hidden" name="class_group" value="{{ class_group_val }}">
+                        <input type="hidden" name="course_status" value="{{ course_status_val }}">
+                        <input type="hidden" name="student_type" value="{{ student_type_val }}">
                     </div>
                 </div>
             </div>
@@ -89,22 +102,40 @@
                 <label>คำอธิบายรายวิชา</label>
                 <textarea name="course_desc" class="form-control" rows="4">{{ data.get('course_desc', section.course.description or '') }}</textarea>
             </div>
+
             <div class="form-group mt-2">
-                <label>รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อน (ถ้ามี)</label>
+                <label>รายวิชาที่บังคับเรียนก่อน (Pre-requisite) (ถ้ามี)</label>
+                <input type="text" name="prereq" class="form-control" value="{{ data.get('prereq', gi.get('prereq', '')) }}">
+            </div>
+
+            <div class="form-group mt-2">
+                <label>ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้องกับรายวิชา</label>
+                <textarea name="plos" class="form-control" rows="3">{{ data.get('plos', gi.get('plos', '')) }}</textarea>
+            </div>
+            <div class="form-group mt-2">
+                <label>จุดประสงค์การจัดการเรียนรู้ระดับรายวิชา (รวมรายวิชาฝึกประสบการณ์ภาคสนาม)</label>
+                <textarea name="course_objective" class="form-control" rows="3">{{ data.get('course_objective', gi.get('field_objective', gi.get('course_objective', gi.get('objectives', '')))) }}</textarea>
+            </div>
+            <div class="form-group mt-2">
+                <label>เงื่อนไขที่สำคัญของการฝึกประสบการณ์ (ถ้ามี)</label>
+                <input type="text" name="field_condition" class="form-control" value="{{ data.get('field_condition', gi.get('field_condition', '')) }}">
+            </div>
+            <div class="form-group mt-2">
+                <label>รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อนในการจัดการเรียนรู้ (ถ้ามี) และแนวทางการจัดการแก้ไข</label>
                 <textarea name="teaching_hours" class="form-control" rows="3">{{ data.get('teaching_hours', '') }}</textarea>
             </div>
             <div class="form-group mt-2">
-                <label>หัวข้อที่สอนไม่ครอบคลุมจากแผน (ถ้ามี)</label>
+                <label>รายงานหัวข้อที่สอนไม่ครอบคลุมจากแผนการจัดการเรียนรู้ที่กำหนดไว้ (ถ้ามี) และแนวทางการจัดการแก้ไข</label>
                 <textarea name="uncovered_topics" class="form-control" rows="3">{{ data.get('uncovered_topics', '') }}</textarea>
             </div>
             <div class="form-group mt-2">
-                <label>ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้</label>
+                <label>รายงานความสอดคล้องกับจุดประสงค์การเรียนรู้ และมีการปรับปรุงการจัดการเรียนรู้อย่างไร</label>
                 <textarea name="during_improve" class="form-control" rows="3">{{ data.get('during_improve', '') }}</textarea>
             </div>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">2. การจัดการเรียนรู้และวิธีการประเมินผลตาม CLOs</div>
+            <div class="qtf-section-title">การจัดการเรียนรู้และวิธีการประเมินผลที่ดำเนินการเพื่อทำให้เกิดผลลัพธ์การเรียนรู้ตามที่ระบุในรายละเอียดรายวิชา</div>
             {% set ns = namespace(clo_idxs=[]) %}
             {% for k in data.keys() %}
                 {% if k.startswith('clo_desc_') %}
@@ -117,19 +148,21 @@
                 <table id="cloTable" class="data-table min-900">
                     <colgroup>
                         <col style="width: 10%;">
-                        <col style="width: 20%;">
-                        <col style="width: 20%;">
-                        <col style="width: 15%;">
-                        <col style="width: 20%;">
+                        <col style="width: 10%;">
+                        <col style="width: 19%;">
+                        <col style="width: 19%;">
+                        <col style="width: 16%;">
+                        <col style="width: 16%;">
                         <col style="width: 10%;">
                     </colgroup>
                     <thead>
                         <tr>
                             <th class="text-center" >CLOs</th>
-                            <th class="text-center" >กลยุทธ์การสอน</th>
-                            <th class="text-center" >วิธีการประเมินผล</th>
-                            <th class="text-center" >ผลที่เกิดกับนักศึกษา</th>
-                            <th class="text-center" >แนวทางการพัฒนา/ปรับปรุง</th>
+                            <th class="text-center" >PLOs ที่รับผิดชอบ</th>
+                            <th class="text-center" >กลยุทธ์การสอน/วิธีการจัดการเรียนรู้ที่ได้ดำเนินการ</th>
+                            <th class="text-center" >วิธีการประเมินผลที่ได้ดำเนินการ/เกณฑ์การวัดและการประเมินผล</th>
+                            <th class="text-center" >ผลที่เกิดกับนักศึกษา (บรรลุ CLO/PLO)</th>
+                            <th class="text-center" >แนวทางการพัฒนาปรับปรุง</th>
                             <th class="text-center" >จัดการ</th>
                         </tr>
                     </thead>
@@ -138,46 +171,33 @@
             </div>
             {% set clo_rows = [] %}
             {% for i in range(1, clo_n + 1) %}
-            {% set _ = clo_rows.append({'clo_desc_': data.get('clo_desc_' ~ i, ''), 'clo_teach_': data.get('clo_teach_' ~ i, ''), 'clo_assess_': data.get('clo_assess_' ~ i, ''), 'clo_result_': data.get('clo_result_' ~ i, ''), 'clo_improve_': data.get('clo_improve_' ~ i, '')}) %}
+            {% set _ = clo_rows.append({'clo_desc_': data.get('clo_desc_' ~ i, ''), 'clo_plo_': data.get('clo_plo_' ~ i, ''), 'clo_teach_': data.get('clo_teach_' ~ i, ''), 'clo_assess_': data.get('clo_assess_' ~ i, ''), 'clo_result_': data.get('clo_result_' ~ i, ''), 'clo_improve_': data.get('clo_improve_' ~ i, '')}) %}
             {% endfor %}
             <script type="application/json" id="cloData">{{ clo_rows | tojson }}</script>
+            <script type="application/json" id="ploOptions">[{% for p in plos or [] %}{"code": {{ p.code | tojson }}, "desc": {{ p.description | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]</script>
             <div class="qtf-btn-row mt-3">
                 <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('clo')">+ เพิ่มแถว CLO</button>
             </div>
+            <div class="qtf-note mt-2">หมายเหตุ กรณีรายวิชาฝึกประสบการณ์วิชาชีพ ให้คำนึงถึงผลลัพธ์การเรียนรู้ที่กำหนดใน มคอ.2</div>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">3. สรุปผลการจัดการเรียนการสอนของรายวิชา</div>
-             <div class="qtf-grid four">
+            <div class="qtf-section-title">สรุปผลการจัดการเรียนการสอนของรายวิชา</div>
+             <div class="qtf-grid three">
                  <div class="form-group">
-                     <label>จำนวนนักศึกษาที่ลงทะเบียน</label>
+                     <label>1. จำนวนนักศึกษาที่ลงทะเบียน</label>
                      <input type="number" name="n_registered" class="form-control" min="0" value="{{ data.get('n_registered', '') }}">
                  </div>
                 <div class="form-group">
-                    <label>จำนวนนักศึกษาที่คงอยู่เมื่อสิ้นสุดภาคการศึกษา</label>
+                    <label>2. จำนวนนักศึกษาที่คงอยู่เมื่อสิ้นสุดภาคการศึกษา</label>
                     <input type="number" name="n_remain" class="form-control" min="0" value="{{ data.get('n_remain', '') }}">
                 </div>
                 <div class="form-group">
-                    <label>จำนวนนักศึกษาที่ถอน (W)</label>
+                    <label>3. จำนวนนักศึกษาที่ถอน (W)</label>
                     <input type="number" name="n_withdraw" class="form-control" min="0" value="{{ data.get('n_withdraw', '') }}">
                 </div>
-                 <div class="form-group">
-                     <label>ปัจจัยที่ทำให้ระดับคะแนนผิดปกติ (ถ้ามี)</label>
-                     <input type="text" name="grade_abnormal_reason" class="form-control" value="{{ data.get('grade_abnormal_reason', '') }}">
-                 </div>
              </div>
-            <div class="form-group mt-2">
-                <label>คะแนนการประเมิน</label>
-                <input type="text" name="assessment_score" class="form-control" value="{{ data.get('assessment_score', data.get('result_score', '')) }}" placeholder="เช่น 85/100 หรือ ดีมาก">
-            </div>
-             <div class="form-group mt-2">
-                 <label>ความคลาดเคลื่อนจากแผนการประเมิน (ถ้ามี)</label>
-                 <textarea name="assessment_deviation" class="form-control" rows="3">{{ data.get('assessment_deviation', '') }}</textarea>
-             </div>
-            <div class="form-group mt-2">
-                <label>กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา</label>
-                <textarea name="verification" class="form-control" rows="3">{{ data.get('verification', '') }}</textarea>
-            </div>
+            <div class="qtf-section-subtitle mt-2">4. การกระจายของระดับคะแนน (เกรด) (แสดงแยกตามสาขา) (ถ้ามี)</div>
 
             {% set ns_grade = namespace(idx=[]) %}
             {% for k in data.keys() %}
@@ -229,10 +249,32 @@
                 <button type="button" class="btn btn-primary" onclick="addGradeRow()">+ เพิ่มแถวเกรด</button>
                 <button type="button" class="btn btn-secondary" onclick="calcPercent()">คำนวณ</button>
             </div>
+
+            <div class="qtf-section-subtitle mt-3">5. การบรรลุผลลัพธ์การเรียนรู้ระดับรายวิชา และระดับหลักสูตรตาม PLOs ที่รับผิดชอบ</div>
+            <div class="form-group mt-2">
+                <label>5.1 การบรรลุผลลัพธ์การเรียนรู้ระดับรายวิชา (CLO) เกณฑ์การวัดและการประเมินผลลัพธ์/ Rubric Score ที่กำหนด</label>
+                <textarea name="clo_achieve" class="form-control" rows="3">{{ data.get('clo_achieve', '') }}</textarea>
+            </div>
+            <div class="form-group mt-2">
+                <label>5.2 การบรรลุผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLO ตัวที่รับผิดชอบ) เกณฑ์การวัดและการประเมินผลลัพธ์/ Rubric Score ที่กำหนด</label>
+                <textarea name="plo_achieve" class="form-control" rows="3">{{ data.get('plo_achieve', '') }}</textarea>
+            </div>
+            <div class="form-group mt-2">
+                <label>6. ปัจจัยที่ทำให้นักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้ ระดับรายวิชา และระดับหลักสูตร</label>
+                <textarea name="fail_factors" class="form-control" rows="2">{{ data.get('fail_factors', '') }}</textarea>
+            </div>
+            <div class="form-group mt-2">
+                <label>7. แนวทางการปรับปรุงแก้ไข กรณีที่นักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้ ระดับรายวิชา และระดับหลักสูตร</label>
+                <textarea name="fail_fix" class="form-control" rows="2">{{ data.get('fail_fix', '') }}</textarea>
+            </div>
+            <div class="form-group mt-2">
+                <label>8. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์/ผลลัพธ์การเรียนรู้ของนักศึกษา</label>
+                <textarea name="verification" class="form-control" rows="3">{{ data.get('verification', '') }}</textarea>
+            </div>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">4. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้</div>
+            <div class="qtf-section-title">9. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้</div>
             {% set ns_issue = namespace(idx=[]) %}
             {% for k in data.keys() %}
                 {% if k.startswith('issue_') and not k.startswith('issue_fix_') %}
@@ -269,22 +311,22 @@
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">5. การประเมินผลรายวิชา</div>
+            <div class="qtf-section-title">10. การประเมินผลรายวิชา</div>
             <div class="form-group">
-                <label>ข้อวิพากษ์ที่สำคัญจากผลการประเมินโดยนักศึกษา/ผู้เรียน</label>
+                <label>1. ข้อวิพากษ์ที่สำคัญจากผลการประเมิน โดยนักศึกษาหรือผู้เรียน</label>
                 <textarea name="eval_crit" class="form-control" rows="3">{{ data.get('eval_crit', '') }}</textarea>
             </div>
             <div class="form-group mt-2">
-                <label>ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์</label>
+                <label>2. ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์ตาม ข้อ 1</label>
                 <textarea name="teacher_comment" class="form-control" rows="3">{{ data.get('teacher_comment', '') }}</textarea>
             </div>
             <div class="form-group mt-2">
-                <label>แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
+                <label>3. แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
                 <textarea name="improve_plan" class="form-control" rows="3">{{ data.get('improve_plan', data.get('improvement_plan', '')) }}</textarea>
                 <input type="hidden" name="improvement_plan" value="{{ data.get('improve_plan', data.get('improvement_plan', '')) }}">
             </div>
             <div class="form-group mt-2">
-                <label>ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</label>
+                <label>4. ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</label>
                 <textarea name="suggest_to_committee" class="form-control" rows="3">{{ data.get('suggest_to_committee', '') }}</textarea>
             </div>
         </div>
@@ -294,6 +336,7 @@
         {% if not is_locked %}
         <button type="submit" name="action" value="draft" class="btn btn-primary">บันทึกฉบับร่าง</button>
         <button type="submit" name="action" value="submit" class="btn btn-primary" onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกเพื่อรอการตรวจสอบ')">ส่งให้หัวหน้าสาขา</button>
+        <span id="autosaveStatus" class="autosave-status" aria-live="polite"></span>
         {% else %}
         <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary">ย้อนกลับ</a>
         {% endif %}
@@ -330,10 +373,11 @@ const QTFRows = (function () {
             tableId: 'cloTable', dataId: 'cloData', noun: 'แถว CLO',
             fields: [
                 { key: 'clo_desc_', label: 'CLOs', type: 'textarea' },
-                { key: 'clo_teach_', label: 'กลยุทธ์การสอน', type: 'textarea' },
-                { key: 'clo_assess_', label: 'วิธีการประเมินผล', type: 'textarea' },
-                { key: 'clo_result_', label: 'ผลที่เกิดกับนักศึกษา', type: 'textarea' },
-                { key: 'clo_improve_', label: 'แนวทางการพัฒนา/ปรับปรุง', type: 'textarea' }
+                { key: 'clo_plo_', label: 'PLOs ที่รับผิดชอบ', type: 'plo' },
+                { key: 'clo_teach_', label: 'กลยุทธ์การสอน/วิธีการจัดการเรียนรู้ที่ได้ดำเนินการ', type: 'textarea' },
+                { key: 'clo_assess_', label: 'วิธีการประเมินผลที่ได้ดำเนินการ/เกณฑ์การวัดและการประเมินผล', type: 'textarea' },
+                { key: 'clo_result_', label: 'ผลที่เกิดกับนักศึกษา (บรรลุ CLO/PLO)', type: 'textarea' },
+                { key: 'clo_improve_', label: 'แนวทางการพัฒนาปรับปรุง', type: 'textarea' }
             ]
         },
         issue: {
@@ -349,6 +393,37 @@ const QTFRows = (function () {
     const titleEl = document.getElementById('rowModalTitle');
     const fieldsEl = document.getElementById('rowModalFields');
     let current = null; // { type, mode, row }
+
+    let PLO_OPTIONS = [];
+    try {
+        const el = document.getElementById('ploOptions');
+        if (el) PLO_OPTIONS = JSON.parse(el.textContent || '[]');
+    } catch (e) { PLO_OPTIONS = []; }
+
+    function buildPloSelect(value) {
+        const sel = document.createElement('select');
+        const blank = document.createElement('option');
+        blank.value = '';
+        blank.textContent = PLO_OPTIONS.length ? '— เลือก PLO —' : '— ยังไม่มี PLO ของหลักสูตร —';
+        sel.appendChild(blank);
+        let matched = false;
+        PLO_OPTIONS.forEach(o => {
+            const op = document.createElement('option');
+            op.value = o.code;
+            op.textContent = o.desc ? (o.code + ' — ' + o.desc) : o.code;
+            if (String(value || '') === o.code) { op.selected = true; matched = true; }
+            sel.appendChild(op);
+        });
+        const v = String(value || '');
+        if (v && !matched) {
+            const op = document.createElement('option');
+            op.value = v;
+            op.textContent = v + ' (กำหนดเอง)';
+            op.selected = true;
+            sel.appendChild(op);
+        }
+        return sel;
+    }
 
     function rowHasContent(cfg, values) {
         return cfg.fields.some(f => String(values[f.key] || '').trim() !== '');
@@ -462,6 +537,8 @@ const QTFRows = (function () {
             if (f.type === 'textarea') {
                 input = document.createElement('textarea');
                 input.rows = 3;
+            } else if (f.type === 'plo') {
+                input = buildPloSelect(values ? values[f.key] : '');
             } else {
                 input = document.createElement('input');
                 input.type = f.type || 'text';
@@ -469,7 +546,7 @@ const QTFRows = (function () {
             input.className = 'form-control';
             input.id = 'rowf_' + idx;
             input.dataset.key = f.key;
-            input.value = values ? String(values[f.key] || '') : '';
+            if (f.type !== 'plo') input.value = values ? String(values[f.key] || '') : '';
             grp.appendChild(input);
             fieldsEl.appendChild(grp);
         });
@@ -616,4 +693,5 @@ const QTFRows = (function () {
         });
     }
 </script>
+<script src="{{ url_for('static', filename='js/tqf_autosave.js', v=static_v('js/tqf_autosave.js')) }}"></script>
 {% endblock %}

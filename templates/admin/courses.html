@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}จัดการรายวิชา - Admin{% endblock %}
+{% block title %}จัดการรายวิชา{% endblock %}
+
+{% set delete_endpoint = 'academic_delete_course' if request.endpoint == 'academic_manage_courses' else 'delete_course' %}
 
 {% block content %}
 <div class="page-header">
@@ -53,7 +55,7 @@
                     <th>รหัส</th>
                     <th>ชื่อรายวิชา</th>
                     <th class="text-center">หน่วยกิต</th>
-                    <th>จัดการ</th>
+                    <th class="text-center">จัดการ</th>
                 </tr>
             </thead>
             <tbody>
@@ -65,9 +67,10 @@
                         <div class="muted">{{ course.name_en }}</div>
                     </td>
                     <td class="text-center">{{ course.credits }}</td>
-                    <td>
-                        <form action="{{ url_for('delete_course', course_id=course.id) }}" method="POST"
+                    <td class="text-center">
+                        <form action="{{ url_for(delete_endpoint, course_id=course.id) }}" method="POST"
                             onsubmit="return confirm('ยืนยันการลบรายวิชานี้จากฐานข้อมูล?')">
+                            <input type="hidden" name="next" value="{{ request.full_path }}">
                             <button type="submit" class="btn btn-outline-danger">ลบ</button>
                         </form>
                     </td>

@@ -21,11 +21,16 @@
     {% set display_initial = display_name|first|upper %}
     <nav class="navbar glass">
         <div class="nav-inner">
-            <div class="nav-brand">
-                <div class="nav-logo">TQF</div>
-                <div>
-                    <div class="nav-brand-title">TQF System</div>
-                    <div class="nav-brand-subtitle">Thai Qualifications Console</div>
+            <div class="nav-left">
+                <button class="side-nav-toggle" type="button" aria-label="เปิดเมนู / Open menu" aria-controls="sideNav" aria-expanded="false">
+                    <span class="material-symbols-rounded">menu</span>
+                </button>
+                <div class="nav-brand">
+                    <div class="nav-logo">TQF</div>
+                    <div>
+                        <div class="nav-brand-title">TQF System</div>
+                        <div class="nav-brand-subtitle">Thai Qualifications Console</div>
+                    </div>
                 </div>
             </div>
             <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navActions">
@@ -97,6 +102,58 @@
             </div>
         </div>
     </nav>
+
+    {% set _side_role = (active_role or current_user.best_role() or 'instructor')|lower %}
+    {% macro side_nav_item(endpoint, icon, label) %}
+        <a href="{{ url_for(endpoint) }}" class="side-nav-item {% if request.endpoint == endpoint %}is-active{% endif %}"
+           {% if request.endpoint == endpoint %}aria-current="page"{% endif %}>
+            <span class="material-symbols-rounded" aria-hidden="true">{{ icon }}</span>
+            <span class="side-nav-label">{{ label }}</span>
+        </a>
+    {% endmacro %}
+    <div class="side-nav-backdrop" data-side-nav-backdrop></div>
+    <aside class="side-nav" id="sideNav" aria-hidden="true" aria-label="เมนูนำทางหลัก">
+        <div class="side-nav-header">
+            <div class="nav-logo">TQF</div>
+            <div class="side-nav-brand-text">
+                <div class="nav-brand-title">TQF System</div>
+                <div class="nav-brand-subtitle">{{ _side_role|upper }}</div>
+            </div>
+            <button class="side-nav-close" type="button" aria-label="ปิดเมนู / Close menu">
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </div>
+        <nav class="side-nav-menu" aria-label="เมนูหลัก">
+            {% if _side_role == 'admin' %}
+                {{ side_nav_item('admin_dashboard', 'dashboard', 'แดชบอร์ด') }}
+                {{ side_nav_item('manage_faculties', 'account_balance', 'คณะ / ภาควิชา') }}
+                {{ side_nav_item('admin_manage_programs', 'menu_book', 'หลักสูตร') }}
+                {{ side_nav_item('manage_courses', 'book_2', 'รายวิชา') }}
+                {{ side_nav_item('manage_users', 'group', 'ผู้ใช้งาน') }}
+            {% elif _side_role == 'academic' %}
+                {{ side_nav_item('academic_dashboard', 'dashboard', 'แดชบอร์ด') }}
+                {{ side_nav_item('manage_terms', 'calendar_month', 'ภาคการศึกษา') }}
+                {{ side_nav_item('academic_manage_programs', 'menu_book', 'หลักสูตร') }}
+                {{ side_nav_item('academic_manage_courses', 'book_2', 'รายวิชา') }}
+            {% elif _side_role == 'head' %}
+                {{ side_nav_item('head_dashboard', 'dashboard', 'แดชบอร์ด') }}
+                {{ side_nav_item('head_manage_plos', 'flag', 'จัดการ PLOs') }}
+            {% else %}
+                {{ side_nav_item('instructor_dashboard', 'dashboard', 'แดชบอร์ด') }}
+            {% endif %}
+        </nav>
+        <div class="side-nav-footer">
+            {{ side_nav_item('account', 'person', 'บัญชีของฉัน') }}
+            <a href="/manual/{{ _side_role }}" class="side-nav-item" target="_blank" rel="noopener">
+                <span class="material-symbols-rounded" aria-hidden="true">menu_book</span>
+                <span class="side-nav-label">คู่มือการใช้งาน</span>
+            </a>
+            <a href="{{ url_for('logout') }}" class="side-nav-item side-nav-item--danger">
+                <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                <span class="side-nav-label">ออกจากระบบ</span>
+            </a>
+        </div>
+    </aside>
     {% endif %}
 
     <div class="container">
@@ -121,13 +178,11 @@
 
 
             document.querySelectorAll('.alert').forEach(function (el) {
-                if (el.textContent.includes('สลับบทบาท')) {
-                    setTimeout(function () {
-                        el.style.transition = 'opacity 0.3s';
-                        el.style.opacity = '0';
-                        setTimeout(function () { el.remove(); }, 300);
-                    }, 1000);
-                }
+                setTimeout(function () {
+                    el.style.transition = 'opacity 0.3s';
+                    el.style.opacity = '0';
+                    setTimeout(function () { el.remove(); }, 300);
+                }, 2000);
             });
 
             function updateButtonPointer(btn, event) {
@@ -394,6 +449,47 @@
             document.querySelectorAll('[data-nav-popover]').forEach(function (popover) {
                 setupNavPopover(popover);
             });
+
+            // ── Side slide navigation drawer ───────────────────────────
+            var sideNav = document.getElementById('sideNav');
+            var sideToggle = document.querySelector('.side-nav-toggle');
+            var sideBackdrop = document.querySelector('[data-side-nav-backdrop]');
+            var sideClose = document.querySelector('.side-nav-close');
+
+            if (sideNav && sideToggle) {
+                function openSideNav() {
+                    sideNav.classList.add('is-open');
+                    if (sideBackdrop) sideBackdrop.classList.add('is-open');
+                    sideNav.setAttribute('aria-hidden', 'false');
+                    sideToggle.setAttribute('aria-expanded', 'true');
+                    document.body.classList.add('side-nav-open');
+                    var firstLink = sideNav.querySelector('.side-nav-item');
+                    if (firstLink) firstLink.focus();
+                }
+
+                function closeSideNav() {
+                    sideNav.classList.remove('is-open');
+                    if (sideBackdrop) sideBackdrop.classList.remove('is-open');
+                    sideNav.setAttribute('aria-hidden', 'true');
+                    sideToggle.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('side-nav-open');
+                }
+
+                sideToggle.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (sideNav.classList.contains('is-open')) closeSideNav();
+                    else openSideNav();
+                });
+                if (sideClose) sideClose.addEventListener('click', closeSideNav);
+                if (sideBackdrop) sideBackdrop.addEventListener('click', closeSideNav);
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape' && sideNav.classList.contains('is-open')) {
+                        closeSideNav();
+                        sideToggle.focus();
+                    }
+                });
+            }
         });
     </script>
 

@@ -16,7 +16,7 @@
     </div>
     <div class="inline-actions">
         <form method="GET" action="{{ url_for('instructor_dashboard') }}" class="filter-form">
-            <label class="text-muted text-xs mb-0">ปีการศึกษา</label>
+            <label class="text-muted mb-0">ปีการศึกษา</label>
             <select name="term_id" class="form-control select-inline min-220" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
@@ -66,28 +66,40 @@
                 <thead>
                     <tr>
                         <th>รายวิชา / กลุ่ม</th>
-                        <th class="text-center">มคอ.3</th>
+                        <th class="text-center">มคอ.3 / 4</th>
                         <th class="text-center">มคอ.5</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for section in group.sections %}
                     <tr>
-                        <td>
+                        <td class="table-t">
                             <div class="text-table">{{ section.course.code if section.course else '' }} {{ (section.course.name_th if section.course else '') | thai_wrap }}</div>
                             <div class="text-muted text-xs">Section {{ section.section_number }}</div>
                         </td>
                         <td class="text-center table-t">
-                            {% set s = (section.tqf3.status if section.tqf3 else None) or 'DRAFT' %}
+                            {% if section.is_field %}
+                            {% set spec_doc = section.tqf4 %}
+                            {% set spec_route = 'edit_tqf4' %}
+                            {% set spec_label = 'มคอ.4' %}
+                            {% else %}
+                            {% set spec_doc = section.tqf3 %}
+                            {% set spec_route = 'edit_tqf3' %}
+                            {% set spec_label = 'มคอ.3' %}
+                            {% endif %}
+                            {% set s = (spec_doc.status if spec_doc else None) or 'DRAFT' %}
                             <div class="status-action-stack">
-                                <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
-                                   class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if section.tqf3 else 'role-instructor' }}{% if not group.tqf3_open %} is-disabled{% endif %}"
-                                   title="แก้ไข มคอ.3"
+                                {% if section.is_field %}
+                                <div class="text-muted text-xs">{{ spec_label }}</div>
+                                {% endif %}
+                                <a href="{{ url_for(spec_route, section_id=section.id) }}"
+                                   class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if spec_doc else 'role-instructor' }}{% if not group.tqf3_open %} is-disabled{% endif %}"
+                                   title="แก้ไข {{ spec_label }}"
                                    {% if not group.tqf3_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
-                                    {{ status_label_map.get(s, s) if section.tqf3 else 'เริ่มกรอก' }}
+                                    {{ status_label_map.get(s, s) if spec_doc else 'เริ่มกรอก' }}
                                 </a>
-                                {% if section.tqf3 and section.tqf3.submitted_at %}
-                                <div class="text-muted text-xs">ส่งเมื่อ {{ section.tqf3.submitted_at.strftime('%d/%m/%Y') }}</div>
+                                {% if spec_doc and spec_doc.submitted_at %}
+                                <div class="text-muted text-xs">ส่งเมื่อ {{ spec_doc.submitted_at.strftime('%d/%m/%Y') }}</div>
                                 {% endif %}
                             </div>
                         </td>

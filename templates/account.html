@@ -12,33 +12,36 @@
         <h2>บัญชีของฉัน</h2>
         <p class="text-muted mb-0">จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชี</p>
     </div>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">กลับไป Dashboard</a>
 </div>
 
-<div class="layout-grid-two">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem">
     <div class="glass glass-card">
         <h3 class="mb-2 text-muted">ข้อมูลบัญชี</h3>
         <div class="info-stack">
             <div><strong>ชื่อผู้ใช้:</strong> <span class="text-mono">{{ current_user.username }}</span></div>
             <div><strong>ชื่อ-นามสกุล:</strong> {{ current_user.full_name }}</div>
             <div>
-                <strong>บทบาทที่มี:</strong>
-                <span class="badge-list">
-                    {% for r in current_user.role_names() %}
-                    <span class="status-badge role-{{ r }}">{{ r|upper }}</span>
-                    {% endfor %}
-                </span>
+                <strong>สถานะ:</strong>
+                <div class="mt-2">
+                    <span class="badge-list">
+                        {% for r in current_user.role_names() %}
+                        <span class="status-badge role-{{ r }}">{{ r|upper }}</span>
+                        {% endfor %}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
-
     <div class="glass glass-card">
-        <h3 class="mb-2 text-muted">ความปลอดภัย</h3>
-        <p class="form-note mb-2">จัดการรหัสผ่านสำหรับเข้าสู่ระบบ</p>
+        <h3 class="mb-2 text-muted text-center">ความปลอดภัย</h3>
+        <div class="form-note mb-2 text-center">จัดการรหัสผ่านสำหรับเข้าสู่ระบบ</div>
+        <div style="max-width: 140px; margin: 0 auto;">
+            <button type="button" class="btn btn-primary" onclick="openChangePasswordModal()">เปลี่ยนรหัสผ่าน</button>
 
-        <button type="button" class="btn btn-primary" onclick="openChangePasswordModal()">เปลี่ยนรหัสผ่าน</button>
-        <div class="form-note mt-2">แนะนำให้ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร</div>
+        </div>
+        <div class="form-note mt-2 text-center">แนะนำให้ตั้งรหัสผ่านอย่างน้อย 5 ตัวอักษร</div>
     </div>
+
 </div>
 
 <!-- Change Password Modal -->

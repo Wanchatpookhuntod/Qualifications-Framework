@@ -234,6 +234,59 @@ class Program(FirestoreModel):
             return []
         return Course.find_by("program_id", self.id)
 
+    @property
+    def plos(self) -> List["PLO"]:
+        if not self.id:
+            return []
+        rows = PLO.find_by("program_id", self.id)
+        rows.sort(key=lambda p: (p.order if p.order is not None else 9999, p.code))
+        return rows
+
+
+@dataclass
+class PLO(FirestoreModel):
+    """Program Learning Outcome (ผลลัพธ์การเรียนรู้ระดับหลักสูตร)."""
+
+    collection_name: ClassVar[str] = "plos"
+
+    program_id: Optional[str] = None
+    code: str = ""
+    description: str = ""
+    order: Optional[int] = None
+    created_at: datetime = field(default_factory=_utcnow)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "program_id": self.program_id,
+            "code": self.code,
+            "description": self.description,
+            "order": self.order,
+            "created_at": self.created_at,
+        }
+
+    @classmethod
+    def from_dict(cls, doc_id: str, data: Dict[str, Any]) -> "PLO":
+        order = data.get("order")
+        try:
+            order = int(order) if order is not None and order != "" else None
+        except Exception:
+            order = None
+        created_at = data.get("created_at")
+        if not isinstance(created_at, datetime):
+            created_at = _utcnow()
+        return cls(
+            id=doc_id,
+            program_id=data.get("program_id"),
+            code=(data.get("code") or ""),
+            description=(data.get("description") or ""),
+            order=order,
+            created_at=created_at,
+        )
+
+    @property
+    def program(self) -> Optional["Program"]:
+        return Program.get(self.program_id) if self.program_id else None
+
 
 @dataclass
 class Course(FirestoreModel):
@@ -450,6 +503,41 @@ class TQF3(FirestoreModel):
             clo_plo_mapping=data.get("clo_plo_mapping") or {},
             teaching_plan=data.get("teaching_plan") or {},
             evaluation_plan=data.get("evaluation_plan") or {},
+        )
+
+
+@dataclass
+class TQF4(FirestoreModel):
+    """Course specification for field-experience courses (มคอ.4).
+
+    Mirrors :class:`TQF3` (single ``general_info`` dict store) but lives in its
+    own ``tqf4`` collection. Used for รายวิชาฝึกประสบการณ์ภาคสนาม instead of มคอ.3.
+    """
+
+    collection_name: ClassVar[str] = "tqf4"
+
+    section_id: str = ""
+    status: str = "DRAFT"
+    submitted_at: Optional[datetime] = None
+
+    general_info: Dict[str, Any] = field(default_factory=dict)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "section_id": self.section_id,
+            "status": self.status,
+            "submitted_at": self.submitted_at,
+            "general_info": self.general_info,
+        }
+
+    @classmethod
+    def from_dict(cls, doc_id: str, data: Dict[str, Any]) -> "TQF4":
+        return cls(
+            id=doc_id,
+            section_id=(data.get("section_id") or ""),
+            status=(data.get("status") or "DRAFT"),
+            submitted_at=data.get("submitted_at"),
+            general_info=data.get("general_info") or {},
         )
 
 

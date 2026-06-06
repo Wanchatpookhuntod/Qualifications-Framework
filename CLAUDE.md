@@ -64,8 +64,9 @@ faculties
 terms
   └── term_programs (term_id, program_id)
         └── sections (term_id, course_id, program_id, instructor_id)
-              ├── tqf3 (section_id)
-              └── tqf5 (section_id)
+              ├── tqf3 (section_id)   # มคอ.3 course spec (regular courses)
+              ├── tqf4 (section_id)   # มคอ.4 field-experience spec — used when is_field_experience_course(course) is true
+              └── tqf5 (section_id)   # combined มคอ.5/6 result report
 
 users
 feedback (tqf_type, tqf_id, reviewer_id)
@@ -77,10 +78,12 @@ curriculum_uploads
 1. **admin** creates users (with roles), faculties, programs, courses.
 2. **academic** creates terms, opens sections (assigns course+program to a term), locks/unlocks TQF rounds (`is_open_tqf3`, `is_open_tqf5` on Term).
 3. **head** assigns instructors to sections, toggles section-level open (`Section.is_open` for TQF3, `is_open_tqf5` for TQF5), reviews/approves TQF3 and TQF5 documents.
-4. **instructor** fills and submits TQF3 and TQF5 for their assigned sections.
+4. **instructor** fills and submits TQF3 (or TQF4 for field-experience courses) and TQF5 for their assigned sections.
+
+TQF documents follow the new Thepsatri Rajabhat format (เกณฑ์มาตรฐานหลักสูตร 2565); the canonical source layouts are the `.docx` files in `format_tqf_new/`. Field-experience courses (ฝึกประสบการณ์/สหกิจ/ภาคสนาม) are detected by name keyword via `is_field_experience_course()` in `app.py` and use มคอ.4 instead of มคอ.3 (gated by the same `is_open_tqf3` term flag).
 
 ### Templates
-`templates/base.html` is the shared layout (glassmorphism theme, Inter + Sarabun fonts). All role-specific pages extend it and fill `{% block title %}` and `{% block content %}`. Role folders: `admin/`, `academic/`, `head/`, `instructor/`, `shared/`. Read-only TQF views are in `shared/tqf3_readonly.html` and `shared/tqf5_readonly.html`.
+`templates/base.html` is the shared layout (glassmorphism theme, Inter + Sarabun fonts). All role-specific pages extend it and fill `{% block title %}` and `{% block content %}`. Role folders: `admin/`, `academic/`, `head/`, `instructor/`, `shared/`. Read-only TQF views are in `shared/tqf3_readonly.html`, `shared/tqf4_readonly.html`, and `shared/tqf5_readonly.html` (shared by head review and the print/PDF view `shared/tqf_print.html`). Word exporters live in `exporters.py` (`build_tqf3_docx`, `build_tqf4_docx`, `build_tqf5_docx`).
 
 ### Bulk course import
 `_parse_courses_upload_text()` in `app.py` handles JSON, CSV, TSV, and pipe-delimited formats with Thai/English column header aliases (see `_COURSE_HEADER_MAP`). Reuse this parser; do not duplicate parsing logic.

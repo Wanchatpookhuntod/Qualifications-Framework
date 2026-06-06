@@ -19,14 +19,17 @@
     <div class="glass stat-card">
         <div class="stat-label">รายวิชาทั้งหมด</div>
         <div class="stat-value">{{ stats.total }}</div>
+        {% if selected_term_label %}<div class="stat-sublabel">ปีการศึกษา {{ selected_term_label }}</div>{% endif %}
     </div>
     <div class="glass stat-card">
         <div class="stat-label">มคอ.3 (ส่งแล้ว)</div>
         <div class="stat-value text-primary">{{ stats.tqf3_perc }}%</div>
+        {% if selected_term_label %}<div class="stat-sublabel">ปีการศึกษา {{ selected_term_label }}</div>{% endif %}
     </div>
     <div class="glass stat-card">
         <div class="stat-label">มคอ.5 (ส่งแล้ว)</div>
         <div class="stat-value text-primary">{{ stats.tqf5_perc }}%</div>
+        {% if selected_term_label %}<div class="stat-sublabel">ปีการศึกษา {{ selected_term_label }}</div>{% endif %}
     </div>
 </div>
 {% endif %}
@@ -101,6 +104,12 @@
             {% if term_data.programs %}
             <div class="table-wrapper">
                 <table class="data-table">
+                    <colgroup>
+                        <col  style="width: 10%;">
+                        <col  style="width: 64%;">
+                        <col  style="width: 13%;">
+                        <col  style="width: 13%;">
+                    </colgroup>
                     <tbody>
                         {% for program_id, program_data in term_data.programs.items() %}
                         <tr>
@@ -115,9 +124,11 @@
                                 </a>
                             </td>
                             <td>
-                                <div class="inline-actions" style="display: flex; gap: 1rem; justify-content: flex-end; align-items: center;">
-                                    <a href="{{ url_for('academic_term_program', term_id=term_data.term_id, program_id=program_id) }}"
-                                        class="custom-link text-link" style="color: #0f83a6; transition: color 0.15s;">เปิดรายละเอียด</a>
+                                <a href="{{ url_for('academic_term_program', term_id=term_data.term_id, program_id=program_id) }}"
+                                        class="custom-link text-link" style="color: #0f83a6; transition: color 0.15s;"></a>
+                            </td>
+                            <td>
+                                <div class="inline-actions" style="display: flex; gap: 1rem; justify-content: center; align-items: center;">
                                     <form method="POST" action="{{ url_for('academic_remove_program_from_term') }}"
                                         onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้ออกจากเทอม? (ต้องไม่มีรายวิชาที่เปิดสอนแล้ว)')">
                                         <input type="hidden" name="term_id" value="{{ term_data.term_id }}">

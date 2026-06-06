@@ -9,7 +9,18 @@ from functools import wraps
 from typing import Iterable
 
 try:
-    from flask import Flask, abort, flash, jsonify, redirect, render_template, request, session, url_for
+    from flask import (
+        Flask,
+        abort,
+        flash,
+        jsonify,
+        redirect,
+        render_template,
+        request,
+        send_file,
+        session,
+        url_for,
+    )
 except ModuleNotFoundError as e:  # pragma: no cover
     raise SystemExit(
         "Missing dependency: Flask.\n\n"
@@ -26,17 +37,21 @@ from flask_login import LoginManager, current_user, login_required, login_user, 
 from werkzeug.security import generate_password_hash
 from werkzeug.utils import secure_filename
 
+from exporters import build_tqf3_docx, build_tqf4_docx, build_tqf5_docx
+
 from models import (
     Course,
     Department,
     Faculty,
     Feedback,
     HeadTQF5Summary,
+    PLO,
     Program,
     Section,
     Term,
     TermProgram,
     TQF3,
+    TQF4,
     TQF5,
     User,
     pick_canonical_tqf,
@@ -61,18 +76,47 @@ except ImportError:  # pragma: no cover
 app = Flask(__name__)
 
 
+_WRAP_OPEN_BRACKETS = "([{“‘«"
+_WRAP_CLOSE_BRACKETS = ")]}”’»"
+
+
 def _thai_wrap(text: str) -> "Markup":
-    """Insert zero-width spaces at Thai word boundaries for proper line wrapping."""
+    """Insert zero-width spaces at Thai word boundaries for proper line wrapping.
+
+    Break opportunities are suppressed next to brackets so an opening bracket is
+    never left dangling at the end of a line and a closing bracket never starts a
+    new one (keeps a parenthetical like ``(วิทยาการคอมพิวเตอร์)`` together).
+    """
     from markupsafe import Markup, escape
     if not text:
         return Markup("")
     if not _PYTHAINLP_AVAILABLE:
         return Markup(str(escape(text)))
-    tokens = _thai_tokenize(str(text), engine="newmm", keep_whitespace=True)
-    return Markup("​".join(str(escape(t)) for t in tokens))
+    tokens = [str(t) for t in _thai_tokenize(str(text), engine="newmm", keep_whitespace=True)]
+    parts = []
+    for i, tok in enumerate(tokens):
+        if i > 0:
+            prev = tokens[i - 1]
+            # No break after an opening bracket, nor before a closing one.
+            if not (prev[-1:] in _WRAP_OPEN_BRACKETS or tok[:1] in _WRAP_CLOSE_BRACKETS):
+                parts.append("​")
+        parts.append(str(escape(tok)))
+    return Markup("".join(parts))
 
 
 app.jinja_env.filters["thai_wrap"] = _thai_wrap
+
+
+def _static_version(filename: str) -> str:
+    """Return a cache-busting token (file mtime) for a static asset, or '' if missing."""
+    try:
+        path = os.path.join(app.static_folder, filename)
+        return str(int(os.path.getmtime(path)))
+    except OSError:
+        return ""
+
+
+app.jinja_env.globals["static_v"] = _static_version
 
 
 def _resolve_secret_key() -> str:
@@ -614,6 +658,31 @@ def _utcnow() -> datetime:
     return datetime.utcnow()
 
 
+def _is_autosave_request() -> bool:
+    """True when the instructor TQF form POST is a background autosave (not draft/submit)."""
+    return request.method == "POST" and request.form.get("action") == "autosave"
+
+
+def _autosave_ok(doc) -> "tuple":
+    """JSON payload for a successful autosave (keeps the page open; no flash/redirect)."""
+    saved_at = _utcnow()
+    return (
+        jsonify(
+            {
+                "ok": True,
+                "status": getattr(doc, "status", None),
+                "saved_at": saved_at.isoformat() + "Z",
+            }
+        ),
+        200,
+    )
+
+
+def _autosave_locked() -> "tuple":
+    """JSON payload telling the client autosave is no longer allowed (doc locked)."""
+    return jsonify({"ok": False, "error": "locked"}), 409
+
+
 def get_active_role():
     if not current_user.is_authenticated:
         return None
@@ -713,6 +782,18 @@ def _get_or_create_tqf3(section_id: str) -> TQF3:
     return canonical
 
 
+def _get_or_create_tqf4(section_id: str) -> TQF4:
+    """Return the section's single TQF4 (field-experience spec), creating if absent."""
+    rows = TQF4.find_by("section_id", section_id)
+    if not rows:
+        return TQF4(section_id=section_id).save()
+    canonical = pick_canonical_tqf(rows)
+    for doc in rows:
+        if doc.id != canonical.id:
+            doc.delete()
+    return canonical
+
+
 def _get_or_create_tqf5(section_id: str, tqf3_id: str) -> TQF5:
     """Return the section's single TQF5, creating it if absent (self-healing)."""
     rows = TQF5.find_by("section_id", section_id)
@@ -723,6 +804,57 @@ def _get_or_create_tqf5(section_id: str, tqf3_id: str) -> TQF5:
         if doc.id != canonical.id:
             doc.delete()
     return canonical
+
+
+def _plos_for_section(section: Section) -> list:
+    """Return the program's defined PLOs for a section (sorted), or []."""
+    try:
+        course = section.course if section else None
+        program = course.program if course else None
+        return program.plos if program else []
+    except Exception:
+        return []
+
+
+# Keywords that mark a course as a field-experience course (มคอ.4 instead of มคอ.3).
+_FIELD_EXPERIENCE_KEYWORDS = (
+    "ฝึกประสบการณ์",
+    "ประสบการณ์ภาคสนาม",
+    "ประสบการณ์วิชาชีพ",
+    "สหกิจศึกษา",
+    "ภาคสนาม",
+    "ฝึกงาน",
+    "ฝึกสอน",
+    "ฝึกปฏิบัติการสอน",
+    "ปฏิบัติการสอนในสถานศึกษา",
+    "practicum",
+    "internship",
+    "cooperative education",
+    "field experience",
+    "professional experience",
+)
+
+
+def is_field_experience_course(course) -> bool:
+    """True when a course should use มคอ.4 (field experience) rather than มคอ.3.
+
+    Detection is by name/code keyword match (case-insensitive, space-insensitive)
+    so no schema change to ``Course`` is needed.
+    """
+    if not course:
+        return False
+    haystacks = []
+    for attr in ("name_th", "name_en", "code"):
+        value = getattr(course, attr, None)
+        if value:
+            haystacks.append(str(value).lower().replace(" ", ""))
+    if not haystacks:
+        return False
+    for keyword in _FIELD_EXPERIENCE_KEYWORDS:
+        needle = keyword.lower().replace(" ", "")
+        if any(needle in hay for hay in haystacks):
+            return True
+    return False
 
 
 def _canonical_by_section(docs):
@@ -744,6 +876,13 @@ def _tqf3_by_section_ids(section_ids: Iterable[str]) -> dict[str, TQF3]:
     if not ids:
         return {}
     return _canonical_by_section(TQF3.find_in("section_id", ids))
+
+
+def _tqf4_by_section_ids(section_ids: Iterable[str]) -> dict[str, TQF4]:
+    ids = _dedupe_ids(section_ids)
+    if not ids:
+        return {}
+    return _canonical_by_section(TQF4.find_in("section_id", ids))
 
 
 def _tqf5_by_section_ids(section_ids: Iterable[str]) -> dict[str, TQF5]:
@@ -1211,9 +1350,12 @@ def instructor_dashboard():
     # Attach TQF docs for templates (status / links)
     section_ids = [s.id for s in sections if s.id]
     tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf4_by_section = _tqf4_by_section_ids(section_ids)
     tqf5_by_section = _tqf5_by_section_ids(section_ids)
     for s in sections:
+        s.is_field = is_field_experience_course(s.course)
         s.tqf3 = tqf3_by_section.get(s.id)
+        s.tqf4 = tqf4_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
 
     def _section_sort_key(sec: Section):
@@ -1394,19 +1536,26 @@ def edit_tqf3(section_id):
                 gi["clo_text[]"] = _as_list(gi.get("clo_desc[]"))
             elif "clo_code[]" in gi:
                 gi["clo_text[]"] = [""] * len(_as_list(gi.get("clo_code[]")))
+        # PLO-per-CLO mapping: clo_plo[] is the form key; plo[] is the legacy alias.
+        if "clo_plo[]" not in gi and "plo[]" in gi:
+            gi["clo_plo[]"] = _as_list(gi.get("plo[]"))
         if "plo[]" not in gi and "clo_plo[]" in gi:
             gi["plo[]"] = _as_list(gi.get("clo_plo[]"))
         clo_n = max(
             len(_as_list(gi.get("clo_text[]"))),
+            len(_as_list(gi.get("clo_plo[]"))),
             len(_as_list(gi.get("plo[]"))),
             len(_as_list(gi.get("teach_strategy[]"))),
+            len(_as_list(gi.get("assess_criteria[]"))),
             len(_as_list(gi.get("assess_strategy[]"))),
         )
         if clo_n <= 0:
             clo_n = 1
         _ensure_list_len("clo_text[]", clo_n, "")
+        _ensure_list_len("clo_plo[]", clo_n, "")
         _ensure_list_len("plo[]", clo_n, "")
         _ensure_list_len("teach_strategy[]", clo_n, "")
+        _ensure_list_len("assess_criteria[]", clo_n, "")
         _ensure_list_len("assess_strategy[]", clo_n, "")
 
         # Weekly plan table
@@ -1468,6 +1617,7 @@ def edit_tqf3(section_id):
         assess_n = max(
             len(_as_list(gi.get("assess_clo[]"))),
             len(_as_list(gi.get("assess_activity[]"))),
+            len(_as_list(gi.get("assess_plan_criteria[]"))),
             len(_as_list(gi.get("assess_week[]"))),
             len(_as_list(gi.get("assess_pct[]"))),
         )
@@ -1475,8 +1625,30 @@ def edit_tqf3(section_id):
             assess_n = 1
         _ensure_list_len("assess_clo[]", assess_n, "")
         _ensure_list_len("assess_activity[]", assess_n, "")
+        _ensure_list_len("assess_plan_criteria[]", assess_n, "")
         _ensure_list_len("assess_week[]", assess_n, "")
         _ensure_list_len("assess_pct[]", assess_n, "")
+
+        # Rubric Score table
+        rubric_n = max(
+            len(_as_list(gi.get("rubric_topic[]"))),
+            len(_as_list(gi.get("rubric_l5[]"))),
+            len(_as_list(gi.get("rubric_l4[]"))),
+            len(_as_list(gi.get("rubric_l3[]"))),
+            len(_as_list(gi.get("rubric_l2[]"))),
+            len(_as_list(gi.get("rubric_l1[]"))),
+        )
+        if rubric_n <= 0:
+            rubric_n = 1
+        for _rk in (
+            "rubric_topic[]",
+            "rubric_l5[]",
+            "rubric_l4[]",
+            "rubric_l3[]",
+            "rubric_l2[]",
+            "rubric_l1[]",
+        ):
+            _ensure_list_len(_rk, rubric_n, "")
 
         # Improvement strategy legacy alignment
         if "course_improve" not in gi and "improvement_strategy" in gi:
@@ -1499,13 +1671,15 @@ def edit_tqf3(section_id):
 
         # CLO
         clo_texts = _as_list(form_data.get("clo_text[]"))
-        plos = _as_list(form_data.get("plo[]"))
+        # clo_plo[] is the form-posted PLO-per-CLO mapping; plo[] is the legacy alias.
+        plos = _as_list(form_data.get("clo_plo[]")) or _as_list(form_data.get("plo[]"))
         if clo_texts:
             n = len(clo_texts)
             if "clo_desc[]" not in form_data:
                 form_data["clo_desc[]"] = clo_texts
-            if "clo_plo[]" not in form_data:
-                form_data["clo_plo[]"] = (plos + [""] * (n - len(plos)))[:n]
+            padded_plos = (plos + [""] * (n - len(plos)))[:n]
+            form_data["clo_plo[]"] = padded_plos
+            form_data["plo[]"] = padded_plos
             if "clo_code[]" not in form_data:
                 form_data["clo_code[]"] = [f"CLO {i + 1}" for i in range(n)]
             if "clo_bloom[]" not in form_data:
@@ -1581,7 +1755,10 @@ def edit_tqf3(section_id):
         tqf3.general_info = _normalize_general_info_for_qtf_format(tqf3.general_info or {}, section, term)
 
     if request.method == "POST":
+        autosave = _is_autosave_request()
         if tqf3.status in ["SUBMITTED", "APPROVED"]:
+            if autosave:
+                return _autosave_locked()
             flash("เอกสารถูกล็อกแล้ว ไม่สามารถแก้ไขได้", "warning")
             return redirect(url_for("instructor_dashboard"))
 
@@ -1600,6 +1777,10 @@ def edit_tqf3(section_id):
         tqf3.general_info = existing
 
         action = request.form.get("action")
+        if autosave:
+            # Background autosave: persist content but never change status or flash.
+            tqf3.save()
+            return _autosave_ok(tqf3)
         if action == "submit":
             tqf3.status = "SUBMITTED"
             tqf3.submitted_at = _utcnow()
@@ -1620,6 +1801,135 @@ def edit_tqf3(section_id):
         tqf3=tqf3,
         feedbacks=feedbacks,
         prefill_source=prefill_source,
+        plos=_plos_for_section(section),
+    )
+
+
+@app.route("/instructor/tqf4/<section_id>", methods=["GET", "POST"])
+@login_required
+@roles_required("instructor")
+def edit_tqf4(section_id):
+    section = _get_or_404(Section, section_id)
+    if section.instructor_id != current_user.id:
+        flash("คุณไม่มีสิทธิ์เข้าถึงรายวิชานี้", "danger")
+        return redirect(url_for("dashboard"))
+
+    section.course = Course.get(section.course_id) if getattr(section, "course_id", None) else None
+    section.term = Term.get(section.term_id) if getattr(section, "term_id", None) else None
+    section.instructor = current_user
+
+    if section.status == "locked":
+        flash("ระบบถูกล็อกแล้ว ไม่สามารถแก้ไขเอกสารได้", "warning")
+        return redirect(url_for("instructor_dashboard"))
+
+    term = section.term
+    if (not term) or (not bool(term.is_open_tqf3)):
+        flash("เทอมนี้ยังไม่เปิดให้กรอก มคอ.4", "warning")
+        return redirect(url_for("instructor_dashboard"))
+
+    def _as_list(value) -> list:
+        if isinstance(value, list):
+            return value
+        if value is None:
+            return []
+        return [value]
+
+    def _normalize_tqf4_general_info(payload: dict) -> dict:
+        gi = dict(payload or {})
+        course = section.course
+        program = course.program if course else None
+        faculty = program.faculty if program else None
+
+        gi.setdefault("university", "มหาวิทยาลัยราชภัฏเทพสตรี")
+        if faculty and faculty.name:
+            gi.setdefault("faculty", faculty.name)
+        if program and program.name:
+            gi.setdefault("program", program.name)
+        if course:
+            if course.code:
+                gi.setdefault("course_code", course.code)
+            if course.name_th:
+                gi.setdefault("course_name", course.name_th)
+            if course.credits is not None:
+                gi.setdefault("credits", str(course.credits))
+            if course.description:
+                gi.setdefault("description", course.description)
+        if term:
+            gi.setdefault("semester", str(getattr(term, "semester", "") or ""))
+            gi.setdefault("academic_year", str(getattr(term, "year", "") or ""))
+        if getattr(current_user, "full_name", None):
+            gi.setdefault("advisor", current_user.full_name)
+
+        # Pad row tables to equal lengths (>=1) so the editor renders cleanly.
+        table_groups = [
+            ("report[]", "report_criteria[]"),
+            ("clo_text[]", "clo_plo[]", "teach_strategy[]", "assess_strategy[]"),
+            ("week[]", "topic[]", "week_clo[]", "hours[]", "activities[]",
+             "supervisor[]", "note[]"),
+            ("assess_clo[]", "assess_activity[]", "assess_plan_criteria[]",
+             "assess_pct[]", "assess_evaluator[]"),
+            ("rubric_topic[]", "rubric_l5[]", "rubric_l4[]", "rubric_l3[]",
+             "rubric_l2[]", "rubric_l1[]"),
+        ]
+        for keys in table_groups:
+            n = max((len(_as_list(gi.get(k))) for k in keys), default=0)
+            if n <= 0:
+                n = 1
+            for k in keys:
+                arr = _as_list(gi.get(k))
+                if len(arr) < n:
+                    arr = arr + [""] * (n - len(arr))
+                gi[k] = arr
+        return gi
+
+    tqf4 = _get_or_create_tqf4(section_id)
+
+    if request.method == "POST":
+        autosave = _is_autosave_request()
+        if tqf4.status in ["SUBMITTED", "APPROVED"]:
+            if autosave:
+                return _autosave_locked()
+            flash("เอกสารถูกล็อกแล้ว ไม่สามารถแก้ไขได้", "warning")
+            return redirect(url_for("instructor_dashboard"))
+
+        data = {}
+        for key in request.form.keys():
+            if key.endswith("[]"):
+                data[key] = request.form.getlist(key)
+            elif key != "action":
+                data[key] = request.form.get(key)
+
+        existing = tqf4.general_info or {}
+        existing.update(data)
+        tqf4.general_info = existing
+
+        action = request.form.get("action")
+        if autosave:
+            # Background autosave: persist content but never change status or flash.
+            tqf4.save()
+            return _autosave_ok(tqf4)
+        if action == "submit":
+            tqf4.status = "SUBMITTED"
+            tqf4.submitted_at = _utcnow()
+            flash("ส่ง มคอ.4 ให้หัวหน้าสาขาเรียบร้อยแล้ว", "success")
+        else:
+            tqf4.status = "DRAFT" if tqf4.status == "RETURNED" else tqf4.status
+            flash("บันทึกร่าง มคอ.4 สำเร็จ", "success")
+
+        tqf4.save()
+        return redirect(url_for("instructor_dashboard"))
+
+    tqf4.general_info = _normalize_tqf4_general_info(tqf4.general_info or {})
+
+    feedbacks = [f for f in Feedback.find_by("tqf_id", tqf4.id) if f.tqf_type == "TQF4"]
+    feedbacks.sort(key=lambda f: f.created_at, reverse=True)
+
+    return render_template(
+        "instructor/edit_tqf4.html",
+        section=section,
+        tqf4=tqf4,
+        feedbacks=feedbacks,
+        plos=_plos_for_section(section),
     )
 
 
@@ -1737,6 +2047,16 @@ def edit_tqf5(section_id):
                 at["instructors"] = gi.get("instructor")
             if _is_blank(at.get("prereq")) and gi.get("prereq"):
                 at["prereq"] = gi.get("prereq")
+            if _is_blank(at.get("course_status")) and gi.get("course_status"):
+                at["course_status"] = gi.get("course_status")
+            if _is_blank(at.get("student_type")) and gi.get("student_type"):
+                at["student_type"] = gi.get("student_type")
+            if _is_blank(at.get("plos")) and gi.get("plos"):
+                at["plos"] = gi.get("plos")
+            if _is_blank(at.get("course_objective")):
+                obj = gi.get("field_objective") or gi.get("course_objective") or gi.get("objectives")
+                if obj:
+                    at["course_objective"] = obj
             if _is_blank(at.get("year_level")) and gi.get("year_level"):
                 at["year_level"] = gi.get("year_level")
             if _is_blank(at.get("last_update")) and gi.get("last_updated"):
@@ -1767,9 +2087,14 @@ def edit_tqf5(section_id):
             if legacy_codes:
                 n = len(legacy_codes)
                 gi_clo_text = _as_list(gi.get("clo_text[]")) or _as_list(gi.get("clo_desc[]"))
+                gi_clo_plo = _as_list(gi.get("clo_plo[]")) or _as_list(gi.get("plo[]"))
                 for i in range(1, n + 1):
                     desc = gi_clo_text[i - 1] if i - 1 < len(gi_clo_text) else legacy_codes[i - 1]
                     at[f"clo_desc_{i}"] = desc
+                    at[f"clo_plo_{i}"] = at.get(
+                        f"clo_plo_{i}",
+                        gi_clo_plo[i - 1] if i - 1 < len(gi_clo_plo) else "",
+                    )
                     at[f"clo_teach_{i}"] = legacy_methods[i - 1] if i - 1 < len(legacy_methods) else ""
                     at[f"clo_assess_{i}"] = legacy_assess[i - 1] if i - 1 < len(legacy_assess) else ""
                     at[f"clo_result_{i}"] = legacy_results[i - 1] if i - 1 < len(legacy_results) else ""
@@ -1784,9 +2109,14 @@ def edit_tqf5(section_id):
 
                 gi_teach = _as_list(gi.get("teach_strategy[]"))
                 gi_assess = _as_list(gi.get("assess_strategy[]"))
+                gi_clo_plo = _as_list(gi.get("clo_plo[]")) or _as_list(gi.get("plo[]"))
                 n = max(len(gi_clo_text), 1)
                 for i in range(1, n + 1):
                     at[f"clo_desc_{i}"] = gi_clo_text[i - 1] if i - 1 < len(gi_clo_text) else ""
+                    at[f"clo_plo_{i}"] = at.get(
+                        f"clo_plo_{i}",
+                        gi_clo_plo[i - 1] if i - 1 < len(gi_clo_plo) else "",
+                    )
                     at[f"clo_teach_{i}"] = gi_teach[i - 1] if i - 1 < len(gi_teach) else ""
                     at[f"clo_assess_{i}"] = gi_assess[i - 1] if i - 1 < len(gi_assess) else ""
                     at[f"clo_result_{i}"] = at.get(f"clo_result_{i}", "")
@@ -1976,7 +2306,10 @@ def edit_tqf5(section_id):
             prefill_source = {"source": "TQF3", "tqf3_status": tqf3.status}
 
     if request.method == "POST":
+        autosave = _is_autosave_request()
         if tqf5.status in ["SUBMITTED", "APPROVED"]:
+            if autosave:
+                return _autosave_locked()
             flash("เอกสารถูกล็อกแล้ว ไม่สามารถแก้ไขได้", "warning")
             return redirect(url_for("instructor_dashboard"))
 
@@ -2011,6 +2344,10 @@ def edit_tqf5(section_id):
         tqf5.actual_teaching = existing
 
         action = request.form.get("action")
+        if autosave:
+            # Background autosave: persist content but never change status or flash.
+            tqf5.save()
+            return _autosave_ok(tqf5)
         if action == "submit":
             if not tqf3_is_approved:
                 flash("ยังไม่สามารถส่ง มคอ.5 ได้ (มคอ.3 ยังไม่อนุมัติ)", "warning")
@@ -2038,6 +2375,136 @@ def edit_tqf5(section_id):
         tqf3_is_approved=tqf3_is_approved,
         feedbacks=feedbacks,
         prefill_source=prefill_source,
+        plos=_plos_for_section(section),
+    )
+
+
+# --- TQF export (Word / PDF) ---
+
+
+def _can_export_section_tqf(section: Section) -> bool:
+    """Who may download/print a section's TQF: reviewers or its own instructor."""
+    if current_user.has_any_role(["admin", "academic", "head"]):
+        return True
+    return bool(section.instructor_id) and section.instructor_id == current_user.id
+
+
+def _section_export_context(section: Section) -> dict:
+    """Resolved fallbacks (course/program/faculty/term/instructor) for exporters."""
+    course = section.course if section else None
+    program = course.program if course else None
+    faculty = program.faculty if program else None
+    term = section.term if section else None
+    instructor = User.get(section.instructor_id) if section and section.instructor_id else None
+    return {
+        "faculty": faculty.name if faculty else "-",
+        "program": program.name if program else "-",
+        "course_code": course.code if course else "-",
+        "course_name": (course.name_th or course.name_en) if course else "-",
+        "credits": course.credits if course else "-",
+        "description": course.description if course else "-",
+        "section_number": section.section_number if section else "-",
+        "semester": term.semester if term else "-",
+        "year": term.year if term else "-",
+        "instructor": instructor.full_name if instructor else "-",
+    }
+
+
+def _export_filename(prefix: str, section: Section, ext: str) -> str:
+    course = section.course if section else None
+    code = (course.code if course else "") or "course"
+    safe = secure_filename(f"{prefix}_{code}_sec{section.section_number or ''}") or prefix
+    return f"{safe}.{ext}"
+
+
+def _load_section_for_export(section_id: str) -> Section:
+    section = _get_or_404(Section, section_id)
+    if not _can_export_section_tqf(section):
+        abort(403)
+    return section
+
+
+@app.route("/tqf3/<section_id>/export/word")
+@login_required
+def export_tqf3_word(section_id):
+    section = _load_section_for_export(section_id)
+    tqf3 = _get_or_create_tqf3(section_id)
+    buffer = build_tqf3_docx(tqf3.general_info, _section_export_context(section))
+    return send_file(
+        buffer,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=_export_filename("TQF3", section, "docx"),
+    )
+
+
+@app.route("/tqf4/<section_id>/export/word")
+@login_required
+def export_tqf4_word(section_id):
+    section = _load_section_for_export(section_id)
+    tqf4 = _get_or_create_tqf4(section_id)
+    buffer = build_tqf4_docx(tqf4.general_info, _section_export_context(section))
+    return send_file(
+        buffer,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=_export_filename("TQF4", section, "docx"),
+    )
+
+
+@app.route("/tqf4/<section_id>/export/pdf")
+@login_required
+def export_tqf4_pdf(section_id):
+    section = _load_section_for_export(section_id)
+    tqf4 = _get_or_create_tqf4(section_id)
+    return render_template(
+        "shared/tqf_print.html",
+        tqf_type="tqf4",
+        section=section,
+        tqf4=tqf4,
+        doc_title="มคอ.4",
+    )
+
+
+@app.route("/tqf5/<section_id>/export/word")
+@login_required
+def export_tqf5_word(section_id):
+    section = _load_section_for_export(section_id)
+    tqf5 = _get_or_create_tqf5(section_id, "")
+    buffer = build_tqf5_docx(tqf5.actual_teaching, _section_export_context(section))
+    return send_file(
+        buffer,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        as_attachment=True,
+        download_name=_export_filename("TQF5", section, "docx"),
+    )
+
+
+@app.route("/tqf3/<section_id>/export/pdf")
+@login_required
+def export_tqf3_pdf(section_id):
+    section = _load_section_for_export(section_id)
+    tqf3 = _get_or_create_tqf3(section_id)
+    return render_template(
+        "shared/tqf_print.html",
+        tqf_type="tqf3",
+        section=section,
+        tqf3=tqf3,
+        doc_title="มคอ.3",
+    )
+
+
+@app.route("/tqf5/<section_id>/export/pdf")
+@login_required
+def export_tqf5_pdf(section_id):
+    section = _load_section_for_export(section_id)
+    tqf5 = _get_or_create_tqf5(section_id, "")
+    return render_template(
+        "shared/tqf_print.html",
+        tqf_type="tqf5",
+        section=section,
+        tqf5=tqf5,
+        doc_title="รายงานผลการจัดการเรียนรู้ระดับรายวิชา (มคอ.5/6)",
     )
 
 
@@ -2048,7 +2515,8 @@ def edit_tqf5(section_id):
 @login_required
 @roles_required("head")
 def head_dashboard():
-    selected_term_id = (request.args.get("term_id") or "").strip()
+    # term_id absent → auto-select current term; term_id="" → show all
+    term_id_param = request.args.get("term_id")
 
     # Head belongs to a department (สาขา) which may have multiple programs.
     program_ids = set()
@@ -2063,7 +2531,7 @@ def head_dashboard():
             sections=[],
             instructors=[],
             terms=[],
-            selected_term_id=selected_term_id,
+            selected_term_id=term_id_param or None,
         )
 
     sections = Section.find_all()
@@ -2086,15 +2554,24 @@ def head_dashboard():
     for s in filtered:
         s.term = term_by_id.get(s.term_id)
 
+    if term_id_param is None and term_objs:
+        current = _find_current_term(term_objs)
+        selected_term_id = current.id if current else None
+    else:
+        selected_term_id = term_id_param or None
+
     if selected_term_id:
         filtered = [s for s in filtered if s.term_id == selected_term_id]
 
     # Attach TQF docs for templates (status / review links)
     section_ids = [s.id for s in filtered if s.id]
     tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf4_by_section = _tqf4_by_section_ids(section_ids)
     tqf5_by_section = _tqf5_by_section_ids(section_ids)
     for s in filtered:
+        s.is_field = is_field_experience_course(s.course)
         s.tqf3 = tqf3_by_section.get(s.id)
+        s.tqf4 = tqf4_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
 
     instructors = users_with_role("instructor")
@@ -2134,6 +2611,132 @@ def head_dashboard():
     )
 
 
+def _parse_plo_number(raw: str | None) -> int | None:
+    """Parse a PLO number from user input (digits only, positive)."""
+    digits = re.sub(r"\D", "", str(raw or ""))
+    if not digits:
+        return None
+    try:
+        value = int(digits)
+    except ValueError:
+        return None
+    return value if value > 0 else None
+
+
+def _head_programs_for(user: User) -> list[Program]:
+    """Programs the given head may manage, sorted for display."""
+    scope = _get_head_scope(user)
+    program_ids = scope.get("program_ids") or set()
+    programs = [p for p in (Program.get(pid) for pid in program_ids) if p]
+    programs.sort(key=lambda p: (p.name, p.year or 0))
+    return programs
+
+
+@app.route("/head/plos", methods=["GET", "POST"])
+@login_required
+@roles_required("head")
+def head_manage_plos():
+    programs = _head_programs_for(current_user)
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    if not programs:
+        flash("ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ", "warning")
+        return render_template(
+            "head/plos.html",
+            programs=[],
+            selected_program=None,
+            plos=[],
+        )
+
+    if request.method == "POST":
+        program_id = (request.form.get("program_id") or "").strip()
+        number = _parse_plo_number(request.form.get("number"))
+        description = (request.form.get("description") or "").strip()
+
+        if program_id not in program_by_id:
+            flash("ไม่พบหลักสูตร หรือคุณไม่มีสิทธิ์จัดการหลักสูตรนี้", "danger")
+        elif number is None or not description:
+            flash("กรุณากรอกหมายเลข PLO (ตัวเลข) และคำอธิบายให้ครบถ้วน", "warning")
+        else:
+            PLO(
+                program_id=program_id,
+                code=f"PLO{number}",
+                description=description,
+                order=number,
+            ).save()
+            flash("เพิ่ม PLO เรียบร้อยแล้ว", "success")
+        return redirect(url_for("head_manage_plos", program_id=program_id))
+
+    selected_program_id = request.args.get("program_id") or (programs[0].id if programs else None)
+    if selected_program_id not in program_by_id:
+        selected_program_id = programs[0].id if programs else None
+
+    selected_program = program_by_id.get(selected_program_id)
+    plos = selected_program.plos if selected_program else []
+
+    next_number = 1
+    for plo in plos:
+        n = plo.order if plo.order is not None else _parse_plo_number(plo.code)
+        if n is not None:
+            next_number = max(next_number, n + 1)
+
+    return render_template(
+        "head/plos.html",
+        programs=programs,
+        selected_program=selected_program,
+        plos=plos,
+        next_number=next_number,
+    )
+
+
+def _head_owned_plo_or_redirect(plo_id: str):
+    """Return PLO if the current head may manage it, else (None, redirect)."""
+    plo = PLO.get(plo_id)
+    if not plo:
+        flash("ไม่พบ PLO ที่ระบุ", "danger")
+        return None, redirect(url_for("head_manage_plos"))
+    allowed_ids = _get_head_scope(current_user).get("program_ids") or set()
+    if plo.program_id not in allowed_ids:
+        flash("คุณไม่มีสิทธิ์จัดการ PLO นี้", "danger")
+        return None, redirect(url_for("head_manage_plos"))
+    return plo, None
+
+
+@app.route("/head/plos/<plo_id>/update", methods=["POST"])
+@login_required
+@roles_required("head")
+def head_update_plo(plo_id):
+    plo, redirect_response = _head_owned_plo_or_redirect(plo_id)
+    if redirect_response:
+        return redirect_response
+
+    number = _parse_plo_number(request.form.get("number"))
+    description = (request.form.get("description") or "").strip()
+
+    if number is None or not description:
+        flash("กรุณากรอกหมายเลข PLO (ตัวเลข) และคำอธิบายให้ครบถ้วน", "warning")
+    else:
+        plo.code = f"PLO{number}"
+        plo.order = number
+        plo.description = description
+        plo.save()
+        flash("แก้ไข PLO เรียบร้อยแล้ว", "success")
+    return redirect(url_for("head_manage_plos", program_id=plo.program_id))
+
+
+@app.route("/head/plos/<plo_id>/delete", methods=["POST"])
+@login_required
+@roles_required("head")
+def head_delete_plo(plo_id):
+    plo, redirect_response = _head_owned_plo_or_redirect(plo_id)
+    if redirect_response:
+        return redirect_response
+    program_id = plo.program_id
+    plo.delete()
+    flash("ลบ PLO เรียบร้อยแล้ว", "success")
+    return redirect(url_for("head_manage_plos", program_id=program_id))
+
+
 def _attach_section_context_to_tqf_doc(tqf: object) -> None:
     """Attach `section`, `course`, `term`, `instructor` runtime attributes for templates."""
     section_id = getattr(tqf, "section_id", None)
@@ -2159,6 +2762,10 @@ def _build_tqf_full_parts(tqf_type: str, tqf: object) -> list[dict]:
             ("CLO-PLO Mapping (clo_plo_mapping)", getattr(tqf, "clo_plo_mapping", {}) or {}),
             ("แผนการสอน (teaching_plan)", getattr(tqf, "teaching_plan", {}) or {}),
             ("แผนการประเมิน (evaluation_plan)", getattr(tqf, "evaluation_plan", {}) or {}),
+        ]
+    elif tqf_type == "tqf4":
+        parts = [
+            ("ข้อมูลทั่วไป (general_info)", getattr(tqf, "general_info", {}) or {}),
         ]
     else:
         parts = [
@@ -2342,6 +2949,9 @@ def review_tqf(tqf_type, tqf_id):
     if tqf_type == "tqf3":
         tqf = _get_or_404(TQF3, tqf_id)
         type_label = "TQF3"
+    elif tqf_type == "tqf4":
+        tqf = _get_or_404(TQF4, tqf_id)
+        type_label = "TQF4"
     else:
         tqf = _get_or_404(TQF5, tqf_id)
         type_label = "TQF5"
@@ -2598,7 +3208,9 @@ def _handle_programs_request():
     departments = Department.find_all()
     # Avoid N+1 Firestore reads via Department.faculty property in sorting.
     departments.sort(key=lambda d: (faculty_name_by_id.get(d.faculty_id) or "", d.name))
-    department_name_by_id = {d.id: d.name for d in departments if d and d.id}
+    department_name_by_id = {
+        d.id: (f"{d.name} ({d.major})" if d.major else d.name) for d in departments if d and d.id
+    }
 
     programs = Program.find_all()
     programs.sort(key=lambda p: (-(p.year or 0), p.name))
@@ -2705,10 +3317,7 @@ def admin_delete_program(program_id):
     return redirect(url_for("admin_manage_programs"))
 
 
-@app.route("/admin/courses", methods=["GET", "POST"])
-@login_required
-@roles_required("admin")
-def manage_courses():
+def _handle_courses_request():
     if request.method == "POST":
         code = (request.form.get("code") or "").strip()
         name_th = (request.form.get("name_th") or "").strip()
@@ -2756,17 +3365,42 @@ def manage_courses():
     )
 
 
-@app.route("/admin/delete-course/<course_id>", methods=["POST"])
+@app.route("/admin/courses", methods=["GET", "POST"])
 @login_required
 @roles_required("admin")
-def delete_course(course_id):
+def manage_courses():
+    return _handle_courses_request()
+
+
+@app.route("/academic/courses", methods=["GET", "POST"])
+@login_required
+@roles_required("academic", "admin")
+def academic_manage_courses():
+    return _handle_courses_request()
+
+
+def _delete_course(course_id, default_endpoint):
     course = _get_or_404(Course, course_id)
     if Section.first_by("course_id", course_id):
         flash("ไม่สามารถลบรายวิชานี้ได้ เนื่องจากมีการเปิดสอนในเทอมต่างๆ", "danger")
     else:
         course.delete()
         flash("ลบรายวิชาเรียบร้อยแล้ว", "success")
-    return redirect(url_for("manage_courses"))
+    return _safe_redirect_next(default_endpoint)
+
+
+@app.route("/admin/delete-course/<course_id>", methods=["POST"])
+@login_required
+@roles_required("admin")
+def delete_course(course_id):
+    return _delete_course(course_id, "manage_courses")
+
+
+@app.route("/academic/delete-course/<course_id>", methods=["POST"])
+@login_required
+@roles_required("academic", "admin")
+def academic_delete_course(course_id):
+    return _delete_course(course_id, "academic_manage_courses")
 
 
 @app.route("/admin/users", methods=["GET", "POST"])
@@ -3037,6 +3671,7 @@ def academic_dashboard():
     else:
         selected_term_id = term_id_param or None
 
+    selected_term_label = ""
     if show_all or not selected_term_id:
         terms = all_terms
         show_stats = False
@@ -3044,6 +3679,8 @@ def academic_dashboard():
         selected_term = Term.get(selected_term_id)
         terms = [selected_term] if selected_term else all_terms
         show_stats = True
+        if selected_term:
+            selected_term_label = f"{selected_term.semester}/{selected_term.year}"
 
     programs = Program.find_all()
     programs.sort(key=lambda p: (-(p.year or 0), p.name))
@@ -3105,6 +3742,7 @@ def academic_dashboard():
         term_program_ids=term_program_ids,
         terms=all_terms,
         selected_term_id=selected_term_id,
+        selected_term_label=selected_term_label,
     )
 
 
@@ -3288,6 +3926,7 @@ def head_term_documents(term_id):
 
     section_ids = [s.id for s in sections if s.id]
     tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf4_by_section = _tqf4_by_section_ids(section_ids)
     tqf5_by_section = _tqf5_by_section_ids(section_ids)
 
     rows = []
@@ -3298,7 +3937,9 @@ def head_term_documents(term_id):
         s.course = c
         s.term = term
         s.instructor = instructor_by_id.get(s.instructor_id)
+        s.is_field = is_field_experience_course(c)
         s.tqf3 = tqf3_by_section.get(s.id)
+        s.tqf4 = tqf4_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
         rows.append(s)
 
@@ -3308,9 +3949,12 @@ def head_term_documents(term_id):
 
     rows.sort(key=_row_key)
 
+    def _spec(sec):
+        return sec.tqf4 if getattr(sec, "is_field", False) else sec.tqf3
+
     total = len(rows)
-    tqf3_submitted = sum(1 for s in rows if s.tqf3 and s.tqf3.status in ["SUBMITTED", "APPROVED"])
-    tqf3_approved = sum(1 for s in rows if s.tqf3 and s.tqf3.status == "APPROVED")
+    tqf3_submitted = sum(1 for s in rows if _spec(s) and _spec(s).status in ["SUBMITTED", "APPROVED"])
+    tqf3_approved = sum(1 for s in rows if _spec(s) and _spec(s).status == "APPROVED")
     tqf5_submitted = sum(1 for s in rows if s.tqf5 and s.tqf5.status in ["SUBMITTED", "APPROVED"])
     tqf5_approved = sum(1 for s in rows if s.tqf5 and s.tqf5.status == "APPROVED")
     summary = _find_head_tqf5_summary(term.id, scope) if scope.get("program_ids") else None
@@ -3336,6 +3980,8 @@ def head_term_documents(term_id):
 def academic_view_tqf(tqf_type, tqf_id):
     if tqf_type == "tqf3":
         tqf = _get_or_404(TQF3, tqf_id)
+    elif tqf_type == "tqf4":
+        tqf = _get_or_404(TQF4, tqf_id)
     else:
         tqf = _get_or_404(TQF5, tqf_id)
 

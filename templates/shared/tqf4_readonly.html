@@ -46,11 +46,24 @@
             <span class="text-muted"><h5>เงื่อนไขที่สำคัญของการฝึกประสบการณ์:</h5></span>
             <div class="preserve-text">{{ general.get('field_condition', '-') }}</div>
         </div>
-        <div style="display: grid; grid-template-columns: 34% 33% 33%; gap: 16px;" class="mt-2">
-            <div><span class="text-muted"><h5>อาจารย์ที่ปรึกษา/นิเทศ:</h5></span><span> {{ general.get('advisor', '-') }} </span></div>
-            <div><span class="text-muted"><h5>ห้องพัก:</h5></span><span> {{ general.get('office', '-') }} </span></div>
-            <div><span class="text-muted"><h5>โทรศัพท์:</h5></span><span> {{ general.get('phone', '-') }} </span></div>
+        {% set adv = general.get('advisor[]') or ([general.get('advisor')] if general.get('advisor') else []) %}
+        {% set ofc = general.get('office[]') or ([general.get('office')] if general.get('office') else []) %}
+        {% set tel = general.get('phone[]') or ([general.get('phone')] if general.get('phone') else []) %}
+        <div class="mt-2"><span class="text-muted"><h5>อาจารย์ที่ปรึกษา/อาจารย์นิเทศการฝึกประสบการณ์ภาคสนาม:</h5></span></div>
+        {% if adv|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูลอาจารย์ที่ปรึกษา/อาจารย์นิเทศ)</div>
+        {% else %}
+        <div class="qtf-table-wrapper">
+            <table class="qtf-table min-760">
+                <thead><tr><th class="col-60p">ชื่ออาจารย์ที่ปรึกษา/อาจารย์นิเทศ</th><th class="col-20p">ห้องพัก</th><th class="col-20p">โทรศัพท์</th></tr></thead>
+                <tbody>
+                    {% for i in range(adv|length) %}
+                    <tr><td class="preserve-text">{{ adv[i] or '-' }}</td><td class="preserve-text">{{ ofc[i] if i < ofc|length else '-' }}</td><td class="preserve-text">{{ tel[i] if i < tel|length else '-' }}</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
+        {% endif %}
         <div style="display: grid; grid-template-columns: 34% 33% 33%; gap: 16px;" class="mt-2">
             <div><span class="text-muted"><h5>ห้องเรียน/สถานที่:</h5></span><span> {{ general.get('location', '-') }} </span></div>
             <div><span class="text-muted"><h5>ระบบออนไลน์:</h5></span><span> {{ general.get('online_system', '-') }} </span></div>
@@ -63,7 +76,7 @@
         <h3>2) จุดประสงค์การจัดการเรียนรู้และภาระงาน</h3>
         <div class="mt-3">
             <span class="text-muted"><h5>จุดประสงค์การจัดการเรียนรู้ของการฝึกประสบการณ์ภาคสนาม:</h5></span>
-            <div class="preserve-text">{{ general.get('field_objective', general.get('objectives', '-')) }}</div>
+            <div class="preserve-text">{{ general.get('field_objective', '-') }}</div>
         </div>
         <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px;" class="mt-3">
             <div><span class="text-muted"><h5>ชม.บรรยาย:</h5></span><span> {{ general.get('lecture_hours', '-') }} </span></div>
@@ -121,6 +134,16 @@
     <div class="qtf-card">
         <h3 class="mb-3">5) การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</h3>
         <div class="mt-2"><span class="text-muted"><h5>PLOs ที่เกี่ยวข้อง:</h5></span><div class="preserve-text">{{ general.get('plos', '-') }}</div></div>
+        {% set course_clos = (general.get('course_objective') or '').split('\n') | map('trim') | select | list %}
+        <div class="mt-2"><span class="text-muted"><h5>จุดประสงค์การเรียนรู้ระดับรายวิชา (CLOs):</h5></span>
+            {% if course_clos|length == 0 %}
+            <div class="text-muted">-</div>
+            {% else %}
+            <ol class="mb-0" style="margin:0; padding-left:1.4rem;">
+                {% for c in course_clos %}<li class="preserve-text">{{ c }}</li>{% endfor %}
+            </ol>
+            {% endif %}
+        </div>
         {% set clo_texts = general.get('clo_text[]', []) %}
         {% set clo_plos = general.get('clo_plo[]', []) %}
         {% set teachs = general.get('teach_strategy[]', []) %}

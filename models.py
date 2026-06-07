@@ -49,11 +49,25 @@ class FirestoreModel:
     def _col(cls):
         return get_firestore_client().collection(cls.collection_name)
 
-    def save(self) -> "FirestoreModel":
+    def save(self, replace_fields: tuple = ()) -> "FirestoreModel":
+        """Persist the model.
+
+        Existing docs are written with ``merge=True`` so fields absent from
+        :meth:`to_dict` are preserved. ``replace_fields`` names top-level fields
+        (typically map fields like ``general_info``) that must be authoritative:
+        they are overwritten wholesale via ``update()`` so sub-keys removed in
+        Python (e.g. deleted table rows) are actually deleted in Firestore —
+        ``merge=True`` alone would resurrect them.
+        """
         data = self.to_dict()
         data.setdefault("updated_at", _utcnow())
         if self.id:
-            self._col().document(self.id).set(data, merge=True)
+            doc = self._col().document(self.id)
+            doc.set(data, merge=True)
+            if replace_fields:
+                # update() with a dot-free field path replaces the whole value
+                # (no deep map merge), so missing sub-keys are dropped.
+                doc.update({f: data.get(f) for f in replace_fields})
         else:
             data.setdefault("created_at", _utcnow())
             ref = self._col().document()

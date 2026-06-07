@@ -58,6 +58,12 @@ fieldset {
     border: none;
 }
 
+input,
+textarea,
+select {
+    font-size: 0.9rem;
+}
+
 /* Glassmorphism utility */
 .glass {
     background: var(--frosted-highlight);
@@ -256,6 +262,103 @@ fieldset {
     background: #f0f5fb;
 }
 
+.grade-percent-display {
+    display: inline-block;
+    padding: 0 0.25rem;
+    font-weight: 600;
+    color: var(--text-color, #1f2d3d);
+}
+
+/* Grade distribution: table + pie chart side by side */
+.grade-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.grade-layout > .table-wrapper {
+    min-width: 0;
+}
+
+/* ตารางในเลย์เอาต์นี้ให้ย่อพอดีคอลัมน์ ไม่บังคับความกว้างขั้นต่ำจนล้น */
+.grade-layout .data-table,
+.grade-layout .data-table.min-720 {
+    min-width: 0;
+    width: 100%;
+}
+
+.grade-layout .data-table th,
+.grade-layout .data-table td {
+    padding: 0.6rem 0.5rem;
+}
+
+.grade-layout .data-table .form-control {
+    min-width: 0;
+}
+
+.grade-chart-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.grade-chart {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+}
+
+.grade-chart-empty {
+    color: var(--muted-color, #64748b);
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.grade-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: 100%;
+}
+
+.grade-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.grade-legend-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 3px;
+    flex: 0 0 auto;
+}
+
+.grade-legend-label {
+    font-weight: 600;
+    min-width: 2.5rem;
+}
+
+.grade-legend-value {
+    color: var(--muted-color, #64748b);
+    margin-left: auto;
+}
+
+@media (max-width: 768px) {
+    .grade-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
 .data-table tbody tr {
     border-bottom: 1px solid var(--border-color);
 }
@@ -370,6 +473,16 @@ fieldset {
     vertical-align: top;
 }
 
+/* TQF tables: body content (not headers) rendered at text-xs across all มคอ. */
+.data-table tbody td,
+.qtf-table tbody td {
+    font-size: 0.8125rem;
+}
+.data-table tbody td .form-control,
+.qtf-table tbody td .form-control {
+    font-size: inherit;
+}
+
 .text-title{
     font-family: 'Kanit', 'Sarabun', sans-serif;
     font-weight: 500;
@@ -422,6 +535,24 @@ fieldset {
 .col-65p { width: 65%; }
 .col-10p { width: 10%; }
 
+
+.qtf-grid-new1{
+    display: grid; 
+    grid-template-columns: 1fr 2fr; 
+    gap: 20px
+
+}
+
+.non{
+    display: flex;
+    color: (var(--text-main));
+    font-size: 1rem;
+    background-color:transparent; 
+    border: none;
+    justify-content: center;
+    align-items: center;
+
+}
 .w-180 {
     width: 180px;
 }
@@ -1200,6 +1331,30 @@ fieldset {
     white-space: nowrap;
 }
 
+/* Multi-select PLO checklist used inside the มคอ.5 CLO row popup. Mirrors the
+   มคอ.3 PLO picker: spaced, bordered option rows with a square checkbox. */
+.qtf-plo-checklist {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.qtf-plo-checklist .qtf-plo-option {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border-color, #d0d5dd);
+    border-radius: 0.5rem;
+    cursor: pointer;
+}
+
+.qtf-plo-checklist .qtf-plo-option input[type="checkbox"] {
+    margin-top: 0.2rem;
+}
+
 /* Render single-select radios with a square (checkbox-style) box, and share
    the same look with the PLO picker checkboxes. */
 .qtf-radio input[type="radio"],
@@ -1291,11 +1446,7 @@ fieldset {
 
 /* Background autosave indicator next to the save buttons */
 .autosave-status {
-    margin-right: auto;
-    font-size: 0.85rem;
-    color: var(--text-muted, #6b7280);
-    min-height: 1.2em;
-    transition: color 0.2s ease;
+    display: none;
 }
 
 .autosave-status.is-ok {
@@ -1318,6 +1469,17 @@ fieldset {
 
 .qtf-table td .btn {
     width: 100%;
+}
+
+/* Compact edit/delete actions inside data-table rows so they sit side by side
+   instead of stacking into oversized blocks. */
+.data-table td .btn-compact {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.4rem 0.9rem;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .signature-grid {
@@ -1472,7 +1634,7 @@ fieldset {
     transition: all 0.3s ease;
     box-shadow: var(--shadow-soft);
     font-family: inherit;
-    font-size: inherit;
+    font-size: 0.9rem;
 }
 
 .form-control:focus {

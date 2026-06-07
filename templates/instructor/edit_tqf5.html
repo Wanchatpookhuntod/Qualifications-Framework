@@ -9,8 +9,8 @@
 <div class="qtf-alert qtf-alert-info">
     <div class="flex-between flex-wrap">
         <div>
-            <div class="fw-bold">มีการดึงข้อมูลจาก มคอ.3 มาเติมให้อัตโนมัติ</div>
-            <div class="qtf-alert-note">แหล่งข้อมูล: มคอ.3{% if prefill_source.get('tqf3_status') %} • สถานะ: {{ prefill_source.get('tqf3_status') }}{% endif %}</div>
+            <div class="fw-bold">มีการดึงข้อมูลจาก {{ prefill_source.get('source', 'มคอ.3') }} มาเติมให้อัตโนมัติ</div>
+            <div class="qtf-alert-note">แหล่งข้อมูล: {{ prefill_source.get('source', 'มคอ.3') }}{% if prefill_source.get('tqf3_status') %} • สถานะ: {{ prefill_source.get('tqf3_status') }}{% endif %}</div>
         </div>
         <div class="qtf-alert-note">ตรวจทานแล้วกด “บันทึกฉบับร่าง” ได้เลย</div>
     </div>
@@ -63,79 +63,138 @@
 
 <form id="tqf5-form" method="POST" class="glass panel" {% if not is_locked %}data-autosave{% endif %}>
     {% set data = tqf5.actual_teaching or {} %}
-    {% set gi = tqf3.general_info or {} %}
+    {% set gi = source_gi or {} %}
     {% set course_owner_val = (data.get('course_owner') or gi.get('course_owner') or '') %}
     {% set instructors_val = (data.get('instructors') or gi.get('instructor') or (section.instructor.full_name if section and section.instructor else current_user.full_name)) %}
     {% set class_group_val = data.get('class_group', gi.get('class_group', section.section_number or '')) %}
 
     <fieldset {% if is_locked %}disabled{% endif %}>
-        <div class="qtf-card qtf-highlight">
-            <div class="qtf-section-title">ข้อมูลรายวิชา</div>
-            <div class="qtf-card qtf-highlight">
-                <div class="qtf-grid two">
-                    <div>
-                        <div>{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }} {{ data.get('faculty', gi.get('faculty', '')) }}</div>
-                        <div>หลักสูตร {{ data.get('program', gi.get('program', '')) }}</div>
-                        <div>รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) | thai_wrap }}</div>
-                        <div>ผู้สอน {{ instructors_val }}</div>
-                        <input type="hidden" name="instructors" value="{{ instructors_val }}">
-                        <input type="hidden" name="university" value="{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }}">
-                        <input type="hidden" name="faculty" value="{{ data.get('faculty', gi.get('faculty', '')) }}">
-                        <input type="hidden" name="program" value="{{ data.get('program', gi.get('program', '')) }}">
+        <div class="text-center">
+            <h3>{{ data.get('university', gi.get('university', 'มหาวิทยาลัยราชภัฏเทพสตรี')) }} {{ data.get('faculty', gi.get('faculty', '')) }}</h3>
+            <h2>หลักสูตร {{ data.get('program', gi.get('program', '')) }}</h2>
+        </div>
+
+        <div class="qtf-card mt-3">
+
+
+            <!-- ข้อมูลรายวิชา -->
+            <div class="tqf-card">
+                <h3 class="qtf-section-title">ข้อมูลรายวิชา</h3>
+                <div class="qtf-card qtf-highlight mt-4">
+                    <div>รายวิชา {{ data.get('course_code', section.course.code) }} {{ data.get('course_name', section.course.name_th) | thai_wrap }} - จำนวน {{ data.get('credits', section.course.credits) }} หน่วยกิต
                     </div>
-                    <div>
-                        <div>ปีการศึกษา {{ data.get('semester', section.term.semester) }} / {{ data.get('academic_year', section.term.year) }} ชั้นปีที่ {{ data.get('year_level', '') }}</div>
-                        <div class="mt-2">จำนวน {{ data.get('credits', section.course.credits) }} หน่วยกิต</div>
-                        <div class="mt-2">หมู่เรียน {{ class_group_val or '-' }}</div>
-                        {% set course_status_val = (data.get('course_status') or gi.get('course_status') or '') %}
-                        {% set student_type_val = (data.get('student_type') or gi.get('student_type') or '') %}
-                        <div class="mt-2">สถานภาพของวิชา {{ course_status_val or '-' }}{% if student_type_val %} • {{ student_type_val }}{% endif %}</div>
-                        <div class="mt-2">วันที่จัดทำ/ปรับปรุงครั้งล่าสุด {{ data.get('last_update', '') }}</div>
-                        <input type="hidden" name="class_group" value="{{ class_group_val }}">
-                        <input type="hidden" name="course_status" value="{{ course_status_val }}">
-                        <input type="hidden" name="student_type" value="{{ student_type_val }}">
-                    </div>
+                </div>
+
+            </div>
+            
+            {% set course_status_val = (data.get('course_status') or gi.get('course_status') or '') %}
+            {% set student_type_val = (data.get('student_type') or gi.get('student_type') or '') %}
+
+            <div class="mt-3">
+                <div class="text-muted text-xs">สถานภาพของวิชา</div>
+                <div>{{ course_status_val or '-' }}</div>
+            </div>
+
+
+            <div class="mt-3">
+                <div class="text-muted text-xs">คำอธิบายรายวิชา</div>
+                <div>{{ data.get('course_desc', section.course.description or '') }}</div>
+            </div>
+
+            <div class="mt-3">
+                <div class="text-xs text-muted">รายวิชาที่บังคับเรียนก่อน</div>
+                <div>{{ data.get('prereq') or gi.get('prereq') or '-' }}</div>
+            </div>
+
+            <!-- PLO -->
+            <div class=" mt-3">
+                <div class="text-xs text-muted">ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้องกับรายวิชา</div>
+                {% set plo_val = data.get('plos', gi.get('plos', '')) %}
+                {% set plo_lines = (plo_val or '').replace('\r\n', '\n').split('\n') | map('trim') | select | list %}
+                <div style="height:auto;">
+                    {% for line in plo_lines %}<div>{{ line.replace(' — ', ' ').replace('—', ' ') }}</div>{% endfor %}
+                    {% if not plo_lines %}<div class="text-muted">-</div>{% endif %}
                 </div>
             </div>
 
-            <div class="form-group mt-3">
-                <label>คำอธิบายรายวิชา</label>
-                <textarea name="course_desc" class="form-control" rows="4">{{ data.get('course_desc', section.course.description or '') }}</textarea>
+            <!-- CLO -->
+            <div class=" mt-3">
+                <div class="text-xs text-muted">จุดประสงค์การจัดการเรียนรู้ระดับรายวิชา (รวมรายวิชาฝึกประสบการณ์ภาคสนาม)</div>
+                {% set co_val = data.get('course_objective', gi.get('field_objective', gi.get('course_objective', gi.get('objectives', '')))) %}
+                {% set co_lines = (co_val or '').replace('\r\n', '\n').split('\n') | map('trim') | select | list %}
+                <div style="height:auto;">
+                    {% for line in co_lines %}<div>{{ line }}</div>{% endfor %}
+                    {% if not co_lines %}<div class="text-muted">-</div>{% endif %}
+                </div>
             </div>
 
-            <div class="form-group mt-2">
-                <label>รายวิชาที่บังคับเรียนก่อน (Pre-requisite) (ถ้ามี)</label>
-                <input type="text" name="prereq" class="form-control" value="{{ data.get('prereq', gi.get('prereq', '')) }}">
+            <div class="mt-3">
+                <div class="text-xs text-muted">ข้อมูลภาคการศึกษาและกลุ่มผู้เรียน</div>
+                <span>ปีการศึกษา {{ data.get('semester', section.term.semester) }} / {{ data.get('academic_year', section.term.year) }}
+                หมู่เรียนที่ {{ class_group_val or '-' }} นักศึกษา{% if student_type_val %} {{ student_type_val }}{% endif %}  ชั้นปีที่ {{ data.get('year_level', '') }}</span>
             </div>
 
-            <div class="form-group mt-2">
-                <label>ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้องกับรายวิชา</label>
-                <textarea name="plos" class="form-control" rows="3">{{ data.get('plos', gi.get('plos', '')) }}</textarea>
+            <div class="mt-3">
+                <div class="text-xs text-muted">เงื่อนไขที่สำคัญของการฝึกประสบการณ์ (ถ้ามี)</div>
+                <div>{{ data.get('field_condition') or gi.get('field_condition') or '-' }}</div>
             </div>
-            <div class="form-group mt-2">
-                <label>จุดประสงค์การจัดการเรียนรู้ระดับรายวิชา (รวมรายวิชาฝึกประสบการณ์ภาคสนาม)</label>
-                <textarea name="course_objective" class="form-control" rows="3">{{ data.get('course_objective', gi.get('field_objective', gi.get('course_objective', gi.get('objectives', '')))) }}</textarea>
+
+            {% set office_val = data.get('office') or gi.get('office') or ((gi.get('office[]') or []) | select | first) or '' %}
+            {% set phone_val = data.get('phone') or gi.get('phone') or ((gi.get('phone[]') or []) | select | first) or '' %}
+            <div class="mt-3" style="display:grid; gap:10px; grid-template-columns: repeat(3, 1fr);">
+                <div>
+                    <div class="text-xs text-muted">อาจารย์ผู้สอน</div>
+                    <div>{{ instructors_val or '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">ห้องพัก</div>
+                    <div>{{ office_val or '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">โทรศัพท์</div>
+                    <div>{{ phone_val or '-' }}</div>
+                </div>
             </div>
-            <div class="form-group mt-2">
-                <label>เงื่อนไขที่สำคัญของการฝึกประสบการณ์ (ถ้ามี)</label>
-                <input type="text" name="field_condition" class="form-control" value="{{ data.get('field_condition', gi.get('field_condition', '')) }}">
+
+            <div class="mt-3" style="display:grid; gap:10px; grid-template-columns: repeat(3, 1fr);">
+                <div>
+                    <div class="text-xs text-muted">ห้องเรียน/สถานที่</div>
+                    <div>{{ data.get('location') or gi.get('location') or gi.get('location_type') or '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">ระบบออนไลน์</div>
+                    <div>{{ data.get('online_system') or gi.get('online_system') or '-' }}</div>
+                </div>
+                <div>
+                    <div class="text-xs text-muted">กรณีเรียนภายนอกมหาวิทยาลัย</div>
+                    <div>{{ data.get('external_location') or gi.get('external_location') or '-' }}</div>
+                </div>
             </div>
-            <div class="form-group mt-2">
-                <label>รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อนในการจัดการเรียนรู้ (ถ้ามี) และแนวทางการจัดการแก้ไข</label>
+        </div>
+
+
+        <div class="qtf-card">
+            <h3 class="qtf-section-subtitle">ผลการดำเนินการจัดการเรียนรู้ตามแผนและแนวทางการปรับปรุง</h3>
+            <div class="form-group mt-4">
+                <div class="qtf-section-subtitle">รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อนในการจัดการเรียนรู้ (ถ้ามี) และแนวทางการจัดการแก้ไข</div>
                 <textarea name="teaching_hours" class="form-control" rows="3">{{ data.get('teaching_hours', '') }}</textarea>
             </div>
+
             <div class="form-group mt-2">
-                <label>รายงานหัวข้อที่สอนไม่ครอบคลุมจากแผนการจัดการเรียนรู้ที่กำหนดไว้ (ถ้ามี) และแนวทางการจัดการแก้ไข</label>
+                <div class="qtf-section-subtitle">รายงานหัวข้อที่สอนไม่ครอบคลุมจากแผนการจัดการเรียนรู้ที่กำหนดไว้ (ถ้ามี) และแนวทางการจัดการแก้ไข</div>
                 <textarea name="uncovered_topics" class="form-control" rows="3">{{ data.get('uncovered_topics', '') }}</textarea>
             </div>
+
             <div class="form-group mt-2">
-                <label>รายงานความสอดคล้องกับจุดประสงค์การเรียนรู้ และมีการปรับปรุงการจัดการเรียนรู้อย่างไร</label>
+                <div class="qtf-section-subtitle">รายงานความสอดคล้องกับจุดประสงค์การเรียนรู้ และมีการปรับปรุงการจัดการเรียนรู้อย่างไร</div>
                 <textarea name="during_improve" class="form-control" rows="3">{{ data.get('during_improve', '') }}</textarea>
             </div>
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">การจัดการเรียนรู้และวิธีการประเมินผลที่ดำเนินการเพื่อทำให้เกิดผลลัพธ์การเรียนรู้ตามที่ระบุในรายละเอียดรายวิชา</div>
+            <h3 class="qtf-section-title">
+                การจัดการเรียนรู้และวิธีการประเมินผลที่ดำเนินการเพื่อทำให้เกิดผลลัพธ์การเรียนรู้ตามที่ระบุในรายละเอียดรายวิชา
+            </h3>
             {% set ns = namespace(clo_idxs=[]) %}
             {% for k in data.keys() %}
                 {% if k.startswith('clo_desc_') %}
@@ -144,25 +203,25 @@
             {% endfor %}
             {% set clo_n = (ns.clo_idxs|max) if ns.clo_idxs else 1 %}
             {% if clo_n < 1 %}{% set clo_n = 1 %}{% endif %}
-            <div class="table-wrapper mt-2">
+            <div class="table-wrapper mt-4">
                 <table id="cloTable" class="data-table min-900">
                     <colgroup>
-                        <col style="width: 10%;">
-                        <col style="width: 10%;">
+                        <col style="width: 8%;">
+                        <col style="width: 8%;">
                         <col style="width: 19%;">
                         <col style="width: 19%;">
-                        <col style="width: 16%;">
+                        <col style="width: 20%;">
                         <col style="width: 16%;">
                         <col style="width: 10%;">
                     </colgroup>
                     <thead>
                         <tr>
                             <th class="text-center" >CLOs</th>
-                            <th class="text-center" >PLOs ที่รับผิดชอบ</th>
-                            <th class="text-center" >กลยุทธ์การสอน/วิธีการจัดการเรียนรู้ที่ได้ดำเนินการ</th>
-                            <th class="text-center" >วิธีการประเมินผลที่ได้ดำเนินการ/เกณฑ์การวัดและการประเมินผล</th>
-                            <th class="text-center" >ผลที่เกิดกับนักศึกษา (บรรลุ CLO/PLO)</th>
-                            <th class="text-center" >แนวทางการพัฒนาปรับปรุง</th>
+                            <th class="text-center" >PLOs</th>
+                            <th class="text-center" >กลยุทธ์การสอน</th>
+                            <th class="text-center" >วิธีการ/<br>เกณฑ์ประเมินผล</th>
+                            <th class="text-center" >การบรรลุ<br>CLO/PLO</th>
+                            <th class="text-center" >แนวทางปรับปรุง</th>
                             <th class="text-center" >จัดการ</th>
                         </tr>
                     </thead>
@@ -174,7 +233,28 @@
             {% set _ = clo_rows.append({'clo_desc_': data.get('clo_desc_' ~ i, ''), 'clo_plo_': data.get('clo_plo_' ~ i, ''), 'clo_teach_': data.get('clo_teach_' ~ i, ''), 'clo_assess_': data.get('clo_assess_' ~ i, ''), 'clo_result_': data.get('clo_result_' ~ i, ''), 'clo_improve_': data.get('clo_improve_' ~ i, '')}) %}
             {% endfor %}
             <script type="application/json" id="cloData">{{ clo_rows | tojson }}</script>
-            <script type="application/json" id="ploOptions">[{% for p in plos or [] %}{"code": {{ p.code | tojson }}, "desc": {{ p.description | tojson }}}{% if not loop.last %},{% endif %}{% endfor %}]</script>
+            {# PLO options for the CLO table come from the PLOs actually selected
+               in มคอ.3/มคอ.4 (gi.plos, one "PLOn — desc" per line); fall back to
+               the program's full PLO list when none were selected. #}
+            {% set plo_sel_lines = (gi.get('plos') or '').replace('\r\n', '\n').split('\n') | map('trim') | select | list %}
+            <script type="application/json" id="ploOptions">[
+            {%- if plo_sel_lines -%}
+                {%- for line in plo_sel_lines -%}
+                    {%- set parts = line.split('—', 1) -%}
+                    {%- if parts | length == 2 -%}
+                        {%- set code = parts[0] | trim -%}{%- set desc = parts[1] | trim -%}
+                    {%- else -%}
+                        {%- set bits = line.split(' ', 1) -%}
+                        {%- set code = bits[0] | trim -%}{%- set desc = (bits[1] | trim) if bits | length == 2 else '' -%}
+                    {%- endif -%}
+                    {"code": {{ code | tojson }}, "desc": {{ desc | tojson }}}{% if not loop.last %},{% endif %}
+                {%- endfor -%}
+            {%- else -%}
+                {%- for p in plos or [] -%}
+                    {"code": {{ p.code | tojson }}, "desc": {{ p.description | tojson }}}{% if not loop.last %},{% endif %}
+                {%- endfor -%}
+            {%- endif -%}
+            ]</script>
             <div class="qtf-btn-row mt-3">
                 <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('clo')">+ เพิ่มแถว CLO</button>
             </div>
@@ -182,22 +262,22 @@
         </div>
 
         <div class="qtf-card">
-            <div class="qtf-section-title">สรุปผลการจัดการเรียนการสอนของรายวิชา</div>
-             <div class="qtf-grid three">
+            <h3>สรุปผลการจัดการเรียนการสอนของรายวิชา</h3>
+             <div class="qtf-grid three mt-4">
                  <div class="form-group">
-                     <label>1. จำนวนนักศึกษาที่ลงทะเบียน</label>
+                     <div class="qtf-section-subtitle">1. จำนวนนักศึกษาที่ลงทะเบียน</div>
                      <input type="number" name="n_registered" class="form-control" min="0" value="{{ data.get('n_registered', '') }}">
                  </div>
                 <div class="form-group">
-                    <label>2. จำนวนนักศึกษาที่คงอยู่เมื่อสิ้นสุดภาคการศึกษา</label>
+                    <div class="qtf-section-subtitle">2. จำนวนนักศึกษาที่คงอยู่</div>
                     <input type="number" name="n_remain" class="form-control" min="0" value="{{ data.get('n_remain', '') }}">
                 </div>
                 <div class="form-group">
-                    <label>3. จำนวนนักศึกษาที่ถอน (W)</label>
+                    <div class="qtf-section-subtitle">3. จำนวนนักศึกษาที่ถอน (W)</div>
                     <input type="number" name="n_withdraw" class="form-control" min="0" value="{{ data.get('n_withdraw', '') }}">
                 </div>
              </div>
-            <div class="qtf-section-subtitle mt-2">4. การกระจายของระดับคะแนน (เกรด) (แสดงแยกตามสาขา) (ถ้ามี)</div>
+            <div class="qtf-section-subtitle">4. การกระจายของระดับคะแนน (เกรด) (แสดงแยกตามสาขา) (ถ้ามี)</div>
 
             {% set ns_grade = namespace(idx=[]) %}
             {% for k in data.keys() %}
@@ -209,127 +289,160 @@
             {% if grade_n < 1 %}{% set grade_n = 1 %}{% endif %}
             {% set grade_options = ['A','B+','B','C+','C','D+','D','F','I','W','S','U','P','NP','M'] %}
 
-            <div class="table-wrapper mt-2">
-                <table id="gradeTable" class="data-table min-720">
-                    <colgroup>
-                        <col style="width: 15;">
-                        <col style="width: 35;">
-                        <col style="width: 35;">
-                        <col style="width: 15;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th class="text-center">ระดับคะแนน</th>
-                            <th class="text-center">จำนวนนักศึกษา (คน)</th>
-                            <th class="text-center">คิดเป็นร้อยละ</th>
-                            <th class="text-center">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for i in range(1, grade_n + 1) %}
-                        {% set level_val = data.get('g_level_' ~ i, '') %}
-                        <tr>
-                            <td>
-                                <select name="g_level_{{ i }}" class="form-control">
-                                    <option value="" {% if level_val == '' %}selected{% endif %}>-- เลือก --</option>
-                                    {% for opt in grade_options %}
-                                        <option value="{{ opt }}" {% if level_val == opt %}selected{% endif %}>{{ opt }}</option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td><input name="g_count_{{ i }}" class="form-control" type="number" min="0" value="{{ data.get('g_count_' ~ i, '') }}"></td>
-                            <td><input name="g_percent_{{ i }}" class="form-control" type="number" step="0.01" min="0" value="{{ data.get('g_percent_' ~ i, '') }}"></td>
-                            <td class="text-center"><button name="g_delete_{{ i }}" type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">ลบ</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-2" style="display: grid; grid-template-columns: 3fr 1fr ; gap: 1rem">
-                <button type="button" class="btn btn-primary" onclick="addGradeRow()">+ เพิ่มแถวเกรด</button>
-                <button type="button" class="btn btn-secondary" onclick="calcPercent()">คำนวณ</button>
+            <!-- 4. การกระจายของระดับคะแนน (เกรด) (แสดงแยกตามสาขา) (ถ้ามี) -->
+            <div class="grade-layout mt-2 qtf-card">
+                <div class="table-wrapper mt-3">
+                    <table id="gradeTable" class="data-table min-720">
+                        <colgroup>
+                            <col style="width: 22%;">
+                            <col style="width: 30%;">
+                            <col style="width: 26%;">
+                            <col style="width: 22%;">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th class="text-center">ระดับคะแนน</th>
+                                <th class="text-center">จำนวนนักศึกษา (คน)</th>
+                                <th class="text-center">คิดเป็นร้อยละ</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for i in range(1, grade_n + 1) %}
+                            {% set level_val = data.get('g_level_' ~ i, '') %}
+                            <tr>
+                                <td>
+                                    <select name="g_level_{{ i }}" class="form-control">
+                                        <option value="" {% if level_val == '' %}selected{% endif %}>-- เลือก --</option>
+                                        {% for opt in grade_options %}
+                                            <option value="{{ opt }}" {% if level_val == opt %}selected{% endif %}>{{ opt }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input name="g_count_{{ i }}" class="form-control" type="number" min="0" value="{{ data.get('g_count_' ~ i, '') }}"></td>
+                                <td>
+                                    <span class="grade-percent-display">{% if data.get('g_percent_' ~ i, '') != '' %}{{ data.get('g_percent_' ~ i) }}%{% else %}—{% endif %}</span>
+                                    <input name="g_percent_{{ i }}" type="hidden" value="{{ data.get('g_percent_' ~ i, '') }}">
+                                </td>
+                                <td class="text-center">
+                                    <button name="g_delete_{{ i }}" type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">
+                                        ลบ
+                                    </button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-primary" onclick="addGradeRow()">+ เพิ่มแถวเกรด</button>
+                    </div>
+
+                    
+                </div>
+                <div class="grade-chart-panel mt-3">
+                    <div id="gradeChart" class="grade-chart" role="img" aria-label="กราฟวงกลมการกระจายของระดับคะแนน"></div>
+                    <div id="gradeLegend" class="grade-legend"></div>
+                    <div id="gradeChartEmpty" class="grade-chart-empty">กรอกจำนวนนักศึกษาเพื่อแสดงกราฟ</div>
+                </div>
             </div>
 
-            <div class="qtf-section-subtitle mt-3">5. การบรรลุผลลัพธ์การเรียนรู้ระดับรายวิชา และระดับหลักสูตรตาม PLOs ที่รับผิดชอบ</div>
-            <div class="form-group mt-2">
-                <label>5.1 การบรรลุผลลัพธ์การเรียนรู้ระดับรายวิชา (CLO) เกณฑ์การวัดและการประเมินผลลัพธ์/ Rubric Score ที่กำหนด</label>
-                <textarea name="clo_achieve" class="form-control" rows="3">{{ data.get('clo_achieve', '') }}</textarea>
+            <!-- 5. การบรรลุผลลัพธ์การเรียนรู้ระดับรายวิชา และระดับหลักสูตรตาม PLOs ที่รับผิดชอบ -->
+            <div class="qtf-section-subtitle mt-4">
+                5. การบรรลุผลลัพธ์การเรียนรู้ระดับรายวิชา และระดับหลักสูตรตาม PLOs ที่รับผิดชอบ
             </div>
-            <div class="form-group mt-2">
-                <label>5.2 การบรรลุผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLO ตัวที่รับผิดชอบ) เกณฑ์การวัดและการประเมินผลลัพธ์/ Rubric Score ที่กำหนด</label>
-                <textarea name="plo_achieve" class="form-control" rows="3">{{ data.get('plo_achieve', '') }}</textarea>
+
+            <div class="qtf-card">
+                <div class="form-group mt-4">
+                    <label>5.1 การบรรลุผลลัพธ์การเรียนรู้ระดับรายวิชา (CLO) เกณฑ์การวัดและการประเมินผลลัพธ์/ Rubric Score ที่กำหนด</label>
+                    <textarea name="clo_achieve" class="form-control" rows="3">{{ data.get('clo_achieve', '') }}</textarea>
+                </div>
+                <div class="form-group mt-2">
+                    <label>5.2 การบรรลุผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLO ตัวที่รับผิดชอบ) เกณฑ์การวัดและการประเมินผลลัพธ์/ Rubric Score ที่กำหนด</label>
+                    <textarea name="plo_achieve" class="form-control" rows="3">{{ data.get('plo_achieve', '') }}</textarea>
+                </div>
             </div>
-            <div class="form-group mt-2">
-                <label>6. ปัจจัยที่ทำให้นักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้ ระดับรายวิชา และระดับหลักสูตร</label>
+
+            <!-- 6. ปัจจัยที่ทำให้นักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้ ระดับรายวิชา และระดับหลักสูตร  -->
+            <div class="qtf-section-subtitle mt-4">
+                <div>6. ปัจจัยที่ทำให้นักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้ ระดับรายวิชา และระดับหลักสูตร</div>
                 <textarea name="fail_factors" class="form-control" rows="2">{{ data.get('fail_factors', '') }}</textarea>
             </div>
-            <div class="form-group mt-2">
+
+            <!-- 7. แนวทางการปรับปรุงแก้ไข กรณีที่นักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้ ระดับรายวิชา และระดับหลักสูตร  -->
+            <div class="qtf-section-subtitle mt-4">
                 <label>7. แนวทางการปรับปรุงแก้ไข กรณีที่นักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้ ระดับรายวิชา และระดับหลักสูตร</label>
                 <textarea name="fail_fix" class="form-control" rows="2">{{ data.get('fail_fix', '') }}</textarea>
             </div>
-            <div class="form-group mt-2">
+
+            <!-- 8. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์/ผลลัพธ์การเรียนรู้ของนักศึกษา  -->
+            <div class="qtf-section-subtitle mt-4">
                 <label>8. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์/ผลลัพธ์การเรียนรู้ของนักศึกษา</label>
                 <textarea name="verification" class="form-control" rows="3">{{ data.get('verification', '') }}</textarea>
             </div>
+
+            <!-- 9. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้ -->
+            <div class="qtf-section-title mt-4">9. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้</div>
+                {% set ns_issue = namespace(idx=[]) %}
+                {% for k in data.keys() %}
+                    {% if k.startswith('issue_') and not k.startswith('issue_fix_') %}
+                        {% set ns_issue.idx = ns_issue.idx + [k.split('_')[-1]|int] %}
+                    {% endif %}
+                {% endfor %}
+                {% set issue_n = (ns_issue.idx|max) if ns_issue.idx else 1 %}
+                {% if issue_n < 1 %}{% set issue_n = 1 %}{% endif %}
+            <div class="qtf-card">
+                <div class="table-wrapper mt-2">
+                    <table id="issueTable" class="data-table min-760">
+                        <colgroup>
+                            <col style="width: 40;">
+                            <col style="width: 50;">
+                            <col style="width: 10;">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th class="text-center">ประเด็น</th>
+                                <th class="text-center">แนวทางการปรับแก้ไข</th>
+                                <th class="text-center">จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                {% set issue_rows = [] %}
+                {% for i in range(1, issue_n + 1) %}
+                {% set _ = issue_rows.append({'issue_': data.get('issue_' ~ i, ''), 'issue_fix_': data.get('issue_fix_' ~ i, '')}) %}
+                {% endfor %}
+                <script type="application/json" id="issueData">{{ issue_rows | tojson }}</script>
+                <div class="qtf-btn-row mt-3">
+                    <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('issue')">+ เพิ่มแถวปัญหา</button>
+                </div>
+            </div>
+
+            <!-- 10. การประเมินผลรายวิชา -->
+            <div class="qtf-card">
+                <div class="qtf-section-title mt-4">10. การประเมินผลรายวิชา</div>
+                <div class="form-group">
+                    <label>1. ข้อวิพากษ์ที่สำคัญจากผลการประเมิน โดยนักศึกษาหรือผู้เรียน</label>
+                    <textarea name="eval_crit" class="form-control" rows="3">{{ data.get('eval_crit', '') }}</textarea>
+                </div>
+                <div class="form-group mt-2">
+                    <label>2. ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์ตาม ข้อ 1</label>
+                    <textarea name="teacher_comment" class="form-control" rows="3">{{ data.get('teacher_comment', '') }}</textarea>
+                </div>
+                <div class="form-group mt-2">
+                    <label>3. แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
+                    <textarea name="improve_plan" class="form-control" rows="3">{{ data.get('improve_plan', data.get('improvement_plan', '')) }}</textarea>
+                    <input type="hidden" name="improvement_plan" value="{{ data.get('improve_plan', data.get('improvement_plan', '')) }}">
+                </div>
+                <div class="form-group mt-2">
+                    <label>4. ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</label>
+                    <textarea name="suggest_to_committee" class="form-control" rows="3">{{ data.get('suggest_to_committee', '') }}</textarea>
+                </div>
+            </div>
+
         </div>
 
-        <div class="qtf-card">
-            <div class="qtf-section-title">9. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้</div>
-            {% set ns_issue = namespace(idx=[]) %}
-            {% for k in data.keys() %}
-                {% if k.startswith('issue_') and not k.startswith('issue_fix_') %}
-                    {% set ns_issue.idx = ns_issue.idx + [k.split('_')[-1]|int] %}
-                {% endif %}
-            {% endfor %}
-            {% set issue_n = (ns_issue.idx|max) if ns_issue.idx else 1 %}
-            {% if issue_n < 1 %}{% set issue_n = 1 %}{% endif %}
-            <div class="table-wrapper mt-2">
-                <table id="issueTable" class="data-table min-760">
-                    <colgroup>
-                        <col style="width: 40;">
-                        <col style="width: 50;">
-                        <col style="width: 10;">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th class="text-center">ประเด็น</th>
-                            <th class="text-center">แนวทางการปรับแก้ไข</th>
-                            <th class="text-center">จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-            {% set issue_rows = [] %}
-            {% for i in range(1, issue_n + 1) %}
-            {% set _ = issue_rows.append({'issue_': data.get('issue_' ~ i, ''), 'issue_fix_': data.get('issue_fix_' ~ i, '')}) %}
-            {% endfor %}
-            <script type="application/json" id="issueData">{{ issue_rows | tojson }}</script>
-            <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('issue')">+ เพิ่มแถวปัญหา</button>
-            </div>
-        </div>
-
-        <div class="qtf-card">
-            <div class="qtf-section-title">10. การประเมินผลรายวิชา</div>
-            <div class="form-group">
-                <label>1. ข้อวิพากษ์ที่สำคัญจากผลการประเมิน โดยนักศึกษาหรือผู้เรียน</label>
-                <textarea name="eval_crit" class="form-control" rows="3">{{ data.get('eval_crit', '') }}</textarea>
-            </div>
-            <div class="form-group mt-2">
-                <label>2. ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์ตาม ข้อ 1</label>
-                <textarea name="teacher_comment" class="form-control" rows="3">{{ data.get('teacher_comment', '') }}</textarea>
-            </div>
-            <div class="form-group mt-2">
-                <label>3. แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
-                <textarea name="improve_plan" class="form-control" rows="3">{{ data.get('improve_plan', data.get('improvement_plan', '')) }}</textarea>
-                <input type="hidden" name="improvement_plan" value="{{ data.get('improve_plan', data.get('improvement_plan', '')) }}">
-            </div>
-            <div class="form-group mt-2">
-                <label>4. ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</label>
-                <textarea name="suggest_to_committee" class="form-control" rows="3">{{ data.get('suggest_to_committee', '') }}</textarea>
-            </div>
-        </div>
+        
     </fieldset>
 
     <div class="qtf-btn-row mt-4">
@@ -400,29 +513,54 @@ const QTFRows = (function () {
         if (el) PLO_OPTIONS = JSON.parse(el.textContent || '[]');
     } catch (e) { PLO_OPTIONS = []; }
 
-    function buildPloSelect(value) {
-        const sel = document.createElement('select');
-        const blank = document.createElement('option');
-        blank.value = '';
-        blank.textContent = PLO_OPTIONS.length ? '— เลือก PLO —' : '— ยังไม่มี PLO ของหลักสูตร —';
-        sel.appendChild(blank);
-        let matched = false;
-        PLO_OPTIONS.forEach(o => {
-            const op = document.createElement('option');
-            op.value = o.code;
-            op.textContent = o.desc ? (o.code + ' — ' + o.desc) : o.code;
-            if (String(value || '') === o.code) { op.selected = true; matched = true; }
-            sel.appendChild(op);
+    // Multi-select PLO picker: checkboxes for each PLO; selected codes are kept
+    // (comma-joined) in a hidden input that carries data-key so save() reads it.
+    function buildPloChecklist(key, value) {
+        const wrap = document.createElement('div');
+        wrap.className = 'qtf-plo-checklist';
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.dataset.key = key;
+        const selected = String(value || '').split(',').map(s => s.trim()).filter(Boolean);
+        hidden.value = selected.join(', ');
+        wrap.appendChild(hidden);
+
+        // Options = program/selected PLOs, plus any stored custom codes.
+        const opts = PLO_OPTIONS.slice();
+        selected.forEach(code => {
+            if (!opts.some(o => o.code === code)) opts.push({ code: code, desc: '' });
         });
-        const v = String(value || '');
-        if (v && !matched) {
-            const op = document.createElement('option');
-            op.value = v;
-            op.textContent = v + ' (กำหนดเอง)';
-            op.selected = true;
-            sel.appendChild(op);
+        if (!opts.length) {
+            const p = document.createElement('div');
+            p.className = 'text-muted text-xs';
+            p.textContent = '— ยังไม่ได้เลือก PLO ใน มคอ.3/4 —';
+            wrap.appendChild(p);
+            return wrap;
         }
-        return sel;
+        function sync() {
+            const codes = Array.from(wrap.querySelectorAll('input[type="checkbox"]:checked'))
+                .map(c => c.value);
+            hidden.value = codes.join(', ');
+            hidden.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        opts.forEach(o => {
+            const lab = document.createElement('label');
+            lab.className = 'qtf-plo-option';
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.value = o.code;
+            if (selected.includes(o.code)) cb.checked = true;
+            cb.addEventListener('change', sync);
+            const span = document.createElement('span');
+            const strong = document.createElement('strong');
+            strong.textContent = o.code;
+            span.appendChild(strong);
+            if (o.desc) span.appendChild(document.createTextNode(' — ' + o.desc));
+            lab.appendChild(cb);
+            lab.appendChild(span);
+            wrap.appendChild(lab);
+        });
+        return wrap;
     }
 
     function rowHasContent(cfg, values) {
@@ -435,7 +573,7 @@ const QTFRows = (function () {
         tr.className = 'qtf-empty-row';
         const td = document.createElement('td');
         td.colSpan = cfg.fields.length + 1;
-        td.className = 'text-center text-muted';
+        td.className = 'text-center text-muted text-xs text-table';
         td.textContent = 'ยังไม่มีข้อมูล — กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
         tr.appendChild(td);
         return tr;
@@ -533,12 +671,15 @@ const QTFRows = (function () {
             const label = document.createElement('label');
             label.textContent = f.label;
             grp.appendChild(label);
+            if (f.type === 'plo') {
+                grp.appendChild(buildPloChecklist(f.key, values ? values[f.key] : ''));
+                fieldsEl.appendChild(grp);
+                return;
+            }
             let input;
             if (f.type === 'textarea') {
                 input = document.createElement('textarea');
                 input.rows = 3;
-            } else if (f.type === 'plo') {
-                input = buildPloSelect(values ? values[f.key] : '');
             } else {
                 input = document.createElement('input');
                 input.type = f.type || 'text';
@@ -546,10 +687,13 @@ const QTFRows = (function () {
             input.className = 'form-control';
             input.id = 'rowf_' + idx;
             input.dataset.key = f.key;
-            if (f.type !== 'plo') input.value = values ? String(values[f.key] || '') : '';
+            input.value = values ? String(values[f.key] || '') : '';
             grp.appendChild(input);
             fieldsEl.appendChild(grp);
         });
+        // Enhance any <select> (e.g. the PLO picker) into the app's custom
+        // dropdown styling used elsewhere on the page.
+        if (window.initCustomSelects) window.initCustomSelects(fieldsEl);
     }
 
     function openModal() {
@@ -629,11 +773,13 @@ const QTFRows = (function () {
     function removeIndexedRow(btn) {
         const row = btn.closest('tr');
         const tbody = row.parentNode;
+        const isGradeRow = !!row.closest('#gradeTable');
         if (tbody.rows.length > 1) {
             row.remove();
-            return;
+        } else {
+            row.querySelectorAll('input, textarea, select').forEach((el) => (el.value = ''));
         }
-        row.querySelectorAll('input, textarea, select').forEach((el) => (el.value = ''));
+        if (isGradeRow && typeof calcPercent === 'function') calcPercent(true);
     }
 
     function addGradeRow() {
@@ -662,36 +808,135 @@ const QTFRows = (function () {
                 </select>
             </td>
             <td><input name="g_count_${idx}" class="form-control" type="number" min="0" /></td>
-            <td><input name="g_percent_${idx}" class="form-control" type="number" step="0.01" min="0" /></td>
+            <td>
+                <span class="grade-percent-display">—</span>
+                <input name="g_percent_${idx}" type="hidden" />
+            </td>
             <td class="text-center"><button name="g_delete_${idx}" type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">ลบ</button></td>
         `;
         tbody.appendChild(tr);
+        if (typeof renderGradeChart === 'function') renderGradeChart();
     }
 
-    function calcPercent() {
-        const remainEl = document.querySelector('[name="n_remain"]');
-        const remain = parseFloat(remainEl ? (remainEl.value || '') : '');
+    function calcPercent(silent) {
         const rows = Array.from(document.querySelectorAll('#gradeTable tbody tr'));
-        let total = !isNaN(remain) && remain > 0 ? remain : 0;
+        // ฐานการคำนวณ = ผลรวมจำนวนนักศึกษาในตาราง (ตรงกับกราฟวงกลม) เพื่อให้รวมเป็น 100%
+        // และอัปเดตทุกครั้งที่เพิ่ม/ลบแถว
+        const total = rows.reduce((sum, r) => {
+            const cEl = r.querySelector('input[name^="g_count_"]');
+            const c = parseFloat((cEl && cEl.value) || 0);
+            return sum + (isNaN(c) ? 0 : c);
+        }, 0);
         if (!total) {
-            total = rows.reduce((sum, r) => {
-                const cEl = r.querySelector('input[name^="g_count_"]');
-                const c = parseFloat((cEl && cEl.value) || 0);
-                return sum + (isNaN(c) ? 0 : c);
-            }, 0);
-        }
-        if (!total) {
-            alert('กรุณากรอกจำนวนคงอยู่ หรือจำนวนในตารางเกรดก่อน');
+            // ไม่มีข้อมูล -> ล้างค่าร้อยละทั้งหมด ไม่ทิ้งค่าค้าง
+            rows.forEach((r) => {
+                const pEl = r.querySelector('input[name^="g_percent_"]');
+                const dEl = r.querySelector('.grade-percent-display');
+                if (pEl) pEl.value = '';
+                if (dEl) dEl.textContent = '—';
+            });
+            if (!silent) alert('กรุณากรอกจำนวนนักศึกษาในตารางเกรดก่อน');
+            renderGradeChart();
             return;
         }
         rows.forEach((r) => {
             const cEl = r.querySelector('input[name^="g_count_"]');
             const pEl = r.querySelector('input[name^="g_percent_"]');
+            const dEl = r.querySelector('.grade-percent-display');
+            const hasCount = cEl && cEl.value !== '' && !isNaN(parseFloat(cEl.value));
             const c = parseFloat((cEl && cEl.value) || 0);
-            const pct = (isNaN(c) ? 0 : c) * 100 / total;
-            if (pEl) pEl.value = (Math.round(pct * 100) / 100).toFixed(2);
+            const val = (Math.round((isNaN(c) ? 0 : c) * 100 / total * 100) / 100).toFixed(2);
+            if (pEl) pEl.value = hasCount ? val : '';
+            if (dEl) dEl.textContent = hasCount ? val + '%' : '—';
         });
+        renderGradeChart();
     }
+
+    // จานสีสำหรับกราฟวงกลม (วนซ้ำหากเกินจำนวน)
+    const GRADE_CHART_COLORS = [
+        '#0f83a6', '#2eb8c4', '#7ad1cf', '#f4a259', '#f25c54',
+        '#9b5de5', '#577590', '#90be6d', '#f9c74f', '#bc4749',
+        '#4d908e', '#277da1', '#c77dff', '#43aa8b', '#6c757d',
+    ];
+
+    function renderGradeChart() {
+        const chart = document.getElementById('gradeChart');
+        const legend = document.getElementById('gradeLegend');
+        const empty = document.getElementById('gradeChartEmpty');
+        if (!chart || !legend) return;
+
+        const rows = Array.from(document.querySelectorAll('#gradeTable tbody tr'));
+        const slices = [];
+        let total = 0;
+        rows.forEach((r) => {
+            const lvlEl = r.querySelector('select[name^="g_level_"]');
+            const cEl = r.querySelector('input[name^="g_count_"]');
+            const label = lvlEl && lvlEl.value ? lvlEl.value : '';
+            const count = parseFloat((cEl && cEl.value) || 0);
+            if (label && !isNaN(count) && count > 0) {
+                slices.push({ label, count });
+                total += count;
+            }
+        });
+
+        if (!total) {
+            chart.style.display = 'none';
+            legend.innerHTML = '';
+            if (empty) empty.style.display = 'block';
+            return;
+        }
+        if (empty) empty.style.display = 'none';
+        chart.style.display = 'block';
+
+        let acc = 0;
+        const segments = [];
+        legend.innerHTML = '';
+        slices.forEach((s, i) => {
+            const color = GRADE_CHART_COLORS[i % GRADE_CHART_COLORS.length];
+            const pct = (s.count * 100) / total;
+            const start = acc;
+            const end = acc + pct;
+            segments.push(`${color} ${start.toFixed(3)}% ${end.toFixed(3)}%`);
+            acc = end;
+
+            const item = document.createElement('div');
+            item.className = 'grade-legend-item';
+            item.innerHTML =
+                `<span class="grade-legend-swatch" style="background:${color}"></span>` +
+                `<span class="grade-legend-label">${s.label}</span>` +
+                `<span class="grade-legend-value">${s.count} คน (${(Math.round(pct * 100) / 100).toFixed(2)}%)</span>`;
+            legend.appendChild(item);
+        });
+        chart.style.background = `conic-gradient(${segments.join(', ')})`;
+    }
+
+    // คำนวณร้อยละแบบอัตโนมัติ: เมื่อผู้ใช้หยุดพิมพ์ (debounce) หรือเลื่อน cursor (blur/change)
+    (function setupAutoCalcPercent() {
+        let timer = null;
+        const debouncedCalc = function () {
+            clearTimeout(timer);
+            timer = setTimeout(() => calcPercent(true), 400);
+        };
+        const isCalcTrigger = (el) =>
+            el && el.matches && el.matches('input[name^="g_count_"]');
+
+        // ใช้ event delegation รองรับแถวที่เพิ่มภายหลัง
+        document.addEventListener('input', (e) => {
+            if (isCalcTrigger(e.target)) debouncedCalc();
+        });
+        document.addEventListener('change', (e) => {
+            if (isCalcTrigger(e.target)) calcPercent(true);
+            // เปลี่ยนระดับคะแนน -> อัปเดตกราฟ
+            else if (e.target && e.target.matches && e.target.matches('select[name^="g_level_"]'))
+                renderGradeChart();
+        });
+        document.addEventListener('blur', (e) => {
+            if (isCalcTrigger(e.target)) calcPercent(true);
+        }, true);
+
+        // วาดกราฟครั้งแรกตอนโหลดหน้า
+        renderGradeChart();
+    })();
 </script>
 <script src="{{ url_for('static', filename='js/tqf_autosave.js', v=static_v('js/tqf_autosave.js')) }}"></script>
 {% endblock %}

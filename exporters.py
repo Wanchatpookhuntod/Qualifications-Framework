@@ -55,12 +55,29 @@ def _set_base_style(doc: Document) -> None:
 
 def _add_run(paragraph, text: str, *, bold: bool = False, size: int = 14,
              color: Optional[RGBColor] = None):
-    run = paragraph.add_run("" if text is None else str(text))
-    run.bold = bold
-    run.font.size = Pt(size)
-    if color is not None:
-        run.font.color.rgb = color
-    _apply_thai_font(run)
+    """Add a run, rendering embedded ``\\n`` as real Word line breaks."""
+    text = "" if text is None else str(text)
+    parts = text.split("\n")
+    run = None
+    for idx, part in enumerate(parts):
+        if idx > 0:
+            if run is None:
+                run = paragraph.add_run("")
+                _apply_thai_font(run)
+            run.add_break()
+        run = paragraph.add_run(part)
+        run.bold = bold
+        run.font.size = Pt(size)
+        if color is not None:
+            run.font.color.rgb = color
+        _apply_thai_font(run)
+    if run is None:
+        run = paragraph.add_run("")
+        run.bold = bold
+        run.font.size = Pt(size)
+        if color is not None:
+            run.font.color.rgb = color
+        _apply_thai_font(run)
     return run
 
 
@@ -94,8 +111,16 @@ def _add_paragraph_field(doc: Document, label: str, value: Any) -> None:
     _add_run(bp, text)
 
 
-def _add_table(doc: Document, headers: List[str], rows: List[List[Any]]) -> None:
-    if not rows:
+def _add_table(doc: Document, headers: List[str], rows: List[List[Any]],
+               *, min_rows: int = 0, total_row: Optional[List[Any]] = None,
+               blank_empty: bool = False) -> None:
+    """Render a bordered table.
+
+    ``blank_empty`` leaves empty cells blank (strict-form look) instead of a dash.
+    ``min_rows`` pads the body with empty rows so the form structure is preserved
+    when there is little/no data. ``total_row`` appends one final summary row.
+    """
+    if not rows and not min_rows and not blank_empty:
         p = doc.add_paragraph()
         _add_run(p, "(ยังไม่มีข้อมูล)", color=_MUTED_COLOR)
         return
@@ -105,12 +130,52 @@ def _add_table(doc: Document, headers: List[str], rows: List[List[Any]]) -> None
     for cell, header in zip(table.rows[0].cells, headers):
         cell.paragraphs[0].clear()
         _add_run(cell.paragraphs[0], header, bold=True, size=13)
-    for row in rows:
+    body = list(rows)
+    while len(body) < min_rows:
+        body.append([""] * len(headers))
+    if total_row is not None:
+        body.append(total_row)
+    empty_text = "" if blank_empty else _DASH
+    for row in body:
         cells = table.add_row().cells
         for cell, value in zip(cells, row):
             cell.paragraphs[0].clear()
-            text = _DASH if value in (None, "") else str(value)
+            text = empty_text if value in (None, "") else str(value)
             _add_run(cell.paragraphs[0], text, size=13)
+
+
+def _checkbox(options: List[tuple], selected: Any) -> str:
+    """Render ``☑/☐`` choice text. ``options`` items are (label, *match-keywords)."""
+    sel = str(selected or "").strip().lower()
+    parts = []
+    for label, *aliases in options:
+        keys = [label, *aliases]
+        checked = bool(sel) and any(k and k.lower() in sel for k in keys)
+        parts.append(("☑ " if checked else "☐ ") + label)
+    return "    ".join(parts)
+
+
+def _fill_cell(cell, segments: List[tuple], *, size: int = 13) -> None:
+    """Write ``(text, bold)`` segments into one cell paragraph."""
+    cell.paragraphs[0].clear()
+    p = cell.paragraphs[0]
+    for text, bold in segments:
+        _add_run(p, text, bold=bold, size=size)
+
+
+def _merge_full_row(table, row_idx: int):
+    """Merge every cell of a row into one full-width cell and return it."""
+    cells = table.rows[row_idx].cells
+    merged = cells[0]
+    for cell in cells[1:]:
+        merged = merged.merge(cell)
+    return merged
+
+
+def _add_footer_note(doc: Document, text: str) -> None:
+    doc.add_paragraph()
+    p = doc.add_paragraph()
+    _add_run(p, text, size=12, color=_MUTED_COLOR)
 
 
 def _g(data: Dict[str, Any], *keys: str, default: Any = _DASH) -> Any:
@@ -151,17 +216,29 @@ def _max_indexed(data: Dict[str, Any], prefix: str,
     return biggest
 
 
-def _add_signatures(doc: Document, roles: List[str]) -> None:
-    """Append static signature lines (name + date) for the given roles."""
+def _add_signatures(doc: Document, roles: List[Any]) -> None:
+    """Append signature lines (name + date) for the given roles.
+
+    Each item may be a plain role string or a ``(role, name)`` tuple; when a name
+    is given it is printed inside the parentheses below the line.
+    """
     doc.add_paragraph()
     for role in roles:
+        if isinstance(role, (list, tuple)):
+            role_label, name = role[0], (role[1] if len(role) > 1 else "")
+        else:
+            role_label, name = role, ""
         p = doc.add_paragraph()
-        _add_run(p, f"ลงชื่อ {role} ", )
+        _add_run(p, f"ลงชื่อ {role_label} ", )
         _add_run(p, "......................................................")
         _add_run(p, "        วันที่ ........./........./.........")
         np = doc.add_paragraph()
         np.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _add_run(np, "(                                             )")
+        inner = str(name).strip() if name not in (None, "", _DASH) else ""
+        if inner:
+            _add_run(np, f"( {inner} )")
+        else:
+            _add_run(np, "(                                             )")
 
 
 def _finalize(doc: Document) -> io.BytesIO:
@@ -188,46 +265,72 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     cp.alignment = WD_ALIGN_PARAGRAPH.CENTER
     _add_run(cp, f"{course_code} {course_name}".strip(), bold=True)
 
-    # ข้อมูลรายวิชา (mirrors the official info table, in document order)
-    _add_section_heading(doc, "ข้อมูลรายวิชา")
-    _add_field(doc, "รหัสวิชา", course_code)
-    _add_field(doc, "ชื่อวิชา", course_name)
-    _add_field(doc, "จำนวนหน่วยกิต", _g(general, "credits", default=ctx.get("credits", _DASH)))
-    _add_field(doc, "สถานภาพของวิชา", _g(general, "course_status"))
-    _add_field(doc, "รายวิชาสังกัดคณะ", _g(general, "faculty", default=ctx.get("faculty", _DASH)))
-    _add_field(doc, "หลักสูตร", _g(general, "program", default=ctx.get("program", _DASH)))
-    _add_field(doc, "วิชาเอก", _g(general, "major"))
-    _add_paragraph_field(doc, "คำอธิบายรายวิชา",
-                         _g(general, "description", default=ctx.get("description", _DASH)))
-    _add_field(doc, "รายวิชาที่บังคับเรียนก่อน (Pre-requisite) (ถ้ามี)", _g(general, "prereq"))
-    _add_field(doc, "ภาคการศึกษา / ปีการศึกษา",
-               f"{_g(general, 'semester', default=ctx.get('semester', _DASH))} / "
-               f"{_g(general, 'academic_year', default=ctx.get('year', _DASH))}")
-    _add_field(doc, "ประเภทนักศึกษา", _g(general, "student_type"))
-    _add_field(doc, "ชั้นปีที่", _g(general, "year_level"))
-    _add_field(doc, "อาจารย์ผู้สอน",
-               _g(general, "instructor", default=ctx.get("instructor", _DASH)))
-    _add_field(doc, "ห้องพัก", _g(general, "office"))
-    _add_field(doc, "โทรศัพท์", _g(general, "phone"))
-    _add_field(doc, "ห้องเรียน", _g(general, "location", "location_type"))
-    _add_field(doc, "ระบบออนไลน์", _g(general, "online_system"))
-    _add_field(doc, "กรณีเรียนภายนอกมหาวิทยาลัย", _g(general, "external_location"))
-    _add_field(doc, "วันที่จัดทำหรือปรับปรุงประมวลการสอนหรือแผนการจัดการเรียนรู้ครั้งล่าสุด",
-               _g(general, "last_updated"))
-    _add_paragraph_field(doc, "ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (PLOs) ที่เกี่ยวข้องกับรายวิชา",
-                         _g(general, "plos"))
-    _add_paragraph_field(doc, "จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)",
-                         _g(general, "course_objective", "objectives"))
-    hh = doc.add_paragraph()
-    _add_run(hh, "จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)", bold=True)
-    _add_field(doc, "จำนวนชั่วโมงบรรยาย", _g(general, "lecture_hours"))
-    _add_field(doc, "ชั่วโมงฝึกปฏิบัติ/ภาคสนาม/การฝึกงาน", _g(general, "lab_hours"))
-    _add_field(doc, "ชั่วโมงการศึกษาด้วยตนเอง", _g(general, "self_hours"))
-    _add_field(doc, "จำนวนชั่วโมงต่อสัปดาห์ที่จะให้คำปรึกษาและแนะนำทางวิชาการแก่นักศึกษา",
-               _g(general, "consult_hours"))
-    _add_paragraph_field(doc, "ช่องทางการติดต่ออาจารย์ผู้สอน", _g(general, "hours_note"))
-    _add_paragraph_field(doc, "วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน",
-                         _g(general, "appeal_channel"))
+    # ---- ตารางข้อมูลรายวิชา (Table 0 ในแบบฟอร์มทางการ) ----
+    credits = _g(general, "credits", default=ctx.get("credits", _DASH))
+    info = doc.add_table(rows=14, cols=3)
+    info.style = "Table Grid"
+    info.alignment = WD_TABLE_ALIGNMENT.CENTER
+    # แถว 0: รหัสวิชา | ชื่อวิชา | จำนวนหน่วยกิต (สามคอลัมน์)
+    head = info.rows[0].cells
+    _fill_cell(head[0], [("รหัสวิชา ", True), (course_code, False)])
+    _fill_cell(head[1], [("ชื่อวิชา ", True), (course_name, False)])
+    _fill_cell(head[2], [("จำนวน ", True), (str(credits), False), (" หน่วยกิต", True)])
+    status_line = _checkbox(
+        [("วิชาบังคับ (Required)", "บังคับ", "required"),
+         ("วิชาเลือก (Elective)", "เลือก", "elective"),
+         ("วิชาเลือกเสรี (Free Elective)", "เสรี", "free")],
+        _g(general, "course_status", default=""))
+    stu_line = _checkbox(
+        [("ภาคปกติ", "ปกติ"), ("ภาคพิเศษ", "พิเศษ"), ("บัณฑิตศึกษา", "บัณฑิต")],
+        _g(general, "student_type", default=""))
+    rows_full = [
+        [("สถานภาพของวิชา    ", True), (status_line, False)],
+        [("รายวิชาสังกัดคณะ ", True),
+         (_g(general, "faculty", default=ctx.get("faculty", _DASH)), False),
+         ("    หลักสูตร ", True), (_g(general, "program", default=ctx.get("program", _DASH)), False),
+         ("    วิชาเอก ", True), (_g(general, "major", default=""), False)],
+        [("คำอธิบายรายวิชา ", True),
+         (_g(general, "description", default=ctx.get("description", _DASH)), False)],
+        [("รายวิชาที่บังคับเรียนก่อน (Pre-requisite) (ถ้ามี) ", True),
+         (_g(general, "prereq", default=""), False)],
+        [("ภาคการศึกษา ", True), (_g(general, "semester", default=ctx.get("semester", _DASH)), False),
+         ("    ปีการศึกษา ", True),
+         (_g(general, "academic_year", default=ctx.get("year", _DASH)), False),
+         ("    ประเภทนักศึกษา ", True), (stu_line, False),
+         ("    ชั้นปีที่ ", True), (_g(general, "year_level", default=""), False)],
+        [("อาจารย์ผู้สอน ", True),
+         (_g(general, "instructor", default=ctx.get("instructor", _DASH)), False),
+         ("    ห้องพัก ", True), (_g(general, "office", default=""), False),
+         ("    โทรศัพท์ ", True), (_g(general, "phone", default=""), False)],
+        [("ห้องเรียน ", True), (_g(general, "location", "location_type", default=""), False),
+         ("    ระบบออนไลน์ ", True), (_g(general, "online_system", default=""), False),
+         ("\nกรณีเรียนภายนอกมหาวิทยาลัย (สถานประกอบการ/ชุมชน/อื่นๆ) ", True),
+         (_g(general, "external_location", default=""), False)],
+        [("วันที่จัดทำหรือปรับปรุงประมวลการสอนหรือแผนการจัดการเรียนรู้ครั้งล่าสุด ", True),
+         (_g(general, "last_updated", default=""), False)],
+        [("ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (Program Learning Outcomes: PLOs) "
+          "(ให้ระบุเฉพาะ PLOs ที่เกี่ยวข้องกับรายวิชา และสอดคล้องกับเล่ม มคอ 2 หลักสูตร)\n", True),
+         (_g(general, "plos", default=""), False)],
+        [("จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)\n", True),
+         (_g(general, "course_objective", "objectives", default=""), False)],
+        [("จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)\n", True),
+         ("จำนวนชั่วโมงบรรยาย ", False), (_g(general, "lecture_hours", default="......"), False),
+         (" ชั่วโมง    จำนวนชั่วโมงฝึกปฏิบัติ/ภาคสนาม/การฝึกงาน ", False),
+         (_g(general, "lab_hours", default="......"), False),
+         (" ชั่วโมง    จำนวนชั่วโมงการศึกษาด้วยตนเอง ", False),
+         (_g(general, "self_hours", default="......"), False), (" ชั่วโมง", False)],
+        [("จำนวนชั่วโมงต่อสัปดาห์ที่จะให้คำปรึกษาและแนะนำทางวิชาการแก่นักศึกษาเป็นรายบุคคล/"
+          "ช่องทางการติดต่ออาจารย์ผู้สอน\n", True),
+         (_g(general, "consult_hours", default=""), False),
+         (("  " + str(_g(general, "hours_note"))) if _g(general, "hours_note", default="") else "",
+          False)],
+        [("วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน กรณีการอุทธรณ์ผลคะแนนระหว่างภาคเรียนและคะแนนสอบ"
+          "กลางภาค (ตามประกาศมหาวิทยาลัยราชภัฏเทพสตรี เรื่องระบบและแนวทางการอุทธรณ์ผลการเรียน"
+          "การวัดและการประเมินผลการเรียนของนักศึกษา)\n", True),
+         (_g(general, "appeal_channel", default=""), False)],
+    ]
+    for offset, segments in enumerate(rows_full, start=1):
+        _fill_cell(_merge_full_row(info, offset), segments)
 
     # การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง (CLO table)
     _add_section_heading(doc, "การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง")
@@ -241,7 +344,7 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     ]
     _add_table(doc, ["ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)",
                      "กลยุทธ์การสอนตาม CLOs", "เกณฑ์การวัดและการประเมินผล",
-                     "วิธีการวัดและประเมินผลตาม CLOs"], rows)
+                     "วิธีการวัดและประเมินผลตาม CLOs"], rows, min_rows=4, blank_empty=True)
     n1 = doc.add_paragraph()
     _add_run(n1, "หมายเหตุ : ให้ระบุรายละเอียดของ CLOs, PLOs และกลยุทธ์การสอน "
              "วิธีการวัดประเมินผลที่สอดคล้องตามเล่มหลักสูตรกำหนด ในกรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 "
@@ -259,6 +362,8 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     plan_lec = _arr(general, "plan_lecture[]")
     plan_prac = _arr(general, "plan_practice[]")
     plan_rows = []
+    hours_total = 0.0
+    has_hours = False
     for i in range(len(topics)):
         wk = _at(weeks, i, default="")
         if str(wk).strip() == "":
@@ -269,7 +374,12 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
                 total = float(_at(plan_lec, i, 0) or 0) + float(_at(plan_prac, i, 0) or 0)
             except (TypeError, ValueError):
                 total = 0
-            hr = total if total > 0 else _DASH
+            hr = total if total > 0 else ""
+        try:
+            hours_total += float(str(hr).strip())
+            has_hours = True
+        except (TypeError, ValueError):
+            pass
         act = _at(activities, i, default="")
         med = _at(medias, i, default="")
         act = "" if act in (None, _DASH) else str(act).strip()
@@ -279,24 +389,31 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
         elif med:
             act_media = f"สื่อที่ใช้: {med}"
         else:
-            act_media = act or _DASH
+            act_media = act
         plan_rows.append([
-            wk, _at(topics, i), _at(week_clos, i),
-            hr if str(hr).strip() else _DASH,
-            act_media, _at(teachers, i),
+            wk, _at(topics, i, default=""), _at(week_clos, i, default=""),
+            hr if str(hr).strip() else "",
+            act_media, _at(teachers, i, default=""),
         ])
-    _add_table(doc, ["สัปดาห์ที่", "หัวข้อ / รายละเอียด", "Lesson Learning Outcome : LLOs",
+    total_hr = (str(int(hours_total)) if has_hours and hours_total.is_integer()
+                else (str(hours_total) if has_hours else ""))
+    _add_table(doc, ["สัปดาห์ที่", "หัวข้อ/รายละเอียด", "Lesson Learning Outcome : LLOs",
                      "จำนวนชั่วโมง", "กิจกรรมการเรียนการสอน สื่อที่ใช้ (ถ้ามี)", "ผู้สอน"],
-               plan_rows)
+               plan_rows, min_rows=16, blank_empty=True,
+               total_row=["", "", "รวม", total_hr, "", ""])
 
     # วิธีจัดการเรียนการสอน (ร้อยละของเวลา)
     _add_section_heading(doc, "วิธีจัดการเรียนการสอน")
-    _add_field(doc, "การบรรยาย (ร้อยละของเวลาทั้งหมด)", _g(general, "pct_lecture"))
-    _add_field(doc, "การบรรยายเชิงอภิปราย (ร้อยละ)", _g(general, "pct_discussion"))
-    _add_field(doc, "กรณีศึกษา (ร้อยละ)", _g(general, "pct_case"))
-    _add_field(doc, "การฝึกปฏิบัติ (ร้อยละ)", _g(general, "pct_practice"))
-    _add_field(doc, "กิจกรรมกลุ่ม (ร้อยละ)", _g(general, "pct_group"))
-    _add_field(doc, "อื่นๆ (ร้อยละ)", _g(general, "pct_other"))
+    method_rows = [
+        ["การบรรยาย", _g(general, "pct_lecture", default="")],
+        ["การบรรยายเชิงอภิปราย", _g(general, "pct_discussion", default="")],
+        ["กรณีศึกษา", _g(general, "pct_case", default="")],
+        ["การฝึกปฏิบัติ", _g(general, "pct_practice", default="")],
+        ["กิจกรรมกลุ่ม", _g(general, "pct_group", default="")],
+        [f"อื่นๆ {_g(general, 'other_detail', default='')}".strip(),
+         _g(general, "pct_other", default="")],
+    ]
+    _add_table(doc, ["วิธีการสอน", "ร้อยละของเวลาทั้งหมด"], method_rows, blank_empty=True)
 
     # แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา
     _add_section_heading(doc, "แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา")
@@ -304,14 +421,16 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     a_act = _arr(general, "assess_activity[]", "assess_method[]")
     a_crit = _arr(general, "assess_plan_criteria[]")
     a_pct = _arr(general, "assess_pct[]", "assess_ratio[]")
+    n_assess = max(len(a_clo), len(a_act), len(a_crit), len(a_pct))
     assess_rows = [
-        [_at(a_clo, i), _at(a_act, i), _at(a_crit, i), _at(a_pct, i)]
-        for i in range(len(a_clo))
+        [_at(a_clo, i, default=""), _at(a_act, i, default=""),
+         _at(a_crit, i, default=""), _at(a_pct, i, default="")]
+        for i in range(n_assess)
     ]
     _add_table(doc, ["ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)",
                      "กิจกรรมการจัดการเรียนรู้ของผู้เรียน",
                      "เกณฑ์การประเมินผลลัพธ์การเรียนรู้ระดับรายวิชา",
-                     "สัดส่วนของการประเมินผล"], assess_rows)
+                     "สัดส่วนของการประเมินผล"], assess_rows, min_rows=4, blank_empty=True)
     n2 = doc.add_paragraph()
     _add_run(n2, "หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs "
              "ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง",
@@ -331,8 +450,9 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
         for i in range(len(r_topic))
         if str(_at(r_topic, i, default="")).strip()
     ]
-    _add_table(doc, ["ประเด็นการประเมิน", "ระดับ 5", "ระดับ 4",
-                     "ระดับ 3", "ระดับ 2", "ระดับ 1"], rubric_rows)
+    _add_table(doc, ["ประเด็นการประเมิน", "ระดับการประเมิน 5", "ระดับการประเมิน 4",
+                     "ระดับการประเมิน 3", "ระดับการประเมิน 2", "ระดับการประเมิน 1"],
+               rubric_rows, min_rows=2, blank_empty=True)
     n3 = doc.add_paragraph()
     _add_run(n3, "ควรแนบ Rubric Score ที่ใช้ประเมินงานที่สะท้อน CLOs โดยประเด็นการประเมิน"
              "ควรวัดพฤติกรรมบ่งชี้ ความรู้ ทักษะ จริยธรรม หรือคุณลักษณะที่ต้องการวัดให้ชัดเจน "
@@ -347,19 +467,35 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     # ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน (APA)
     _add_section_heading(doc, "ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน "
                          "(เขียนตามแบบบรรณานุกรม APA)")
-    _add_paragraph_field(doc, "เอกสารอ้างอิง", _g(general, "references"))
+    refs = _g(general, "references", default="")
+    rp = doc.add_paragraph()
+    _add_run(rp, str(refs) if refs not in (None, "", _DASH) else
+             ("." * 100 + "\n" + "." * 100 + "\n" + "." * 100))
 
     # การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา
     _add_section_heading(doc, "การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา")
-    _add_paragraph_field(doc, "1. กลยุทธ์การประเมินการจัดการเรียนการสอนของรายวิชา",
+    _add_paragraph_field(doc, "1.  กลยุทธ์การประเมินการจัดการเรียนการสอนของรายวิชา",
                          _g(general, "course_eval_strategy"))
-    _add_paragraph_field(doc, "2. การปรับปรุงการจัดการเรียนรู้ของรายวิชา",
+    _add_paragraph_field(doc, "2.  การปรับปรุงการจัดการเรียนรู้ของรายวิชา",
                          _g(general, "course_improve", "improvement_strategy"))
-    _add_paragraph_field(doc, "3. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ทางการเรียน "
+    g2 = doc.add_paragraph()
+    _add_run(g2, "(อธิบายกลไกและวิธีการปรับปรุงการสอน การวัดและการประเมินผลลัพธ์การเรียนรู้ "
+             "เช่น คณะ/สาขาวิชา มีการกำหนดกลไกและวิธีการปรับปรุงการสอนไว้อย่างไร การวิจัยในชั้นเรียน "
+             "การประชุมเชิงปฏิบัติการเพื่อพัฒนาการเรียนการสอน หรือการประชุมคณะกรรมการบริหารหลักสูตร "
+             "เป็นต้น)", size=12, color=_MUTED_COLOR)
+    _add_paragraph_field(doc, "3.  กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ทางการเรียน "
                          "และผลลัพธ์การเรียนรู้ของนักศึกษา/ผู้เรียน",
                          _g(general, "verification"))
+    g3 = doc.add_paragraph()
+    _add_run(g3, "(อธิบายกระบวนการที่ใช้ในการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษาหรือ"
+             "ผลลัพธ์การเรียนรู้ของรายวิชา โดยกระบวนการอาจจะต่างกันไปสำหรับรายวิชาที่แตกต่างกัน "
+             "หรือเป็นไปตามมาตรฐานผลการเรียนรู้แต่ละด้านที่หลักสูตรกำหนด)", size=12, color=_MUTED_COLOR)
 
-    _add_signatures(doc, ["อาจารย์ผู้สอน", "ประธานบริหารหลักสูตร"])
+    _add_signatures(doc, [
+        ("อาจารย์ผู้สอน", _g(general, "instructor", default=ctx.get("instructor", ""))),
+        ("ประธานบริหารหลักสูตร", _g(general, "course_owner", default="")),
+    ])
+    _add_footer_note(doc, "หมายเหตุ Update มีนาคม 2569 ตามเกณฑ์มาตรฐานหลักสูตร 2565")
 
     return _finalize(doc)
 
@@ -398,9 +534,14 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
                          _g(general, "description", default=ctx.get("description", _DASH)))
     _add_field(doc, "รายวิชาที่เรียนก่อน", _g(general, "prereq"))
     _add_paragraph_field(doc, "เงื่อนไขที่สำคัญของการฝึกประสบการณ์", _g(general, "field_condition"))
-    _add_field(doc, "อาจารย์ที่ปรึกษา/อาจารย์นิเทศ", _g(general, "advisor"))
-    _add_field(doc, "ห้องพัก", _g(general, "office"))
-    _add_field(doc, "โทรศัพท์", _g(general, "phone"))
+    adv = _arr(general, "advisor[]")
+    ofc = _arr(general, "office[]")
+    tel = _arr(general, "phone[]")
+    if not adv and general.get("advisor") not in (None, ""):
+        adv, ofc, tel = [general.get("advisor")], [general.get("office")], [general.get("phone")]
+    adv_rows = [[_at(adv, i), _at(ofc, i), _at(tel, i)] for i in range(len(adv))]
+    _add_section_heading(doc, "อาจารย์ที่ปรึกษา/อาจารย์นิเทศการฝึกประสบการณ์ภาคสนาม")
+    _add_table(doc, ["ชื่ออาจารย์ที่ปรึกษา/อาจารย์นิเทศ", "ห้องพัก", "โทรศัพท์"], adv_rows)
     _add_field(doc, "ห้องเรียน/สถานที่", _g(general, "location", "location_type"))
     _add_field(doc, "ระบบออนไลน์", _g(general, "online_system"))
     _add_field(doc, "กรณีฝึกภายนอกมหาวิทยาลัย", _g(general, "external_location"))
@@ -408,7 +549,7 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     # 2) จุดประสงค์ + ภาระงาน
     _add_section_heading(doc, "2) จุดประสงค์การจัดการเรียนรู้ของการฝึกประสบการณ์ภาคสนาม")
     _add_paragraph_field(doc, "จุดประสงค์การจัดการเรียนรู้",
-                         _g(general, "field_objective", "course_objective", "objectives"))
+                         _g(general, "field_objective", "objectives"))
     _add_field(doc, "ชั่วโมงบรรยาย", _g(general, "lecture_hours"))
     _add_field(doc, "ชั่วโมงเตรียมความพร้อมของนักศึกษา", _g(general, "prep_hours"))
     _add_field(doc, "ชั่วโมงฝึกปฏิบัติ/ภาคสนาม/ฝึกงาน", _g(general, "practice_hours", "lab_hours"))
@@ -446,6 +587,8 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     _add_section_heading(doc, "5) การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวังของหลักสูตร")
     _add_paragraph_field(doc, "ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้อง",
                          _g(general, "plos"))
+    _add_paragraph_field(doc, "จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)",
+                         _g(general, "course_objective"))
     clo_texts = _arr(general, "clo_text[]", "clo_desc[]")
     clo_plo = _arr(general, "clo_plo[]", "plo[]")
     teachs = _arr(general, "teach_strategy[]")

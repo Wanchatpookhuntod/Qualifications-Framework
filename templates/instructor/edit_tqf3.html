@@ -72,64 +72,70 @@
             <h2>หลักสูตร {{ general.get('program', '') }}</h2>
         </div>
 
-        <div class="qtf-card qtf-highlight">
+        <div class="qtf-card">
             <div class="qtf-section-title">ข้อมูลรายวิชา</div>
             <div class="qtf-card qtf-highlight">
+                <div style="align-items: center;" class="mt-2">
+                    <div>รายวิชา {{ general.get('course_code', section.course.code) }} {{ general.get('course_name', section.course.name_th) | thai_wrap }} - 
+                        จำนวน {{ general.get('credits', section.course.credits) }} หน่วยกิต
+                    </div>
+                </div>
+            </div>
 
-                
-
-                <div style="display: grid; grid-template-columns: 2fr 0.8fr 0.7fr 0.5fr; gap: 10px; align-items: center;" class="mt-2">
-                        <div>รายวิชา {{ general.get('course_code', section.course.code) }} {{ general.get('course_name', section.course.name_th) | thai_wrap }}</div>
-                        <div>จำนวน {{ general.get('credits', section.course.credits) }} หน่วยกิต</div>
-                        <div>ปีการศึกษา {{ general.get('semester', section.term.semester) }} / {{ general.get('academic_year', section.term.year) }}</div>
-                        <input type="text" name="year_level" class="form-control" value="{{ general.get('year_level', '') }}" placeholder="ชั้นปี">
-
-
+            <div class="tqf-grid-new1" style="display: grid; grid-template-columns: 1fr 2fr; gap: 40px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label>ปีการศึกษา</label>
+                        <input style="background-color: transparent; border: none;" type="text" class="form-control" value="{{ general.get('semester', section.term.semester) }} / {{ general.get('academic_year', section.term.year) }}" disabled>
+                        <input type="hidden" name="semester" value="{{ general.get('semester', section.term.semester) }}">
+                        <input type="hidden" name="academic_year" value="{{ general.get('academic_year', section.term.year) }}">
+                    </div>
+                    <div class="form-group">
+                        <label>ชั้นปี</label>
+                        <input type="text" name="year_level" class="form-control" value="{{ general.get('year_level', '') }}">
+                    </div>
                 </div>
 
-                <div>
-                    <div class="qtf-grid three mt-2">
-                        <div class="form-group mt-2">
-                            <label>หมู่เรียน (Section)</label>
-                            <input type="text" name="class_group" class="form-control" value="{{ general.get('class_group', section.section_number or '') }}" placeholder="เช่น หมู่ 1 หรือ sec A">
+                {% set course_status_val = general.get('course_status', '') %}
+                {% set student_type_val = general.get('student_type', '') %}
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label>สถานภาพของวิชา</label>
+                        <div class="flex-center-gap mt-3" style=" gap:1rem; flex-wrap:wrap;">
+                            {% for opt in ['วิชาบังคับ', 'วิชาเลือก', 'วิชาเลือกเสรี'] %}
+                            <label class="qtf-radio"><input type="radio" name="course_status" value="{{ opt }}" {% if course_status_val == opt %}checked{% endif %}> {{ opt }}</label>
+                            {% endfor %}
                         </div>
-                        <div class="form-group mt-2">
-                            <label>รายวิชาที่บังคับเรียนก่อน</label>
-                            <input type="text" name="prereq" class="form-control" value="{{ general.get('prereq', '') }}" placeholder="ถ้ามี / ถ้าไม่มีใส่ -">
-                        </div>
-                        <div class="form-group mt-2">
-                            <label>วันที่จัดทำ/ปรับปรุงล่าสุด</label>
-                            <input type="date" name="last_updated" class="form-control" value="{{ general.get('last_updated', '') }}">
+                    </div>
+                    <div class="form-group">
+                        <label>ประเภทนักศึกษา</label>
+                        <div class="flex-center-gap mt-3" style="gap:1rem; flex-wrap:wrap;">
+                            {% for opt in ['ภาคปกติ', 'ภาคพิเศษ', 'บัณฑิตศึกษา'] %}
+                            <label class="qtf-radio"><input type="radio" name="student_type" value="{{ opt }}" {% if student_type_val == opt %}checked{% endif %}> {{ opt }}</label>
+                            {% endfor %}
                         </div>
                     </div>
                 </div>
             </div>
 
-            {% set course_status_val = general.get('course_status', '') %}
-            {% set student_type_val = general.get('student_type', '') %}
-            <div class="qtf-grid two mt-2">
-                <div class="form-group mb-0">
-                    <label>สถานภาพของวิชา</label>
-                    <div class="flex-center-gap" style="gap:1.2rem; flex-wrap:wrap;">
-                        {% for opt in ['วิชาบังคับ', 'วิชาเลือก', 'วิชาเลือกเสรี'] %}
-                        <label class="qtf-radio"><input type="radio" name="course_status" value="{{ opt }}" {% if course_status_val == opt %}checked{% endif %}> {{ opt }}</label>
-                        {% endfor %}
+            <div>
+                <div class="qtf-grid three mt-2">
+                    <div class="form-group mt-2">
+                        <label>หมู่เรียน (Section)</label>
+                        <input type="text" name="class_group" class="form-control" value="{{ general.get('class_group', section.section_number or '') }}" placeholder="เช่น หมู่ 1 หรือ sec A">
                     </div>
-                </div>
-                <div class="form-group mb-0">
-                    <label>ประเภทนักศึกษา</label>
-                    <div class="flex-center-gap" style="gap:1.2rem; flex-wrap:wrap;">
-                        {% for opt in ['ภาคปกติ', 'ภาคพิเศษ', 'บัณฑิตศึกษา'] %}
-                        <label class="qtf-radio"><input type="radio" name="student_type" value="{{ opt }}" {% if student_type_val == opt %}checked{% endif %}> {{ opt }}</label>
-                        {% endfor %}
+                    <div class="form-group mt-2">
+                        <label>รายวิชาที่บังคับเรียนก่อน</label>
+                        <input type="text" name="prereq" class="form-control" value="{{ general.get('prereq', '') }}" placeholder="ถ้ามี / ถ้าไม่มีใส่ -">
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>วันที่จัดทำ/ปรับปรุงล่าสุด</label>
+                        <input type="date" name="last_updated" class="form-control" value="{{ general.get('last_updated', '') }}">
                     </div>
                 </div>
             </div>
 
-            <div class="form-group mt-3">
-                <label>วิชาเอก</label>
-                <input type="text" name="major" class="form-control" value="{{ general.get('major', '') }}" placeholder="ระบุวิชาเอก (ถ้ามี)">
-            </div>
 
             <div class="form-group mt-3">
                 <label>คำอธิบายรายวิชา</label>
@@ -559,7 +565,7 @@ const QTFRows = (function () {
         tr.className = 'qtf-empty-row';
         const td = document.createElement('td');
         td.colSpan = cfg.layout === 'stacked' ? 1 : cfg.fields.length + 1;
-        td.className = 'text-center text-table';
+        td.className = 'text-center text-table text-muted text-xs';
         td.textContent = 'ยังไม่มีข้อมูล — กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
         tr.appendChild(td);
         return tr;

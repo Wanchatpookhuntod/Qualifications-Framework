@@ -806,6 +806,21 @@ def _get_or_create_tqf5(section_id: str, tqf3_id: str) -> TQF5:
     return canonical
 
 
+def _as_clo_numbered_list(text) -> str:
+    """Format a CLO list (one per line) as ``CLO1 ...``, ``CLO2 ...`` etc.
+
+    Used to prefill มคอ.5 จุดประสงค์การเรียนรู้ระดับรายวิชา from the CLO list in
+    มคอ.3/มคอ.4. Any existing leading marker (``CLOn``, ``n.``, ``n)``) is
+    stripped first so re-numbering stays clean.
+    """
+    lines = [ln.strip() for ln in str(text or "").replace("\r\n", "\n").split("\n")]
+    out = []
+    for ln in (l for l in lines if l):
+        ln = re.sub(r"^(?:CLO\s*\d+[:.)\-]?\s*|\d+[.)]\s*)", "", ln, flags=re.IGNORECASE)
+        out.append(f"CLO{len(out) + 1} {ln}".rstrip())
+    return "\n".join(out)
+
+
 def _plos_for_section(section: Section) -> list:
     """Return the program's defined PLOs for a section (sorted), or []."""
     try:
@@ -1773,13 +1788,22 @@ def edit_tqf3(section_id):
         _backfill_legacy_keys_from_qtf_format(data)
 
         existing = tqf3.general_info or {}
+        # Table rows (CLO/weekly/assessment/rubric) are managed entirely by the
+        # form. When rows are deleted — or a table is emptied — their name[] keys
+        # are not posted at all, so a plain merge would leave the stale arrays in
+        # place and the deleted rows would reappear on reload. Drop every existing
+        # list key first so the submitted form is authoritative.
+        for k in list(existing.keys()):
+            if k.endswith("[]"):
+                existing.pop(k, None)
         existing.update(data)
         tqf3.general_info = existing
 
         action = request.form.get("action")
         if autosave:
             # Background autosave: persist content but never change status or flash.
-            tqf3.save()
+            # general_info must be authoritative so deleted table rows are dropped.
+            tqf3.save(replace_fields=("general_info",))
             return _autosave_ok(tqf3)
         if action == "submit":
             tqf3.status = "SUBMITTED"
@@ -1789,7 +1813,7 @@ def edit_tqf3(section_id):
             tqf3.status = "DRAFT" if tqf3.status == "RETURNED" else tqf3.status
             flash("บันทึกร่าง มคอ.3 สำเร็จ", "success")
 
-        tqf3.save()
+        tqf3.save(replace_fields=("general_info",))
         return redirect(url_for("instructor_dashboard"))
 
     feedbacks = [f for f in Feedback.find_by("tqf_id", tqf3.id) if f.tqf_type == "TQF3"]
@@ -1857,11 +1881,18 @@ def edit_tqf4(section_id):
         if term:
             gi.setdefault("semester", str(getattr(term, "semester", "") or ""))
             gi.setdefault("academic_year", str(getattr(term, "year", "") or ""))
-        if getattr(current_user, "full_name", None):
-            gi.setdefault("advisor", current_user.full_name)
+        # Migrate legacy scalar advisor/office/phone into the repeatable list.
+        for scalar, listed in (("advisor", "advisor[]"), ("office", "office[]"),
+                               ("phone", "phone[]")):
+            if not _as_list(gi.get(listed)) and gi.get(scalar) not in (None, ""):
+                gi[listed] = [gi[scalar]]
+            gi.pop(scalar, None)
+        if getattr(current_user, "full_name", None) and not _as_list(gi.get("advisor[]")):
+            gi["advisor[]"] = [current_user.full_name]
 
         # Pad row tables to equal lengths (>=1) so the editor renders cleanly.
         table_groups = [
+            ("advisor[]", "office[]", "phone[]"),
             ("report[]", "report_criteria[]"),
             ("clo_text[]", "clo_plo[]", "teach_strategy[]", "assess_strategy[]"),
             ("week[]", "topic[]", "week_clo[]", "hours[]", "activities[]",
@@ -1900,13 +1931,20 @@ def edit_tqf4(section_id):
                 data[key] = request.form.get(key)
 
         existing = tqf4.general_info or {}
+        # Table rows are managed entirely by the form; deleted rows drop their
+        # name[] keys from the POST. Clear stale list keys first so the submitted
+        # form is authoritative and deleted rows don't reappear on reload.
+        for k in list(existing.keys()):
+            if k.endswith("[]"):
+                existing.pop(k, None)
         existing.update(data)
         tqf4.general_info = existing
 
         action = request.form.get("action")
         if autosave:
             # Background autosave: persist content but never change status or flash.
-            tqf4.save()
+            # general_info must be authoritative so deleted table rows are dropped.
+            tqf4.save(replace_fields=("general_info",))
             return _autosave_ok(tqf4)
         if action == "submit":
             tqf4.status = "SUBMITTED"
@@ -1916,7 +1954,7 @@ def edit_tqf4(section_id):
             tqf4.status = "DRAFT" if tqf4.status == "RETURNED" else tqf4.status
             flash("บันทึกร่าง มคอ.4 สำเร็จ", "success")
 
-        tqf4.save()
+        tqf4.save(replace_fields=("general_info",))
         return redirect(url_for("instructor_dashboard"))
 
     tqf4.general_info = _normalize_tqf4_general_info(tqf4.general_info or {})
@@ -1956,20 +1994,37 @@ def edit_tqf5(section_id):
         flash("เทอมนี้ยังไม่เปิดให้กรอก มคอ.5", "warning")
         return redirect(url_for("instructor_dashboard"))
 
+    # A section uses มคอ.3 (regular) or มคอ.4 (field experience). The combined
+    # มคอ.5/6 result report must be reachable for either, so require that at
+    # least one of มคอ.3 / มคอ.4 exists before opening มคอ.5/6.
+    is_field = is_field_experience_course(section.course)
     tqf3 = TQF3.first_by("section_id", section_id)
-    if not tqf3:
-        flash("กรุณาจัดทำ มคอ.3 ให้เรียบร้อยก่อนจัดทำ มคอ.5", "warning")
+    tqf4 = TQF4.first_by("section_id", section_id)
+    if not tqf3 and not tqf4:
+        flash("กรุณาจัดทำ มคอ.3 หรือ มคอ.4 ให้เรียบร้อยก่อนจัดทำ มคอ.5/6", "warning")
         return redirect(url_for("instructor_dashboard"))
 
-    tqf3_is_approved = tqf3.status == "APPROVED"
+    # Prefer the spec matching the course type; fall back to whichever exists.
+    spec_doc = (tqf4 if is_field else tqf3) or tqf4 or tqf3
+    tqf3_is_approved = bool(spec_doc and spec_doc.status == "APPROVED")
 
-    tqf5 = _get_or_create_tqf5(section_id, tqf3.id)
+    tqf5 = _get_or_create_tqf5(section_id, tqf3.id if tqf3 else "")
+
+    # PLOs/CLOs/objectives may live in TQF3 (regular) or TQF4 (field experience).
+    # Build a single prefill source that prefers TQF3 values and falls back to
+    # the section's TQF4 for any field TQF3 leaves blank.
+    gi3 = (tqf3.general_info or {}) if tqf3 else {}
+    gi4 = (tqf4.general_info or {}) if tqf4 else {}
+    source_gi = dict(gi4)
+    for _k, _v in gi3.items():
+        if _v not in (None, "", []) or _k not in source_gi:
+            source_gi[_k] = _v
 
     def _normalize_actual_teaching_for_qtf5_format(
         payload: dict,
         current_section: Section,
         current_term: Term,
-        tqf3_doc: TQF3,
+        source_gi: dict,
     ) -> tuple[dict, bool]:
         at = dict(payload or {})
 
@@ -2038,8 +2093,8 @@ def edit_tqf5(section_id):
                     at["assessment_score"] = value
                     break
 
-        # Prefill from TQF3 (only when empty-ish)
-        gi = (tqf3_doc.general_info or {}) if tqf3_doc else {}
+        # Prefill from TQF3/TQF4 (only when empty-ish)
+        gi = source_gi or {}
         if gi:
             if _is_blank(at.get("course_owner")) and gi.get("course_owner"):
                 at["course_owner"] = gi.get("course_owner")
@@ -2056,7 +2111,7 @@ def edit_tqf5(section_id):
             if _is_blank(at.get("course_objective")):
                 obj = gi.get("field_objective") or gi.get("course_objective") or gi.get("objectives")
                 if obj:
-                    at["course_objective"] = obj
+                    at["course_objective"] = _as_clo_numbered_list(obj)
             if _is_blank(at.get("year_level")) and gi.get("year_level"):
                 at["year_level"] = gi.get("year_level")
             if _is_blank(at.get("last_update")) and gi.get("last_updated"):
@@ -2299,11 +2354,14 @@ def edit_tqf5(section_id):
             tqf5.actual_teaching or {},
             section,
             term,
-            tqf3,
+            source_gi,
         )
         tqf5.actual_teaching = normalized
         if prefilled:
-            prefill_source = {"source": "TQF3", "tqf3_status": tqf3.status}
+            prefill_source = {
+                "source": "มคอ.4" if is_field else "มคอ.3",
+                "tqf3_status": spec_doc.status if spec_doc else None,
+            }
 
     if request.method == "POST":
         autosave = _is_autosave_request()
@@ -2346,13 +2404,14 @@ def edit_tqf5(section_id):
         action = request.form.get("action")
         if autosave:
             # Background autosave: persist content but never change status or flash.
-            tqf5.save()
+            # actual_teaching must be authoritative so deleted table rows are dropped.
+            tqf5.save(replace_fields=("actual_teaching",))
             return _autosave_ok(tqf5)
         if action == "submit":
             if not tqf3_is_approved:
                 flash("ยังไม่สามารถส่ง มคอ.5 ได้ (มคอ.3 ยังไม่อนุมัติ)", "warning")
                 tqf5.status = "DRAFT" if tqf5.status == "RETURNED" else tqf5.status
-                tqf5.save()
+                tqf5.save(replace_fields=("actual_teaching",))
                 return redirect(url_for("edit_tqf5", section_id=section_id))
             tqf5.status = "SUBMITTED"
             tqf5.submitted_at = _utcnow()
@@ -2361,7 +2420,7 @@ def edit_tqf5(section_id):
             tqf5.status = "DRAFT" if tqf5.status == "RETURNED" else tqf5.status
             flash("บันทึกร่าง มคอ.5 สำเร็จ", "success")
 
-        tqf5.save()
+        tqf5.save(replace_fields=("actual_teaching",))
         return redirect(url_for("instructor_dashboard"))
 
     feedbacks = [f for f in Feedback.find_by("tqf_id", tqf5.id) if f.tqf_type == "TQF5"]
@@ -2372,6 +2431,7 @@ def edit_tqf5(section_id):
         section=section,
         tqf5=tqf5,
         tqf3=tqf3,
+        source_gi=source_gi,
         tqf3_is_approved=tqf3_is_approved,
         feedbacks=feedbacks,
         prefill_source=prefill_source,

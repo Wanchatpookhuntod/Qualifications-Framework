@@ -30,7 +30,8 @@ def _all_text(buffer: io.BytesIO) -> str:
     for table in doc.tables:
         for row in table.rows:
             parts.extend(cell.text for cell in row.cells)
-    return "\n".join(parts)
+    # Strip the U+200B Thai word-break hints so content assertions stay readable.
+    return "\n".join(parts).replace("​", "")
 
 
 def test_build_tqf3_docx_includes_array_fields():
@@ -124,6 +125,21 @@ def test_build_tqf4_docx_field_experience():
     assert "ประสบการณ์ภาคสนาม" in text
     assert "CLO1 ปฏิบัติงานได้" in text
     assert "พี่เลี้ยง" in text
+
+
+def test_exporters_strip_xml_illegal_control_chars():
+    # Users paste from PDFs/Word, smuggling control chars (\x00, \x0b, \x0c) into
+    # the form. python-docx raises ValueError on those, 500-ing the export. Every
+    # builder must strip them while keeping legal whitespace (tab/newline).
+    nasty = "นักศึกษา\x0bสามารถ\x00อธิบาย\x0cได้\x07\x1f"
+    # The course header (code/name) flows through every builder, so the ctx
+    # course_name is a reliable place to prove illegal chars are scrubbed.
+    ctx = {**CTX, "course_name": nasty}
+    for build in (build_tqf3_docx, build_tqf4_docx, build_tqf5_docx):
+        text = _all_text(build({}, ctx))
+        assert "นักศึกษาสามารถอธิบายได้" in text
+        for ctrl in ("\x00", "\x0b", "\x0c", "\x07", "\x1f"):
+            assert ctrl not in text
 
 
 def test_is_field_experience_course_detection():

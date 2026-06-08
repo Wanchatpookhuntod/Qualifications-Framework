@@ -55,17 +55,23 @@
                     </td>
                     <td class="text-muted text-xs">{{ user_affiliation_by_user_id.get(user.id) or 'System' }}</td>
                     <td style="text-align:center;">
-                        <button type="button" class="btn btn-secondary btn-compact"
-                            onclick="openEditUserModal(
-                                '{{ user.id }}',
-                                '{{ user.full_name | e }}',
-                                '{{ user.role_names() | join(",") }}',
-                                '{{ user.faculty_id or "" }}',
-                                '{{ user.department_id or "" }}',
-                                '{{ user.program_id or "" }}'
-                            )">
-                            แก้ไข
-                        </button>
+                        <div style="display:flex; gap:0.4rem; justify-content:center; flex-wrap:wrap;">
+                            <button type="button" class="btn btn-secondary btn-compact"
+                                onclick="openEditUserModal(
+                                    '{{ user.id }}',
+                                    '{{ user.full_name | e }}',
+                                    '{{ user.role_names() | join(",") }}',
+                                    '{{ user.faculty_id or "" }}',
+                                    '{{ user.department_id or "" }}',
+                                    '{{ user.program_id or "" }}'
+                                )">
+                                แก้ไข
+                            </button>
+                            <button type="button" class="btn btn-secondary btn-compact"
+                                onclick="openResetPasswordModal('{{ user.id }}', '{{ user.username | e }}')">
+                                รหัสผ่าน
+                            </button>
+                        </div>
                     </td>
                     <td>
                         {% if current_user.id != user.id %}
@@ -220,12 +226,43 @@
     </div>
 </div>
 
+<!-- Modal: รีเซ็ตรหัสผ่าน -->
+<div id="modal-reset-password" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:440px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">รีเซ็ตรหัสผ่าน — <span id="rp-user-name"></span></h3>
+            <button onclick="document.getElementById('modal-reset-password').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form id="reset-password-form" method="POST" data-no-confirm>
+            <div class="form-group">
+                <label>รหัสผ่านใหม่</label>
+                <input type="text" name="password" id="rp-password" class="form-control" required
+                    minlength="6" autocomplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร">
+                <small class="text-muted text-xs">ระบบจะเข้ารหัส (hash) ให้อัตโนมัติ — แนะนำให้ผู้ใช้เปลี่ยนรหัสเองภายหลัง</small>
+            </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกรหัสผ่านใหม่</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-reset-password').style.display='none'">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-['modal-create-user', 'modal-edit-user'].forEach(function(id) {
+['modal-create-user', 'modal-edit-user', 'modal-reset-password'].forEach(function(id) {
     document.getElementById(id).addEventListener('click', function(e) {
         if (e.target === this) this.style.display = 'none';
     });
 });
+
+function openResetPasswordModal(uid, username) {
+    document.getElementById('rp-user-name').textContent = username;
+    document.getElementById('reset-password-form').action = '/admin/users/' + uid + '/password';
+    document.getElementById('rp-password').value = '';
+    document.getElementById('modal-reset-password').style.display = 'flex';
+    document.getElementById('rp-password').focus();
+}
 
 function openEditUserModal(uid, name, rolesStr, facultyId, deptId, programId) {
     var roles = rolesStr ? rolesStr.split(',') : [];

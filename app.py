@@ -1405,6 +1405,59 @@ def instructor_dashboard():
     )
 
 
+def _instructor_scope_programs(user: User) -> list[Program]:
+    """Programs in the instructor's own affiliation (department → faculty → taught)."""
+    programs = Program.find_all()
+
+    if user.department_id:
+        scoped = [p for p in programs if p.department_id == user.department_id]
+        if scoped:
+            return scoped
+
+    if user.faculty_id:
+        scoped = [p for p in programs if p.faculty_id == user.faculty_id]
+        if scoped:
+            return scoped
+
+    # Fallback: programs of the courses the instructor is assigned to.
+    sections = Section.find_by("instructor_id", user.id)
+    course_ids = {s.course_id for s in sections if s.course_id}
+    courses = [c for c in (Course.get(cid) for cid in course_ids) if c]
+    program_ids = {c.program_id for c in courses if c.program_id}
+    return [p for p in programs if p.id in program_ids]
+
+
+@app.route("/instructor/plos")
+@login_required
+@roles_required("instructor")
+def instructor_plos():
+    """Read-only view of PLOs for the instructor's own affiliation, by program/year."""
+    programs = _instructor_scope_programs(current_user)
+    programs.sort(key=lambda p: (p.name or "", p.year or 0))
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    # Default to the most recent year (closest to the present).
+    default_program = max(programs, key=lambda p: (p.year or 0)) if programs else None
+    selected_program_id = request.args.get("program_id") or (default_program.id if default_program else None)
+    if selected_program_id not in program_by_id:
+        selected_program_id = default_program.id if default_program else None
+    selected_program = program_by_id.get(selected_program_id)
+
+    plos = selected_program.plos if selected_program else []
+    plos.sort(
+        key=lambda plo: (
+            plo.order if plo.order is not None else (_parse_plo_number(plo.code) or 0)
+        )
+    )
+
+    return render_template(
+        "instructor/plos.html",
+        programs=programs,
+        selected_program=selected_program,
+        plos=plos,
+    )
+
+
 @app.route("/instructor/tqf3/<section_id>", methods=["GET", "POST"])
 @login_required
 @roles_required("instructor")
@@ -3309,6 +3362,41 @@ def academic_manage_programs():
     return _handle_programs_request()
 
 
+@app.route("/admin/programs/<program_id>/edit", methods=["POST"])
+@login_required
+@roles_required("academic", "admin")
+def admin_edit_program(program_id):
+    program = _get_or_404(Program, program_id)
+    fallback = request.referrer or url_for("admin_manage_programs")
+
+    name = (request.form.get("name") or "").strip()
+    department_id = (request.form.get("department_id") or "").strip()
+    year_raw = (request.form.get("year") or "").strip()
+    year = None
+    if year_raw:
+        try:
+            year = int(year_raw)
+        except Exception:
+            year = None
+
+    if not name or not department_id:
+        flash("กรุณากรอกชื่อหลักสูตรและเลือกสาขาวิชาให้ครบถ้วน", "danger")
+        return redirect(fallback)
+
+    dept = Department.get(department_id)
+    if not dept:
+        flash("กรุณาเลือกสาขาวิชาให้ถูกต้อง", "danger")
+        return redirect(fallback)
+
+    program.name = name
+    program.department_id = dept.id
+    program.faculty_id = dept.faculty_id
+    program.year = year
+    program.save()
+    flash("แก้ไขหลักสูตรเรียบร้อย", "success")
+    return redirect(fallback)
+
+
 @app.route("/admin/delete-program/<program_id>", methods=["POST"])
 @login_required
 @roles_required("admin")
@@ -3661,6 +3749,21 @@ def admin_edit_user(user_id):
     user.program_id = program_id
     user.save()
     flash("อัปเดตข้อมูลผู้ใช้เรียบร้อย", "success")
+    return redirect(url_for("manage_users"))
+
+
+@app.route("/admin/users/<user_id>/password", methods=["POST"])
+@login_required
+@roles_required("admin")
+def admin_reset_password(user_id):
+    user = _get_or_404(User, user_id)
+    new_password = request.form.get("password") or ""
+    if len(new_password) < 6:
+        flash("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", "danger")
+        return redirect(url_for("manage_users"))
+    user.set_password(new_password)
+    user.save()
+    flash(f"รีเซ็ตรหัสผ่านของ {user.username} เรียบร้อยแล้ว", "success")
     return redirect(url_for("manage_users"))
 
 

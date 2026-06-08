@@ -24,12 +24,13 @@
     <div class="table-wrapper">
         <table class="data-table">
             <colgroup>
-                <col style="width: 25%;">
-                <col style="width: 10%;">
-                <col style="width: 20%;">
-                <col style="width: 15%;">
-                <col style="width: 15%;">
-                <col style="width: 15%;">
+                <col style="width: 23%;">
+                <col style="width: 8%;">
+                <col style="width: 19%;">
+                <col style="width: 13%;">
+                <col style="width: 14%;">
+                <col style="width: 11%;">
+                <col style="width: 12%;">
             </colgroup>
             <thead>
                 <tr>
@@ -38,6 +39,7 @@
                     <th class="text-center">สาขา/คณะที่สังกัด</th>
                     <th class="text-center">จำนวนรายวิชา</th>
                     <th class="text-center">เพิ่มรายวิชา</th>
+                    <th class="text-center">แก้ไข</th>
                     <th class="text-center">ลบ</th>
                 </tr>
             </thead>
@@ -70,6 +72,17 @@
                         </form>
                     </td>
                     <td class="text-center">
+                        <button type="button" class="btn btn-secondary btn-compact"
+                            onclick="openEditProgramModal(
+                                '{{ program.id }}',
+                                '{{ program.name | e }}',
+                                '{{ program.department_id or "" }}',
+                                '{{ program.year if program.year else "" }}'
+                            )">
+                            แก้ไข
+                        </button>
+                    </td>
+                    <td class="text-center">
                         {% if current_user.has_role('admin') or (active_role or current_user.best_role()) == 'admin' %}
                         <form action="{{ url_for('admin_delete_program', program_id=program.id) }}" method="POST"
                             onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้?')">
@@ -80,7 +93,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" class="empty-state text-center text-muted">ไม่พบข้อมูลหลักสูตรในระบบ</td>
+                    <td colspan="7" class="empty-state text-center text-muted">ไม่พบข้อมูลหลักสูตรในระบบ</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -122,10 +135,55 @@
     </div>
 </div>
 
+<!-- Modal: แก้ไขหลักสูตร -->
+<div id="modal-edit-program" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:480px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">แก้ไขหลักสูตร</h3>
+            <button onclick="document.getElementById('modal-edit-program').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form id="edit-program-form" method="POST" data-no-confirm>
+            <div class="form-group">
+                <label>สาขาวิชาที่สังกัด</label>
+                <select name="department_id" id="ep-department" class="form-control" required>
+                    <option value="">-- เลือกสาขาวิชา --</option>
+                    {% for dept in departments %}
+                    <option value="{{ dept.id }}">{{ faculty_name_by_id.get(dept.faculty_id) or '-' }} : {{ dept.name }}{% if dept.major %} ({{ dept.major }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label>ชื่อหลักสูตร</label>
+                <input type="text" name="name" id="ep-name" class="form-control" required>
+            </div>
+            <div class="form-group">
+                <label>ปี (ถ้ามี)</label>
+                <input type="number" name="year" id="ep-year" class="form-control" placeholder="เช่น 2569">
+            </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกการแก้ไข</button>
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-edit-program').style.display='none'">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
-document.getElementById('modal-create-program').addEventListener('click', function(e) {
-    if (e.target === this) this.style.display = 'none';
+['modal-create-program', 'modal-edit-program'].forEach(function(id) {
+    document.getElementById(id).addEventListener('click', function(e) {
+        if (e.target === this) this.style.display = 'none';
+    });
 });
+
+function openEditProgramModal(programId, name, departmentId, year) {
+    document.getElementById('edit-program-form').action = '/admin/programs/' + programId + '/edit';
+    document.getElementById('ep-name').value = name;
+    document.getElementById('ep-year').value = year;
+    document.getElementById('modal-edit-program').style.display = 'flex';
+    window.initCustomSelects(document.getElementById('modal-edit-program'));
+    window.setSelectValue('ep-department', departmentId);
+}
 </script>
 {% endblock %}
 

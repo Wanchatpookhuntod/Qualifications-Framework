@@ -68,7 +68,7 @@
                                 แก้ไข
                             </button>
                             <button type="button" class="btn btn-secondary btn-compact"
-                                onclick="openResetPasswordModal('{{ user.id }}', '{{ user.username | e }}')">
+                                onclick='openResetPasswordModal({{ user.id | tojson }}, {{ user.username | tojson }})'>
                                 รหัสผ่าน
                             </button>
                         </div>

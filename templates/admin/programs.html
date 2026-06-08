@@ -73,12 +73,12 @@
                     </td>
                     <td class="text-center">
                         <button type="button" class="btn btn-secondary btn-compact"
-                            onclick="openEditProgramModal(
-                                '{{ program.id }}',
-                                '{{ program.name | e }}',
-                                '{{ program.department_id or "" }}',
-                                '{{ program.year if program.year else "" }}'
-                            )">
+                            onclick='openEditProgramModal(
+                                {{ program.id | tojson }},
+                                {{ program.name | tojson }},
+                                {{ (program.department_id or "") | tojson }},
+                                {{ (program.year if program.year else "") | tojson }}
+                            )'>
                             แก้ไข
                         </button>
                     </td>

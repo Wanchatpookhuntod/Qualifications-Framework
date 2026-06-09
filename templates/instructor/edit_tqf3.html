@@ -2,6 +2,37 @@
 
 {% block title %}แก้ไข มคอ.3 - {{ section.course.code }}{% endblock %}
 
+{% block head %}
+<script>
+var PCT_NAMES = ['pct_lecture','pct_discussion','pct_case','pct_practice','pct_group','pct_other'];
+function updatePctSum(el) {
+    var othersSum = 0;
+    PCT_NAMES.forEach(function(n) {
+        if (n !== el.name) {
+            var f = document.querySelector('[name="'+n+'"]');
+            othersSum += f ? (parseFloat(f.value) || 0) : 0;
+        }
+    });
+    var max = Math.max(0, 100 - othersSum);
+    var v = parseFloat(el.value);
+    if (!isNaN(v) && v > max) { el.value = max; v = max; }
+    var s = othersSum + (isNaN(v) ? 0 : v);
+    s = Math.round(s * 10) / 10;
+    var filled = document.getElementById('pct-filled');
+    var remain = document.getElementById('pct-remain');
+    var bar    = document.getElementById('pct-bar');
+    if (filled) filled.textContent = s;
+    if (bar) { bar.style.width = Math.min(s,100)+'%'; bar.style.background = s>100?'#f87171':s===100?'#34d399':'#fbbf24'; }
+    if (remain) {
+        if (s===100)    { remain.textContent='✓ ครบ 100%';           remain.style.color='#34d399'; }
+        else if (s>100) { remain.textContent='เกิน '+(Math.round((s-100)*10)/10)+'%'; remain.style.color='#f87171'; }
+        else if (s>0)   { remain.textContent='เหลืออีก '+(Math.round((100-s)*10)/10)+'%'; remain.style.color='#fbbf24'; }
+        else            { remain.textContent=''; }
+    }
+}
+</script>
+{% endblock %}
+
 {% block content %}
 {% set is_locked = tqf3.status in ['SUBMITTED', 'APPROVED'] %}
 
@@ -63,7 +94,8 @@
 </div>
 {% endif %}
 
-<form id="tqf3-form" method="POST" class="glass panel" {% if not is_locked %}data-autosave{% endif %}>
+<form id="tqf3-form" method="POST" class="glass panel" {% if not is_locked %}data-autosave{% endif %}
+    onkeydown="if(event.key==='Enter'&&event.target.tagName!=='TEXTAREA'){event.preventDefault();}">
     {% set general = tqf3.general_info or {} %}
 
     <fieldset {% if is_locked %}disabled{% endif %}>
@@ -260,12 +292,13 @@
                 </table>
             </div>
             {% set clo_texts = general.get('clo_text[]') or [] %}
+            {% set clo_plos = general.get('clo_plo[]') or [] %}
             {% set teachs = general.get('teach_strategy[]') or [] %}
             {% set criterias = general.get('assess_criteria[]') or [] %}
             {% set assesses = general.get('assess_strategy[]') or [] %}
             {% set clo_rows = [] %}
             {% for i in range(clo_texts|length) %}
-            {% set _ = clo_rows.append({'clo_text[]': clo_texts[i], 'teach_strategy[]': teachs[i] if i < teachs|length else '', 'assess_criteria[]': criterias[i] if i < criterias|length else '', 'assess_strategy[]': assesses[i] if i < assesses|length else ''}) %}
+            {% set _ = clo_rows.append({'clo_text[]': clo_texts[i], 'clo_plo[]': clo_plos[i] if i < clo_plos|length else '', 'teach_strategy[]': teachs[i] if i < teachs|length else '', 'assess_criteria[]': criterias[i] if i < criterias|length else '', 'assess_strategy[]': assesses[i] if i < assesses|length else ''}) %}
             {% endfor %}
             <script type="application/json" id="cloData">{{ clo_rows | tojson }}</script>
             <div class="qtf-btn-row mt-3">
@@ -305,35 +338,51 @@
             <div class="qtf-grid three">
                 <div class="form-group">
                     <label>การบรรยาย (%)</label>
-                    <input type="number" name="pct_lecture" class="form-control" min="0" max="100" value="{{ general.get('pct_lecture', '') }}">
+                    <input type="number" name="pct_lecture" class="form-control pct-field" min="0" value="{{ general.get('pct_lecture', '') }}" oninput="updatePctSum(this)">
                 </div>
                 <div class="form-group">
                     <label>การบรรยายเชิงอภิปราย (%)</label>
-                    <input type="number" name="pct_discussion" class="form-control" min="0" max="100" value="{{ general.get('pct_discussion', '') }}">
+                    <input type="number" name="pct_discussion" class="form-control pct-field" min="0" value="{{ general.get('pct_discussion', '') }}" oninput="updatePctSum(this)">
                 </div>
                 <div class="form-group">
                     <label>กรณีศึกษา (%)</label>
-                    <input type="number" name="pct_case" class="form-control" min="0" max="100" value="{{ general.get('pct_case', '') }}">
+                    <input type="number" name="pct_case" class="form-control pct-field" min="0" value="{{ general.get('pct_case', '') }}" oninput="updatePctSum(this)">
                 </div>
             </div>
             <div class="qtf-grid three mt-2">
                 <div class="form-group">
                     <label>การฝึกปฏิบัติ (%)</label>
-                    <input type="number" name="pct_practice" class="form-control" min="0" max="100" value="{{ general.get('pct_practice', '') }}">
+                    <input type="number" name="pct_practice" class="form-control pct-field" min="0" value="{{ general.get('pct_practice', '') }}" oninput="updatePctSum(this)">
                 </div>
                 <div class="form-group">
                     <label>กิจกรรมกลุ่ม (%)</label>
-                    <input type="number" name="pct_group" class="form-control" min="0" max="100" value="{{ general.get('pct_group', '') }}">
+                    <input type="number" name="pct_group" class="form-control pct-field" min="0" value="{{ general.get('pct_group', '') }}" oninput="updatePctSum(this)">
                 </div>
                 <div class="form-group">
                     <label>อื่นๆ (%)</label>
-                    <input type="number" name="pct_other" class="form-control" min="0" max="100" value="{{ general.get('pct_other', '') }}">
+                    <input type="number" name="pct_other" class="form-control pct-field" min="0" value="{{ general.get('pct_other', '') }}" oninput="updatePctSum(this)">
                 </div>
             </div>
-            <div class="form-group mt-2">
+            <!-- <div class=”form-group mt-2”>
                 <label>รายละเอียด “อื่นๆ”</label>
-                <input type="text" name="other_detail" class="form-control" value="{{ general.get('other_detail', '') }}" placeholder="ระบุถ้ามี">
-                <div class="qtf-alert-note mt-1">แนะนำให้รวมร้อยละ = 100%</div>
+                <input type=”text” name=”other_detail” class=”form-control” value=”{{ general.get('other_detail', '') }}” placeholder=”ระบุถ้ามี”>
+            </div> -->
+            {% set _pns = namespace(s=0) %}
+            {% for _pf in ['pct_lecture','pct_discussion','pct_case','pct_practice','pct_group','pct_other'] %}
+                {% set _pns.s = _pns.s + (general.get(_pf, 0) | string | replace(' ','') | int(0)) %}
+            {% endfor %}
+            {% set _pct_init = _pns.s %}
+            {% if _pct_init > 100 %}{% set _pct_bar_color = '#f87171' %}
+            {% elif _pct_init == 100 %}{% set _pct_bar_color = '#34d399' %}
+            {% else %}{% set _pct_bar_color = '#fbbf24' %}{% endif %}
+            <div class=”mt-2” id=”pct-sum-box” style=”border-radius:0.5rem; padding:0.65rem 0.9rem; background:rgba(255,255,255,0.06); font-size:0.88rem;”>
+                <div style=”display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;”>
+                    <span>กรอกแล้ว <strong id=”pct-filled”>{{ _pct_init }}</strong>% จาก 100%</span>
+                    <span id=”pct-remain” style=”font-weight:600;”>{% if _pct_init == 100 %}✓ ครบ 100%{% elif _pct_init > 100 %}เกิน {{ _pct_init - 100 }}%{% elif _pct_init > 0 %}เหลืออีก {{ 100 - _pct_init }}%{% endif %}</span>
+                </div>
+                <div style=”height: 8px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden;”>
+                    <div id=”pct-bar” style=”height:100%; width:{{ [_pct_init, 100]|min }}%; border-radius:4px; background:{{ _pct_bar_color }}; transition:width 0.2s,background 0.2s;”></div>
+                </div>
             </div>
         </div>
 
@@ -470,9 +519,10 @@
 const QTFRows = (function () {
     const CONFIGS = {
         clo: {
-            tableId: 'cloTable', dataId: 'cloData', noun: 'CLO', layout: 'stacked',
+            tableId: 'cloTable', dataId: 'cloData', noun: 'CLO', layout: 'stacked', showNumber: true, numPrefix: 'CLO',
             fields: [
-                { name: 'clo_text[]', label: 'ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)', type: 'clo' },
+                { name: 'clo_text[]', label: 'ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา', type: 'clo' },
+                { name: 'clo_plo[]', label: 'สัมพันธ์กับ PLO', type: 'plo_tags' },
                 { name: 'teach_strategy[]', label: 'กลยุทธ์การสอนตาม CLOs', type: 'textarea', ph: 'เช่น บรรยาย/ฝึกปฏิบัติ' },
                 { name: 'assess_criteria[]', label: 'เกณฑ์การวัดและการประเมินผล', type: 'textarea', ph: 'เช่น ผ่านเกณฑ์ร้อยละ 60' },
                 { name: 'assess_strategy[]', label: 'วิธีการวัดและประเมินผลตาม CLOs', type: 'textarea', ph: 'เช่น สอบ/โครงงาน' }
@@ -490,7 +540,7 @@ const QTFRows = (function () {
             ]
         },
         assess: {
-            tableId: 'assessTable', dataId: 'assessData', noun: 'รายการประเมิน', layout: 'stacked',
+            tableId: 'assessTable', dataId: 'assessData', noun: 'รายการประเมิน', layout: 'stacked', showNumber: true, numFromValue: true,
             fields: [
                 { name: 'assess_clo[]', label: 'CLO', type: 'clo' },
                 { name: 'assess_activity[]', label: 'กิจกรรมการจัดการเรียนรู้ของผู้เรียน', type: 'textarea', ph: 'กิจกรรมการจัดการเรียนรู้' },
@@ -570,6 +620,20 @@ const QTFRows = (function () {
         return tr;
     }
 
+    function renumberCloRows(type) {
+        const types = type ? [type] : Object.keys(CONFIGS).filter(t => CONFIGS[t].showNumber);
+        types.forEach(t => {
+            const cfg = CONFIGS[t];
+            if (cfg.numFromValue) return; // badge text comes from the stored value, not position
+            const tbody = document.querySelector('#' + cfg.tableId + ' tbody');
+            if (!tbody) return;
+            const prefix = cfg.numPrefix || '';
+            tbody.querySelectorAll('tr[data-type="' + t + '"]').forEach((tr, idx) => {
+                tr.querySelectorAll('.qtf-clo-num').forEach(b => { b.textContent = prefix + (idx + 1); });
+            });
+        });
+    }
+
     function makeStackedRow(type, values, cfg) {
         const tr = document.createElement('tr');
         tr.dataset.type = type;
@@ -578,16 +642,59 @@ const QTFRows = (function () {
 
         const block = document.createElement('div');
         block.className = 'qtf-stacked-block';
-        cfg.fields.forEach(f => {
+
+        cfg.fields.forEach((f, fi) => {
             const line = document.createElement('div');
             line.className = 'qtf-stacked-line';
+            const v = String(values[f.name] || '').trim();
+
+            if (cfg.showNumber && fi === 0) {
+                // Render as: [CLO5 badge] : description — no separate label
+                line.style.cssText = 'align-items:center; gap:0.5rem; flex-wrap:nowrap;';
+                const numBadge = document.createElement('span');
+                numBadge.className = 'qtf-clo-num';
+                numBadge.style.cssText = 'flex-shrink:0; display:inline-block; padding:0.2rem 0.65rem; border-radius:0.4rem; font-size:0.85rem; font-weight:700; background:rgba(99,102,241,0.22); color:var(--primary,#818cf8);';
+                // numFromValue: badge text comes from the stored value (CLO code); otherwise auto-renumbered.
+                numBadge.textContent = cfg.numFromValue ? (v || 'CLO?') : 'CLO?';
+                const val = document.createElement('span');
+                val.className = 'qtf-stacked-value';
+                val.style.flex = '1';
+                // For numFromValue, the field stores a CLO code; look up the description.
+                let displayText = v;
+                if (cfg.numFromValue && v) {
+                    const found = getCloItems().find(it => it.code === v);
+                    if (found && found.text) displayText = found.text;
+                }
+                if (displayText) { val.textContent = displayText; } else { val.textContent = '—'; val.classList.add('text-muted'); }
+                line.appendChild(numBadge);
+                line.appendChild(val);
+                block.appendChild(line);
+                const inp = document.createElement('input');
+                inp.type = 'hidden'; inp.name = f.name; inp.value = String(values[f.name] || '');
+                block.appendChild(inp);
+                return;
+            }
+
             const lab = document.createElement('span');
             lab.className = 'qtf-stacked-label';
             lab.textContent = f.label;
             const val = document.createElement('span');
             val.className = 'qtf-stacked-value';
-            const v = String(values[f.name] || '').trim();
-            if (v) {
+            if (f.type === 'plo_tags') {
+                if (v) {
+                    v.split(',').forEach(code => {
+                        const c = code.trim();
+                        if (!c) return;
+                        const badge = document.createElement('span');
+                        badge.textContent = c;
+                        badge.style.cssText = 'display:inline-block; margin:0.1rem 0.2rem; padding:0.15rem 0.45rem; border-radius:0.3rem; font-size:0.75rem; background:rgba(16,185,129,0.18); color:#34d399; font-weight:600;';
+                        val.appendChild(badge);
+                    });
+                } else {
+                    val.textContent = '—';
+                    val.classList.add('text-muted');
+                }
+            } else if (v) {
                 val.textContent = v;
             } else {
                 val.textContent = '—';
@@ -695,6 +802,7 @@ const QTFRows = (function () {
             return;
         }
         rows.forEach(r => tbody.appendChild(makeRow(type, r)));
+        if (CONFIGS[type].showNumber) renumberCloRows(type);
     }
 
     function buildFields(cfg, values) {
@@ -711,6 +819,13 @@ const QTFRows = (function () {
                 input.rows = 3;
             } else if (f.type === 'clo') {
                 input = buildCloSelect(values ? values[f.name] : '');
+            } else if (f.type === 'plo_tags') {
+                input = document.createElement('input');
+                input.type = 'text';
+                const hint = document.createElement('small');
+                hint.className = 'text-muted';
+                hint.textContent = 'รหัส PLO คั่นด้วย comma เช่น PLO1,PLO2 (กำหนดโดยหัวหน้าสาขา แก้ไขได้)';
+                grp.appendChild(hint);
             } else {
                 input = document.createElement('input');
                 input.type = f.type || 'text';
@@ -774,6 +889,7 @@ const QTFRows = (function () {
             if (empty) empty.remove();
             tbody.appendChild(newRow);
         }
+        if (current && CONFIGS[current.type].showNumber) renumberCloRows(current.type);
         close();
         notifyChange();
     }
@@ -793,6 +909,7 @@ const QTFRows = (function () {
         if (!tbody.querySelector('tr')) {
             tbody.appendChild(makeEmptyRow(type));
         }
+        if (CONFIGS[type].showNumber) renumberCloRows(type);
         notifyChange();
     }
 
@@ -913,6 +1030,34 @@ const QTFRows = (function () {
     });
 
     render();
+
+    // Auto-populate PLO section from CLO data if the PLO textarea is empty.
+    // Runs once on load so existing saved PLO choices are preserved.
+    function autoSyncPlosFromClos() {
+        if (textarea.value.trim()) return; // already has PLOs — don't overwrite
+        let rows = [];
+        try { rows = JSON.parse(document.getElementById('cloData').textContent || '[]'); } catch (e) { return; }
+        const seen = new Set();
+        const ordered = [];
+        rows.forEach(r => {
+            (r['clo_plo[]'] || '').split(',').forEach(code => {
+                code = code.trim();
+                if (code && !seen.has(code)) { seen.add(code); ordered.push(code); }
+            });
+        });
+        if (!ordered.length) return;
+        // Match against program PLO checkboxes to get full "PLO1 — desc" lines
+        const checkMap = {};
+        modal.querySelectorAll('input[name="ploPickerCheck"]').forEach(c => {
+            const line = normalize(c.dataset.line);
+            const code = line.indexOf('—') >= 0 ? line.slice(0, line.indexOf('—')).trim() : line;
+            checkMap[code] = line;
+        });
+        ordered.sort((a, b) => (parseInt(a.replace(/\D/g,'')) || 0) - (parseInt(b.replace(/\D/g,'')) || 0));
+        const lines = ordered.map(code => checkMap[code] || code);
+        setItems(lines);
+    }
+    document.addEventListener('DOMContentLoaded', autoSyncPlosFromClos);
 })();
 
 // Course learning outcomes (objectives): add/edit/remove one item at a time.
@@ -985,6 +1130,7 @@ const QTFRows = (function () {
 
     addBtn.addEventListener('click', () => addRow('', true));
 })();
+
 </script>
 <script src="{{ url_for('static', filename='js/tqf_autosave.js', v=static_v('js/tqf_autosave.js')) }}"></script>
 {% endblock %}

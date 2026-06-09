@@ -1594,13 +1594,20 @@ def edit_tqf3(section_id):
         if "objectives" not in gi and "course_objective" in gi:
             gi["objectives"] = gi.get("course_objective")
 
+        # Strip literal "" or '' saved as a string value in text fields
+        for _k in ("other_detail", "location", "location_type"):
+            _v = gi.get(_k)
+            if isinstance(_v, str) and _v.strip() in ('""', "''", '""'):
+                gi[_k] = ""
+
         if "location" not in gi and "location_type" in gi:
             gi["location"] = gi.get("location_type")
         if "location_type" not in gi and gi.get("location") in {"Onsite", "Online", "Hybrid"}:
             gi["location_type"] = gi.get("location")
 
         # CLO mapping table
-        if "clo_text[]" not in gi:
+        _has_clo_content = any(t.strip() for t in _as_list(gi.get("clo_text[]", [])))
+        if "clo_text[]" not in gi or not _has_clo_content:
             if "clo_desc[]" in gi:
                 gi["clo_text[]"] = _as_list(gi.get("clo_desc[]"))
             elif "clo_code[]" in gi:
@@ -1613,6 +1620,50 @@ def edit_tqf3(section_id):
                     gi["clo_text[]"] = [c.description for c in course_clos]
                     gi["clo_plo[]"] = [c.plo_codes for c in course_clos]
                     gi["plo[]"] = gi["clo_plo[]"]
+                    # Also populate the objectives list (shown in the CLO display section)
+                    if not any(s.strip() for s in gi.get("course_objective", "").split("\n")):
+                        gi["course_objective"] = "\n".join(c.description for c in course_clos)
+                        gi["objectives"] = gi["course_objective"]
+                    # Auto-populate top PLO section from CLO-PLO codes (first open only)
+                    if not gi.get("plos"):
+                        all_codes: set = set()
+                        for plo_str in gi["clo_plo[]"]:
+                            for code in (plo_str or "").split(","):
+                                code = code.strip()
+                                if code:
+                                    all_codes.add(code)
+                        if all_codes:
+                            prog_plos = _plos_for_section(section)
+                            plo_map = {p.code: p for p in prog_plos}
+                            sorted_codes = sorted(
+                                all_codes,
+                                key=lambda c: _parse_plo_number(c) or 999,
+                            )
+                            plo_lines = []
+                            for code in sorted_codes:
+                                p = plo_map.get(code)
+                                if p and p.description:
+                                    plo_lines.append(f"{p.code} — {p.description}")
+                                elif p:
+                                    plo_lines.append(p.code)
+                                else:
+                                    plo_lines.append(code)
+                            gi["plos"] = "\n".join(plo_lines)
+        # If course_objective is still empty but clo_text[] now has content, sync them.
+        _has_objective = any(s.strip() for s in (gi.get("course_objective") or "").split("\n"))
+        if not _has_objective:
+            _clo_texts = [t for t in _as_list(gi.get("clo_text[]")) if t.strip()]
+            if _clo_texts:
+                gi["course_objective"] = "\n".join(_clo_texts)
+                gi["objectives"] = gi["course_objective"]
+
+        # Pre-populate assess table with one row per CLO if not yet filled.
+        _has_assess = any(v.strip() for v in _as_list(gi.get("assess_clo[]", [])))
+        if not _has_assess:
+            _clo_texts = [t for t in _as_list(gi.get("clo_text[]")) if t.strip()]
+            if _clo_texts:
+                gi["assess_clo[]"] = [f"CLO{i + 1}" for i in range(len(_clo_texts))]
+
         # PLO-per-CLO mapping: clo_plo[] is the form key; plo[] is the legacy alias.
         if "clo_plo[]" not in gi and "plo[]" in gi:
             gi["clo_plo[]"] = _as_list(gi.get("plo[]"))

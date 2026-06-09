@@ -55,7 +55,7 @@
                     </td>
                     <td class="text-muted text-xs">{{ user_affiliation_by_user_id.get(user.id) or 'System' }}</td>
                     <td style="text-align:center;">
-                        <div style="display:flex; gap:0.4rem; justify-content:center; flex-wrap:wrap;">
+                        <div style="display:grid;grid-template-rows:1fr 1fr; gap:0.4rem; justify-content:center; flex-wrap:wrap;">
                             <button type="button" class="btn btn-secondary btn-compact"
                                 onclick="openEditUserModal(
                                     '{{ user.id }}',

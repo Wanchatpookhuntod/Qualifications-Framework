@@ -379,10 +379,11 @@ select {
 
 .text-table{
     font-family: 'Sarabun', sans-serif;
-    font-size: 0.9em;
+    font-size: 0.9rem;
     overflow-wrap: break-word;
     word-break: break-word;
 }
+
 
 /* Stacked (label-over-value) table rows — one record per block, divided by a line */
 .data-table--stacked {
@@ -476,12 +477,21 @@ select {
 /* TQF tables: body content (not headers) rendered at text-xs across all มคอ. */
 .data-table tbody td,
 .qtf-table tbody td {
-    font-size: 0.8125rem;
+    font-size: 0.9rem;
 }
+
+.data-table tbody td .text-table,
+.qtf-table tbody td .text-table {
+    font-size: 0.9rem;
+}
+
+
 .data-table tbody td .form-control,
 .qtf-table tbody td .form-control {
     font-size: inherit;
 }
+
+
 
 .text-title{
     font-family: 'Kanit', 'Sarabun', sans-serif;

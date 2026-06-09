@@ -135,9 +135,11 @@
                 {{ side_nav_item('manage_terms', 'calendar_month', 'ภาคการศึกษา') }}
                 {{ side_nav_item('academic_manage_programs', 'menu_book', 'หลักสูตร') }}
                 {{ side_nav_item('academic_manage_courses', 'book_2', 'รายวิชา') }}
+                {{ side_nav_item('academic_view_plos', 'flag', 'PLOs หลักสูตร') }}
             {% elif _side_role == 'head' %}
                 {{ side_nav_item('head_dashboard', 'dashboard', 'แดชบอร์ด') }}
                 {{ side_nav_item('head_manage_plos', 'flag', 'จัดการ PLOs') }}
+                {{ side_nav_item('head_manage_course_clos', 'checklist', 'CLOs รายวิชา') }}
             {% else %}
                 {{ side_nav_item('instructor_dashboard', 'dashboard', 'แดชบอร์ด') }}
                 {{ side_nav_item('instructor_plos', 'flag', 'PLOs หลักสูตร') }}

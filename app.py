@@ -41,6 +41,7 @@ from exporters import build_tqf3_docx, build_tqf4_docx, build_tqf5_docx
 
 from models import (
     Course,
+    CourseCLO,
     Department,
     Faculty,
     Feedback,
@@ -1604,6 +1605,14 @@ def edit_tqf3(section_id):
                 gi["clo_text[]"] = _as_list(gi.get("clo_desc[]"))
             elif "clo_code[]" in gi:
                 gi["clo_text[]"] = [""] * len(_as_list(gi.get("clo_code[]")))
+            else:
+                # Prefill from head-defined CourseCLOs if available and TQF3 is new.
+                course_clos = CourseCLO.find_by("course_id", section.course_id) if section.course_id else []
+                course_clos.sort(key=lambda c: (c.order if c.order is not None else 999))
+                if course_clos:
+                    gi["clo_text[]"] = [c.description for c in course_clos]
+                    gi["clo_plo[]"] = [c.plo_codes for c in course_clos]
+                    gi["plo[]"] = gi["clo_plo[]"]
         # PLO-per-CLO mapping: clo_plo[] is the form key; plo[] is the legacy alias.
         if "clo_plo[]" not in gi and "plo[]" in gi:
             gi["clo_plo[]"] = _as_list(gi.get("plo[]"))
@@ -2850,6 +2859,171 @@ def head_delete_plo(plo_id):
     return redirect(url_for("head_manage_plos", program_id=program_id))
 
 
+@app.route("/head/course-clos")
+@login_required
+@roles_required("head")
+def head_manage_course_clos():
+    """Head views/manages CLOs for each course in their programs."""
+    programs = _head_programs_for(current_user)
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    if not programs:
+        flash("ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ", "warning")
+        return render_template("head/course_clos.html", programs=[], selected_program=None,
+                               courses=[], selected_course=None, clos=[], plos=[])
+
+    selected_program_id = request.args.get("program_id") or (programs[0].id if programs else None)
+    if selected_program_id not in program_by_id:
+        selected_program_id = programs[0].id if programs else None
+    selected_program = program_by_id.get(selected_program_id)
+
+    courses = Course.find_by("program_id", selected_program_id) if selected_program_id else []
+    courses.sort(key=lambda c: (c.code or "", c.name_th or ""))
+
+    course_by_id = {c.id: c for c in courses if c.id}
+    selected_course_id = request.args.get("course_id")
+    if selected_course_id not in course_by_id:
+        selected_course_id = courses[0].id if courses else None
+    selected_course = course_by_id.get(selected_course_id)
+
+    clos = selected_course.clos if selected_course else []
+
+    next_number = 1
+    for clo in clos:
+        n = clo.order
+        if n is not None:
+            next_number = max(next_number, n + 1)
+
+    plos = selected_program.plos if selected_program else []
+    plos.sort(key=lambda p: (p.order if p.order is not None else (_parse_plo_number(p.code) or 0)))
+
+    return render_template(
+        "head/course_clos.html",
+        programs=programs,
+        selected_program=selected_program,
+        courses=courses,
+        selected_course=selected_course,
+        clos=clos,
+        plos=plos,
+        next_number=next_number,
+    )
+
+
+@app.route("/head/course-clos/<course_id>/add", methods=["POST"])
+@login_required
+@roles_required("head")
+def head_add_course_clo(course_id):
+    course = Course.get(course_id)
+    if not course:
+        flash("ไม่พบรายวิชา", "danger")
+        return redirect(url_for("head_manage_course_clos"))
+
+    allowed_ids = {c.id for c in Course.find_by("program_id", course.program_id) if c.id}
+    if course_id not in allowed_ids:
+        flash("คุณไม่มีสิทธิ์จัดการรายวิชานี้", "danger")
+        return redirect(url_for("head_manage_course_clos"))
+
+    head_program_ids = {p.id for p in _head_programs_for(current_user) if p.id}
+    if course.program_id not in head_program_ids:
+        flash("คุณไม่มีสิทธิ์จัดการรายวิชานี้", "danger")
+        return redirect(url_for("head_manage_course_clos"))
+
+    number_raw = (request.form.get("number") or "").strip()
+    description = (request.form.get("description") or "").strip()
+    plo_codes = (request.form.get("plo_codes") or "").strip()
+
+    try:
+        number = int(number_raw)
+        if number < 1:
+            raise ValueError
+    except (ValueError, TypeError):
+        number = None
+
+    if number is None or not description:
+        flash("กรุณากรอกหมายเลข CLO และคำอธิบายให้ครบถ้วน", "warning")
+        return redirect(url_for("head_manage_course_clos",
+                                program_id=course.program_id, course_id=course_id))
+
+    CourseCLO(
+        course_id=course_id,
+        code=f"CLO{number}",
+        description=description,
+        plo_codes=plo_codes,
+        order=number,
+    ).save()
+    flash("เพิ่ม CLO เรียบร้อยแล้ว", "success")
+    return redirect(url_for("head_manage_course_clos",
+                            program_id=course.program_id, course_id=course_id))
+
+
+def _head_owned_clo_or_redirect(clo_id: str):
+    """Return CourseCLO if current head may manage it, else (None, redirect)."""
+    clo = CourseCLO.get(clo_id)
+    if not clo:
+        flash("ไม่พบ CLO ที่ระบุ", "danger")
+        return None, redirect(url_for("head_manage_course_clos"))
+    course = Course.get(clo.course_id)
+    if not course:
+        flash("ไม่พบรายวิชาของ CLO นี้", "danger")
+        return None, redirect(url_for("head_manage_course_clos"))
+    head_program_ids = {p.id for p in _head_programs_for(current_user) if p.id}
+    if course.program_id not in head_program_ids:
+        flash("คุณไม่มีสิทธิ์จัดการ CLO นี้", "danger")
+        return None, redirect(url_for("head_manage_course_clos"))
+    return clo, None
+
+
+@app.route("/head/course-clos/<clo_id>/update", methods=["POST"])
+@login_required
+@roles_required("head")
+def head_update_course_clo(clo_id):
+    clo, redirect_response = _head_owned_clo_or_redirect(clo_id)
+    if redirect_response:
+        return redirect_response
+
+    number_raw = (request.form.get("number") or "").strip()
+    description = (request.form.get("description") or "").strip()
+    plo_codes = (request.form.get("plo_codes") or "").strip()
+
+    try:
+        number = int(number_raw)
+        if number < 1:
+            raise ValueError
+    except (ValueError, TypeError):
+        number = None
+
+    if number is None or not description:
+        flash("กรุณากรอกหมายเลข CLO และคำอธิบายให้ครบถ้วน", "warning")
+    else:
+        clo.code = f"CLO{number}"
+        clo.description = description
+        clo.plo_codes = plo_codes
+        clo.order = number
+        clo.save()
+        flash("แก้ไข CLO เรียบร้อยแล้ว", "success")
+
+    course = Course.get(clo.course_id)
+    program_id = course.program_id if course else None
+    return redirect(url_for("head_manage_course_clos",
+                            program_id=program_id, course_id=clo.course_id))
+
+
+@app.route("/head/course-clos/<clo_id>/delete", methods=["POST"])
+@login_required
+@roles_required("head")
+def head_delete_course_clo(clo_id):
+    clo, redirect_response = _head_owned_clo_or_redirect(clo_id)
+    if redirect_response:
+        return redirect_response
+    course = Course.get(clo.course_id)
+    program_id = course.program_id if course else None
+    course_id = clo.course_id
+    clo.delete()
+    flash("ลบ CLO เรียบร้อยแล้ว", "success")
+    return redirect(url_for("head_manage_course_clos",
+                            program_id=program_id, course_id=course_id))
+
+
 def _attach_section_context_to_tqf_doc(tqf: object) -> None:
     """Attach `section`, `course`, `term`, `instructor` runtime attributes for templates."""
     section_id = getattr(tqf, "section_id", None)
@@ -3525,6 +3699,31 @@ def manage_courses():
 @roles_required("academic", "admin")
 def academic_manage_courses():
     return _handle_courses_request()
+
+
+@app.route("/academic/plos")
+@login_required
+@roles_required("academic")
+def academic_view_plos():
+    """Read-only view of PLOs for any program, visible to academic staff."""
+    programs = Program.find_all()
+    programs.sort(key=lambda p: (p.name or "", -(p.year or 0)))
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    selected_program_id = request.args.get("program_id") or (programs[0].id if programs else None)
+    if selected_program_id not in program_by_id:
+        selected_program_id = programs[0].id if programs else None
+    selected_program = program_by_id.get(selected_program_id)
+
+    plos = selected_program.plos if selected_program else []
+    plos.sort(key=lambda plo: (plo.order if plo.order is not None else (_parse_plo_number(plo.code) or 0)))
+
+    return render_template(
+        "academic/plos.html",
+        programs=programs,
+        selected_program=selected_program,
+        plos=plos,
+    )
 
 
 def _delete_course(course_id, default_endpoint):

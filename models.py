@@ -339,6 +339,62 @@ class Course(FirestoreModel):
     def program(self) -> Optional[Program]:
         return Program.get(self.program_id) if self.program_id else None
 
+    @property
+    def clos(self) -> List["CourseCLO"]:
+        if not self.id:
+            return []
+        rows = CourseCLO.find_by("course_id", self.id)
+        rows.sort(key=lambda c: (c.order if c.order is not None else 999))
+        return rows
+
+
+@dataclass
+class CourseCLO(FirestoreModel):
+    """Course Learning Outcome (ผลลัพธ์การเรียนรู้ระดับรายวิชา) กำหนดโดยหัวหน้าสาขา."""
+
+    collection_name: ClassVar[str] = "course_clos"
+
+    course_id: Optional[str] = None
+    code: str = ""
+    description: str = ""
+    plo_codes: str = ""
+    order: Optional[int] = None
+    created_at: datetime = field(default_factory=_utcnow)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "course_id": self.course_id,
+            "code": self.code,
+            "description": self.description,
+            "plo_codes": self.plo_codes,
+            "order": self.order,
+            "created_at": self.created_at,
+        }
+
+    @classmethod
+    def from_dict(cls, doc_id: str, data: Dict[str, Any]) -> "CourseCLO":
+        order = data.get("order")
+        try:
+            order = int(order) if order is not None and order != "" else None
+        except Exception:
+            order = None
+        created_at = data.get("created_at")
+        if not isinstance(created_at, datetime):
+            created_at = _utcnow()
+        return cls(
+            id=doc_id,
+            course_id=data.get("course_id"),
+            code=(data.get("code") or ""),
+            description=(data.get("description") or ""),
+            plo_codes=(data.get("plo_codes") or ""),
+            order=order,
+            created_at=created_at,
+        )
+
+    @property
+    def course(self) -> Optional["Course"]:
+        return Course.get(self.course_id) if self.course_id else None
+
 
 @dataclass
 class Term(FirestoreModel):

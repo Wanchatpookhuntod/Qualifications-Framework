@@ -2748,28 +2748,24 @@ def export_tqf5_pdf(section_id):
 # --- Head ---
 
 
-@app.route("/head/dashboard")
-@login_required
-@roles_required("head")
-def head_dashboard():
-    # term_id absent → auto-select current term; term_id="" → show all
-    term_id_param = request.args.get("term_id")
+def _head_sections_context(term_id_param: str | None) -> dict:
+    """Load head-scoped sections (with course/term/TQF docs attached) and term filter state.
 
-    # Head belongs to a department (สาขา) which may have multiple programs.
-    program_ids = set()
-    if current_user.department_id:
-        program_ids = {p.id for p in Program.find_by("department_id", current_user.department_id) if p.id}
-    elif current_user.program_id:
-        program_ids = {current_user.program_id}
+    ``term_id_param`` absent (None) → auto-select current term; "" → show all terms.
+    Shared by the head dashboard (overview) and the sections page.
+    """
+    scope = _get_head_scope(current_user)
+    program_ids = scope.get("program_ids") or set()
 
+    ctx = {
+        "dept_name": scope.get("scope_label") or "",
+        "sections": [],
+        "term_objs": [],
+        "selected_term_id": term_id_param or None,
+        "all_terms": [],
+    }
     if not program_ids:
-        return render_template(
-            "head/dashboard.html",
-            sections=[],
-            instructors=[],
-            terms=[],
-            selected_term_id=term_id_param or None,
-        )
+        return ctx
 
     sections = Section.find_all()
     course_ids = {s.course_id for s in sections if s.course_id}
@@ -2811,13 +2807,95 @@ def head_dashboard():
         s.tqf4 = tqf4_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
 
-    instructors = users_with_role("instructor")
-    instructors.sort(key=lambda u: u.full_name)
-
     all_terms = Term.find_all()
     all_terms.sort(key=lambda t: (t.year, t.semester), reverse=True)
 
-    term_objs_ordered = sorted(term_objs, key=lambda t: (-(t.year or 0), -(t.semester or 0)))
+    ctx.update(
+        sections=filtered,
+        term_objs=term_objs,
+        selected_term_id=selected_term_id,
+        all_terms=all_terms,
+    )
+    return ctx
+
+
+@app.route("/head/dashboard")
+@login_required
+@roles_required("head")
+def head_dashboard():
+    ctx = _head_sections_context(request.args.get("term_id"))
+    sections = ctx["sections"]
+
+    total = len(sections)
+    assigned = sum(1 for s in sections if s.instructor_id)
+
+    def _doc_counts(docs: list) -> dict:
+        counts = {"APPROVED": 0, "SUBMITTED": 0, "RETURNED": 0, "DRAFT": 0, "MISSING": 0}
+        for doc in docs:
+            if not doc:
+                counts["MISSING"] += 1
+                continue
+            status = doc.status or "DRAFT"
+            counts[status if status in counts else "DRAFT"] += 1
+        return counts
+
+    spec_counts = _doc_counts([(s.tqf4 if s.is_field else s.tqf3) for s in sections])
+    tqf5_counts = _doc_counts([s.tqf5 for s in sections])
+
+    # Documents waiting for the head's review (SUBMITTED)
+    pending_reviews = []
+    for s in sections:
+        spec_doc = s.tqf4 if s.is_field else s.tqf3
+        if spec_doc and spec_doc.status == "SUBMITTED":
+            pending_reviews.append({
+                "section": s,
+                "doc": spec_doc,
+                "tqf_type": "tqf4" if s.is_field else "tqf3",
+                "label": "มคอ.4" if s.is_field else "มคอ.3",
+            })
+        if s.tqf5 and s.tqf5.status == "SUBMITTED":
+            pending_reviews.append({
+                "section": s,
+                "doc": s.tqf5,
+                "tqf_type": "tqf5",
+                "label": "มคอ.5",
+            })
+
+    selected_term = next(
+        (t for t in ctx["all_terms"] if t.id == ctx["selected_term_id"]), None
+    )
+
+    return render_template(
+        "head/dashboard.html",
+        stats={
+            "total": total,
+            "assigned": assigned,
+            "unassigned": total - assigned,
+            "spec": spec_counts,
+            "tqf5": tqf5_counts,
+        },
+        pending_reviews=pending_reviews,
+        terms=ctx["all_terms"],
+        selected_term_id=ctx["selected_term_id"],
+        selected_term=selected_term,
+        dept_name=ctx["dept_name"],
+    )
+
+
+@app.route("/head/sections")
+@login_required
+@roles_required("head")
+def head_sections():
+    ctx = _head_sections_context(request.args.get("term_id"))
+    filtered = ctx["sections"]
+    selected_term_id = ctx["selected_term_id"]
+
+    instructors = users_with_role("instructor")
+    instructors.sort(key=lambda u: u.full_name)
+
+    term_objs_ordered = sorted(
+        ctx["term_objs"], key=lambda t: (-(t.year or 0), -(t.semester or 0))
+    )
     grouped_by_term = []
     for t in term_objs_ordered:
         if selected_term_id and t.id != selected_term_id:
@@ -2830,21 +2908,13 @@ def head_dashboard():
             "sections": t_sections,
         })
 
-    dept_name = ""
-    if current_user.department_id:
-        dept = Department.get(current_user.department_id)
-        dept_name = dept.name if dept else ""
-    elif current_user.program_id:
-        prog = Program.get(current_user.program_id)
-        dept_name = prog.name if prog else ""
-
     return render_template(
-        "head/dashboard.html",
+        "head/sections.html",
         grouped_by_term=grouped_by_term,
         instructors=instructors,
-        terms=all_terms,
+        terms=ctx["all_terms"],
         selected_term_id=selected_term_id,
-        dept_name=dept_name,
+        dept_name=ctx["dept_name"],
     )
 
 
@@ -3387,7 +3457,7 @@ def review_tqf(tqf_type, tqf_id):
         ).save()
 
         flash(f"ดำเนินการเรียบร้อย: {tqf.status}", "success")
-        return redirect(url_for("head_dashboard"))
+        return redirect(url_for("head_sections"))
 
     return render_template(
         "head/review.html",
@@ -3395,8 +3465,8 @@ def review_tqf(tqf_type, tqf_id):
         tqf_type=tqf_type,
         full_parts=_build_tqf_full_parts(tqf_type, tqf),
         can_review=True,
-        back_url=url_for("head_dashboard"),
-        back_label="Dashboard",
+        back_url=url_for("head_sections"),
+        back_label="รายวิชา",
     )
 
 
@@ -4756,24 +4826,24 @@ def assign_instructor(section_id):
     course = Course.get(section.course_id)
     if not course or not course.program_id or (course.program_id not in program_ids):
         flash("คุณไม่มีสิทธิ์มอบหมายผู้สอนให้รายวิชานี้", "danger")
-        return _safe_redirect_next("head_dashboard")
+        return _safe_redirect_next("head_sections")
 
     instructor_id_raw = (request.form.get("instructor_id") or "").strip()
     if not instructor_id_raw:
         section.instructor_id = None
         section.save()
         flash("ยกเลิกการมอบหมายผู้สอนแล้ว", "info")
-        return _safe_redirect_next("head_dashboard")
+        return _safe_redirect_next("head_sections")
 
     instructor = User.get(instructor_id_raw)
     if not instructor:
         flash("ไม่พบข้อมูลอาจารย์ผู้สอน", "danger")
-        return _safe_redirect_next("head_dashboard")
+        return _safe_redirect_next("head_sections")
 
     section.instructor_id = instructor_id_raw
     section.save()
     flash("มอบหมายผู้สอนเรียบร้อย", "success")
-    return _safe_redirect_next("head_dashboard")
+    return _safe_redirect_next("head_sections")
 
 
 @app.route("/academic/section/<section_id>/assign-instructor", methods=["POST"])
@@ -4825,7 +4895,7 @@ def assign_instructors_bulk():
         saved += 1
 
     flash(f"บันทึกการมอบหมายผู้สอน {saved} รายวิชาเรียบร้อย", "success")
-    return _safe_redirect_next("head_dashboard")
+    return _safe_redirect_next("head_sections")
 
 
 @app.route("/academic/term/<term_id>/toggle-open-tqf3", methods=["POST"])

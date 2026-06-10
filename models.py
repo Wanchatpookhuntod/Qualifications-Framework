@@ -355,6 +355,9 @@ class CourseCLO(FirestoreModel):
     collection_name: ClassVar[str] = "course_clos"
 
     course_id: Optional[str] = None
+    # หลักสูตร (และปี) ที่ CLO นี้สังกัด — ซ้ำกับ course.program_id เพื่อให้ query
+    # ตามหลักสูตรได้ตรง ๆ และตรวจสอบความสอดคล้องเมื่อรายวิชารหัสเดียวกันมีหลายปีหลักสูตร
+    program_id: Optional[str] = None
     code: str = ""
     description: str = ""
     plo_codes: str = ""
@@ -364,6 +367,7 @@ class CourseCLO(FirestoreModel):
     def to_dict(self) -> Dict[str, Any]:
         return {
             "course_id": self.course_id,
+            "program_id": self.program_id,
             "code": self.code,
             "description": self.description,
             "plo_codes": self.plo_codes,
@@ -384,6 +388,7 @@ class CourseCLO(FirestoreModel):
         return cls(
             id=doc_id,
             course_id=data.get("course_id"),
+            program_id=data.get("program_id"),
             code=(data.get("code") or ""),
             description=(data.get("description") or ""),
             plo_codes=(data.get("plo_codes") or ""),
@@ -394,6 +399,10 @@ class CourseCLO(FirestoreModel):
     @property
     def course(self) -> Optional["Course"]:
         return Course.get(self.course_id) if self.course_id else None
+
+    @property
+    def program(self) -> Optional["Program"]:
+        return Program.get(self.program_id) if self.program_id else None
 
 
 @dataclass

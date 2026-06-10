@@ -5,6 +5,21 @@
 {% block head %}
 <script>
 var PCT_NAMES = ['pct_lecture','pct_discussion','pct_case','pct_practice','pct_group','pct_other'];
+function renderPctSum(s) {
+    var filled = document.getElementById('pct-filled');
+    var remain = document.getElementById('pct-remain');
+    var bar    = document.getElementById('pct-bar');
+    var color  = s > 100 ? '#f87171' : s === 100 ? '#34d399' : '#fbbf24';
+    if (filled) filled.textContent = s;
+    if (bar) { bar.style.width = Math.min(s, 100) + '%'; bar.style.background = color; }
+    if (remain) {
+        remain.style.color = color;
+        if (s === 100)    { remain.textContent = '✓ ครบ 100%'; }
+        else if (s > 100) { remain.textContent = 'เกิน ' + (Math.round((s-100)*10)/10) + '%'; }
+        else if (s > 0)   { remain.textContent = 'เหลืออีก ' + (Math.round((100-s)*10)/10) + '%'; }
+        else              { remain.textContent = ''; }
+    }
+}
 function updatePctSum(el) {
     var othersSum = 0;
     PCT_NAMES.forEach(function(n) {
@@ -17,19 +32,16 @@ function updatePctSum(el) {
     var v = parseFloat(el.value);
     if (!isNaN(v) && v > max) { el.value = max; v = max; }
     var s = othersSum + (isNaN(v) ? 0 : v);
-    s = Math.round(s * 10) / 10;
-    var filled = document.getElementById('pct-filled');
-    var remain = document.getElementById('pct-remain');
-    var bar    = document.getElementById('pct-bar');
-    if (filled) filled.textContent = s;
-    if (bar) { bar.style.width = Math.min(s,100)+'%'; bar.style.background = s>100?'#f87171':s===100?'#34d399':'#fbbf24'; }
-    if (remain) {
-        if (s===100)    { remain.textContent='✓ ครบ 100%';           remain.style.color='#34d399'; }
-        else if (s>100) { remain.textContent='เกิน '+(Math.round((s-100)*10)/10)+'%'; remain.style.color='#f87171'; }
-        else if (s>0)   { remain.textContent='เหลืออีก '+(Math.round((100-s)*10)/10)+'%'; remain.style.color='#fbbf24'; }
-        else            { remain.textContent=''; }
-    }
+    renderPctSum(Math.round(s * 10) / 10);
 }
+document.addEventListener('DOMContentLoaded', function () {
+    var s = 0;
+    PCT_NAMES.forEach(function(n) {
+        var f = document.querySelector('[name="'+n+'"]');
+        s += f ? (parseFloat(f.value) || 0) : 0;
+    });
+    renderPctSum(Math.round(s * 10) / 10);
+});
 </script>
 {% endblock %}
 
@@ -372,16 +384,13 @@ function updatePctSum(el) {
                 {% set _pns.s = _pns.s + (general.get(_pf, 0) | string | replace(' ','') | int(0)) %}
             {% endfor %}
             {% set _pct_init = _pns.s %}
-            {% if _pct_init > 100 %}{% set _pct_bar_color = '#f87171' %}
-            {% elif _pct_init == 100 %}{% set _pct_bar_color = '#34d399' %}
-            {% else %}{% set _pct_bar_color = '#fbbf24' %}{% endif %}
-            <div class=”mt-2” id=”pct-sum-box” style=”border-radius:0.5rem; padding:0.65rem 0.9rem; background:rgba(255,255,255,0.06); font-size:0.88rem;”>
-                <div style=”display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;”>
-                    <span>กรอกแล้ว <strong id=”pct-filled”>{{ _pct_init }}</strong>% จาก 100%</span>
-                    <span id=”pct-remain” style=”font-weight:600;”>{% if _pct_init == 100 %}✓ ครบ 100%{% elif _pct_init > 100 %}เกิน {{ _pct_init - 100 }}%{% elif _pct_init > 0 %}เหลืออีก {{ 100 - _pct_init }}%{% endif %}</span>
+            <div class="mt-2" id="pct-sum-box" style="border-radius:0.5rem; padding:0.65rem 0.9rem; background:rgba(255,255,255,0.06); font-size:0.88rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <span>กรอกแล้ว <strong id="pct-filled">{{ _pct_init }}</strong>% จาก 100%</span>
+                    <span id="pct-remain" style="font-weight:600;">{% if _pct_init == 100 %}✓ ครบ 100%{% elif _pct_init > 100 %}เกิน {{ _pct_init - 100 }}%{% elif _pct_init > 0 %}เหลืออีก {{ 100 - _pct_init }}%{% endif %}</span>
                 </div>
-                <div style=”height: 8px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden;”>
-                    <div id=”pct-bar” style=”height:100%; width:{{ [_pct_init, 100]|min }}%; border-radius:4px; background:{{ _pct_bar_color }}; transition:width 0.2s,background 0.2s;”></div>
+                <div style="height: 8px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden;">
+                    <div id="pct-bar" style="height:100%; width:0%; border-radius:4px; background:#fbbf24; transition:width 0.2s, background 0.2s;"></div>
                 </div>
             </div>
         </div>
@@ -1054,7 +1063,9 @@ const QTFRows = (function () {
             checkMap[code] = line;
         });
         ordered.sort((a, b) => (parseInt(a.replace(/\D/g,'')) || 0) - (parseInt(b.replace(/\D/g,'')) || 0));
-        const lines = ordered.map(code => checkMap[code] || code);
+        // Only codes defined in the program's PLO set — leave blank otherwise.
+        const lines = ordered.filter(code => checkMap[code]).map(code => checkMap[code]);
+        if (!lines.length) return;
         setItems(lines);
     }
     document.addEventListener('DOMContentLoaded', autoSyncPlosFromClos);

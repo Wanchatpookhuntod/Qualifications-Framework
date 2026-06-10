@@ -832,6 +832,16 @@ def _plos_for_section(section: Section) -> list:
         return []
 
 
+# Keywords that mark a course as a *preparation* course (เตรียมฝึก) — these are
+# classroom courses and must use มคอ.3 even though their names contain
+# field-experience keywords (e.g. "เตรียมฝึกสหกิจศึกษา...").
+_PREPARATION_KEYWORDS = (
+    "เตรียมฝึก",
+    "เตรียมสหกิจ",
+    "เตรียมความพร้อม",
+    "preparation",
+)
+
 # Keywords that mark a course as a field-experience course (มคอ.4 instead of มคอ.3).
 _FIELD_EXPERIENCE_KEYWORDS = (
     "ฝึกประสบการณ์",
@@ -866,6 +876,11 @@ def is_field_experience_course(course) -> bool:
             haystacks.append(str(value).lower().replace(" ", ""))
     if not haystacks:
         return False
+    # Preparation courses (เตรียมฝึก ฯลฯ) are classroom courses → always มคอ.3.
+    for keyword in _PREPARATION_KEYWORDS:
+        needle = keyword.lower().replace(" ", "")
+        if any(needle in hay for hay in haystacks):
+            return False
     for keyword in _FIELD_EXPERIENCE_KEYWORDS:
         needle = keyword.lower().replace(" ", "")
         if any(needle in hay for hay in haystacks):
@@ -1608,47 +1623,25 @@ def edit_tqf3(section_id):
         # CLO mapping table
         _has_clo_content = any(t.strip() for t in _as_list(gi.get("clo_text[]", [])))
         if "clo_text[]" not in gi or not _has_clo_content:
-            if "clo_desc[]" in gi:
-                gi["clo_text[]"] = _as_list(gi.get("clo_desc[]"))
-            elif "clo_code[]" in gi:
-                gi["clo_text[]"] = [""] * len(_as_list(gi.get("clo_code[]")))
+            _legacy_desc = _as_list(gi.get("clo_desc[]"))
+            if any(str(t).strip() for t in _legacy_desc):
+                gi["clo_text[]"] = _legacy_desc
             else:
-                # Prefill from head-defined CourseCLOs if available and TQF3 is new.
+                # Prefill from head-defined CourseCLOs whenever the CLO table is
+                # still effectively empty. Blank legacy clo_desc[]/clo_code[]
+                # rows (backfilled on every save) must not block this.
                 course_clos = CourseCLO.find_by("course_id", section.course_id) if section.course_id else []
                 course_clos.sort(key=lambda c: (c.order if c.order is not None else 999))
+                if not course_clos and "clo_code[]" in gi:
+                    gi["clo_text[]"] = [""] * len(_as_list(gi.get("clo_code[]")))
                 if course_clos:
                     gi["clo_text[]"] = [c.description for c in course_clos]
                     gi["clo_plo[]"] = [c.plo_codes for c in course_clos]
                     gi["plo[]"] = gi["clo_plo[]"]
                     # Also populate the objectives list (shown in the CLO display section)
-                    if not any(s.strip() for s in gi.get("course_objective", "").split("\n")):
+                    if not any(s.strip() for s in (gi.get("course_objective") or "").split("\n")):
                         gi["course_objective"] = "\n".join(c.description for c in course_clos)
                         gi["objectives"] = gi["course_objective"]
-                    # Auto-populate top PLO section from CLO-PLO codes (first open only)
-                    if not gi.get("plos"):
-                        all_codes: set = set()
-                        for plo_str in gi["clo_plo[]"]:
-                            for code in (plo_str or "").split(","):
-                                code = code.strip()
-                                if code:
-                                    all_codes.add(code)
-                        if all_codes:
-                            prog_plos = _plos_for_section(section)
-                            plo_map = {p.code: p for p in prog_plos}
-                            sorted_codes = sorted(
-                                all_codes,
-                                key=lambda c: _parse_plo_number(c) or 999,
-                            )
-                            plo_lines = []
-                            for code in sorted_codes:
-                                p = plo_map.get(code)
-                                if p and p.description:
-                                    plo_lines.append(f"{p.code} — {p.description}")
-                                elif p:
-                                    plo_lines.append(p.code)
-                                else:
-                                    plo_lines.append(code)
-                            gi["plos"] = "\n".join(plo_lines)
         # If course_objective is still empty but clo_text[] now has content, sync them.
         _has_objective = any(s.strip() for s in (gi.get("course_objective") or "").split("\n"))
         if not _has_objective:
@@ -1669,6 +1662,37 @@ def edit_tqf3(section_id):
             gi["clo_plo[]"] = _as_list(gi.get("plo[]"))
         if "plo[]" not in gi and "clo_plo[]" in gi:
             gi["plo[]"] = _as_list(gi.get("clo_plo[]"))
+
+        # Auto-populate the top "PLOs ที่เกี่ยวข้องกับรายวิชา" section whenever it
+        # is still empty — even when the CLO table already has saved content.
+        # Codes come from the per-CLO mapping, falling back to head-defined
+        # CourseCLOs, and are rendered with the program's PLO descriptions.
+        if not str(gi.get("plos") or "").strip():
+            all_codes: set = set()
+            for plo_str in _as_list(gi.get("clo_plo[]")):
+                for code in (plo_str or "").split(","):
+                    code = code.strip()
+                    if code:
+                        all_codes.add(code)
+            if not all_codes and section.course_id:
+                for c in CourseCLO.find_by("course_id", section.course_id):
+                    for code in (c.plo_codes or "").split(","):
+                        code = code.strip()
+                        if code:
+                            all_codes.add(code)
+            if all_codes:
+                # Only codes defined in the program's PLO set; CLOs without a
+                # (valid) PLO mapping contribute nothing — the section stays
+                # blank instead of showing bare codes.
+                plo_map = {p.code: p for p in _plos_for_section(section)}
+                plo_lines = []
+                for code in sorted(all_codes, key=lambda c: _parse_plo_number(c) or 999):
+                    p = plo_map.get(code)
+                    if not p:
+                        continue
+                    plo_lines.append(f"{p.code} — {p.description}" if p.description else p.code)
+                if plo_lines:
+                    gi["plos"] = "\n".join(plo_lines)
         clo_n = max(
             len(_as_list(gi.get("clo_text[]"))),
             len(_as_list(gi.get("clo_plo[]"))),
@@ -2002,6 +2026,46 @@ def edit_tqf4(section_id):
             gi.pop(scalar, None)
         if getattr(current_user, "full_name", None) and not _as_list(gi.get("advisor[]")):
             gi["advisor[]"] = [current_user.full_name]
+
+        # Prefill CLO table from head-defined CourseCLOs while it is still empty
+        # (same behaviour as มคอ.3).
+        if not any(str(t).strip() for t in _as_list(gi.get("clo_text[]"))):
+            course_clos = CourseCLO.find_by("course_id", section.course_id) if section.course_id else []
+            course_clos.sort(key=lambda c: (c.order if c.order is not None else 999))
+            if course_clos:
+                gi["clo_text[]"] = [c.description for c in course_clos]
+                gi["clo_plo[]"] = [c.plo_codes for c in course_clos]
+                if not any(s.strip() for s in (gi.get("course_objective") or "").split("\n")):
+                    gi["course_objective"] = "\n".join(c.description for c in course_clos)
+
+        # Auto-populate the top PLO section whenever it is still empty — even when
+        # the CLO table already has saved content (same behaviour as มคอ.3).
+        if not str(gi.get("plos") or "").strip():
+            all_codes: set = set()
+            for plo_str in _as_list(gi.get("clo_plo[]")):
+                for code in (plo_str or "").split(","):
+                    code = code.strip()
+                    if code:
+                        all_codes.add(code)
+            if not all_codes and section.course_id:
+                for c in CourseCLO.find_by("course_id", section.course_id):
+                    for code in (c.plo_codes or "").split(","):
+                        code = code.strip()
+                        if code:
+                            all_codes.add(code)
+            if all_codes:
+                # Only codes defined in the program's PLO set; CLOs without a
+                # (valid) PLO mapping contribute nothing — the section stays
+                # blank instead of showing bare codes.
+                plo_map = {p.code: p for p in _plos_for_section(section)}
+                plo_lines = []
+                for code in sorted(all_codes, key=lambda c: _parse_plo_number(c) or 999):
+                    p = plo_map.get(code)
+                    if not p:
+                        continue
+                    plo_lines.append(f"{p.code} — {p.description}" if p.description else p.code)
+                if plo_lines:
+                    gi["plos"] = "\n".join(plo_lines)
 
         # Pad row tables to equal lengths (>=1) so the editor renders cleanly.
         table_groups = [
@@ -2921,7 +2985,8 @@ def head_manage_course_clos():
     if not programs:
         flash("ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ", "warning")
         return render_template("head/course_clos.html", programs=[], selected_program=None,
-                               courses=[], selected_course=None, clos=[], plos=[])
+                               courses=[], selected_course=None, clos=[], plos=[],
+                               course_clo_counts={})
 
     selected_program_id = request.args.get("program_id") or (programs[0].id if programs else None)
     if selected_program_id not in program_by_id:
@@ -2938,6 +3003,13 @@ def head_manage_course_clos():
     selected_course = course_by_id.get(selected_course_id)
 
     clos = selected_course.clos if selected_course else []
+
+    # นับจำนวน CLO ของแต่ละรายวิชา เพื่อแสดง badge ในรายการวิชา
+    program_clos = CourseCLO.find_by("program_id", selected_program_id) if selected_program_id else []
+    course_clo_counts: dict = {}
+    for clo in program_clos:
+        if clo.course_id:
+            course_clo_counts[clo.course_id] = course_clo_counts.get(clo.course_id, 0) + 1
 
     next_number = 1
     for clo in clos:
@@ -2957,6 +3029,7 @@ def head_manage_course_clos():
         clos=clos,
         plos=plos,
         next_number=next_number,
+        course_clo_counts=course_clo_counts,
     )
 
 
@@ -2997,6 +3070,7 @@ def head_add_course_clo(course_id):
 
     CourseCLO(
         course_id=course_id,
+        program_id=course.program_id,
         code=f"CLO{number}",
         description=description,
         plo_codes=plo_codes,

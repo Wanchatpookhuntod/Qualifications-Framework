@@ -150,8 +150,19 @@ def test_is_field_experience_course_detection():
     field = SimpleNamespace(name_th="การฝึกประสบการณ์วิชาชีพครู", name_en="", code="ED401")
     coop = SimpleNamespace(name_th="", name_en="Cooperative Education", code="CS490")
     normal = SimpleNamespace(name_th="การเขียนโปรแกรม", name_en="Programming", code="CS101")
+    prep = SimpleNamespace(
+        name_th="เตรียมฝึกสหกิจศึกษาทางเทคโนโลยีมัลติมีเดีย",
+        name_en="Preparation for Co-operation Education in Multimedia Technology",
+        code="วท 6004447",
+    )
+    prep_field = SimpleNamespace(
+        name_th="การเตรียมฝึกประสบการณ์วิชาชีพ", name_en="", code="GE301"
+    )
 
     assert is_field_experience_course(field) is True
     assert is_field_experience_course(coop) is True
     assert is_field_experience_course(normal) is False
     assert is_field_experience_course(None) is False
+    # เตรียมฝึก (preparation) courses are classroom courses → มคอ.3, not มคอ.4.
+    assert is_field_experience_course(prep) is False
+    assert is_field_experience_course(prep_field) is False

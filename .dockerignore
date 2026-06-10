@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# Credentials & secrets
+.env
+.env.*
+instance/
+qualificationsframework-*.json
+
+# Python cache & venv
+__pycache__
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Dev/test only
+test/
+sample_uploads/
+cookies.txt
+
+# Docs / CI (not needed at runtime)
+README.md
+CLAUDE.md
+DESIGN_SYSTEM.md
+AGENTS.md
+flow.md
+demo.txt
+er_diagram.html
+deploy.sh
+restart_server.command
+check_program.py
+clean_db.py
+purge_curriculum_uploads.py
+seed_data.py
+seed_multimedia.py
+verify_seed.py

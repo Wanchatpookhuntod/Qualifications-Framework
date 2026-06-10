@@ -1,97 +1,147 @@
 {% extends "base.html" %}
 
-{% block title %}ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}{% endblock %}
+{% set doc_label = {'tqf3': '3', 'tqf4': '4', 'tqf5': '5'}.get(tqf_type, '5') %}
+{% block title %}ตรวจสอบ มคอ.{{ doc_label }}{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: start;">
+<div class="page-header">
     <div>
-        <a href="{{ url_for('head_dashboard') }}" style="color: var(--primary-color); font-size: 0.875rem;">← กลับไปที่
-            Dashboard</a>
-        <h2 style="margin-top: 1rem;">ตรวจสอบ มคอ.{{ '3' if tqf_type == 'tqf3' else '5' }}: {{ tqf.section.course.code
-            }} {{ tqf.section.course.name_th }}</h2>
-        <p style="color: var(--text-muted);">อาจารย์ผู้สอน: {{ tqf.section.instructor.full_name }} | Section: {{
-            tqf.section.section_number }}</p>
+
+        
+        <nav class="breadcrumb">
+            <a href="{{ back_url}}">ย้อนกลับ </a>
+        </nav>
+        
+        
+        
+        <h2>ตรวจสอบ มคอ.{{ doc_label }}:
+            {% if tqf.section and tqf.section.course %}
+            {{ tqf.section.course.code }} {{ tqf.section.course.name_th | thai_wrap }}
+            {% else %}
+            (ไม่พบข้อมูลรายวิชา)
+            {% endif %}
+        </h2>
+        <p class="text-muted">
+            อาจารย์ผู้สอน:
+            {% if tqf.section and tqf.section.instructor %}
+            {{ tqf.section.instructor.full_name }}
+            {% else %}
+            (ยังไม่มอบหมาย)
+            {% endif %}
+            | Section: {{ tqf.section.section_number if tqf.section else '-' }}
+        </p>
     </div>
-    <div style="text-align: right;">
-        <span class="status-badge" style="
-            {% if tqf.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-            {% elif tqf.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-            {% elif tqf.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-            {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-        ">สถานะปัจจุบัน: {{ tqf.status }}</span>
+    <div>
+        <span class="status-badge {% if tqf.status == 'APPROVED' %}status-approved{% elif tqf.status == 'SUBMITTED' %}status-submitted{% elif tqf.status == 'RETURNED' %}status-returned{% else %}role-instructor{% endif %}">สถานะปัจจุบัน: {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf.status, tqf.status) }}</span>
+        {% if tqf.section %}
+        <div class="flex-center-gap mt-2">
+            <a class="btn btn-secondary btn-compact" href="{{ url_for('export_' ~ tqf_type ~ '_word', section_id=tqf.section.id) }}">
+                ดาวน์โหลด Word
+            </a>
+            <a class="btn btn-secondary btn-compact" href="{{ url_for('export_' ~ tqf_type ~ '_pdf', section_id=tqf.section.id) }}" target="_blank" rel="noopener">
+                บันทึก PDF
+            </a>
+        </div>
+        {% endif %}
     </div>
 </div>
 
-<div class="card-grid" style="grid-template-columns: 2fr 1fr; gap: 2rem;">
-    <!-- Content Preview -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);">ข้อมูลที่ส่ง (Preview)</h3>
-        <div
-            style="background: rgba(255,255,255,0.02); padding: 1.5rem; border-radius: 1rem; border: 1px dashed var(--border-color);">
-            {% if tqf_type == 'tqf3' %}
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📝
-                    จุดมุ่งหมายและวัตถุประสงค์</h4>
-                <p style="white-space: pre-wrap;">{{ tqf.general_info.get('objectives', 'ไม่ได้ระบุ') }}</p>
-            </div>
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📖 คำอธิบายรายวิชา
-                </h4>
-                <p style="white-space: pre-wrap;">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
-            </div>
-            <div>
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📊 จำนวน CLO ที่ระบุ
-                </h4>
-                <p>{{ tqf.general_info.get('clo_code[]', [])|length }} รายการ</p>
-            </div>
-            {% else %}
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">📉 สรุปจำนวนผู้เรียน
-                </h4>
-                <p>ลงทะเบียน: {{ tqf.actual_teaching.get('students_enrolled', '0') }} | จบ: {{
-                    tqf.actual_teaching.get('students_finished', '0') }} | ถอน: {{
-                    tqf.actual_teaching.get('students_withdrawn', '0') }}</p>
-            </div>
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">⚠️
-                    ปัญหาที่พบและการแก้ไข</h4>
-                <p style="white-space: pre-wrap;">{{ tqf.actual_teaching.get('problems_fixed', 'ไม่มีระบุ') }}</p>
-            </div>
-            <div style="margin-bottom: 1.5rem;">
-                <h4 style="color: var(--text-muted); font-size: 0.875rem; margin-bottom: 0.5rem;">🔍 ผลการทวนสอบ</h4>
-                <p style="white-space: pre-wrap;">{{ tqf.actual_teaching.get('verification_method', 'ไม่มีระบุ') }}</p>
-            </div>
-            {% endif %}
+{% if can_review %}
+<div class="glass glass-card-sm mb-4">
+    <div class="fw-bold mb-1">ตรวจสอบเอกสาร</div>
+    <form method="POST">
+        <div class="form-group mb-3">
+            <label class="text-muted text-xs">ความคิดเห็น / เหตุผล (ถ้ามี)</label>
+            <textarea name="comment" class="form-control" rows="3" placeholder="ระบุความคิดเห็น..."></textarea>
+        </div>
+        <div class="flex-between">
+            <span style="width: 70%;"></span>
+            <button style="width: 15%;" type="submit" name="action" value="return" class="btn btn-outline-danger">ส่งคืน</button>
+            <button style="width: 15%;" type="submit" name="action" value="approve" class="btn btn-primary">อนุมัติ</button>
+        </div>
+    </form>
+</div>
+{% endif %}
 
-            <div
-                style="margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border-color); text-align: center;">
-                <p style="color: var(--text-muted); font-size: 0.8125rem;">*
-                    สามารถดูข้อมูลฉบับเต็มได้ในขั้นตอนถัดไปในระบบจัดการเอกสาร</p>
-            </div>
+{% if not can_review %}
+<div class="glass glass-card-sm mb-4">
+    <div class="flex-between flex-wrap">
+        <div>
+            <div class="fw-bold">สถานะเอกสาร</div>
+            <div class="text-muted text-xs">ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</div>
+        </div>
+        <span class="status-badge {% if tqf.status == 'APPROVED' %}status-approved{% elif tqf.status == 'SUBMITTED' %}status-submitted{% elif tqf.status == 'RETURNED' %}status-returned{% else %}role-instructor{% endif %}">
+            {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf.status, tqf.status) }}
+        </span>
+    </div>
+</div>
+{% endif %}
+
+<div class="glass panel">
+    <h3 class="panel-title text-primary">ข้อมูลที่ส่ง (Preview)</h3>
+    <div class="panel-dashed">
+        {% if tqf_type == 'tqf3' %}
+        <div class="preview-block">
+            <h4 class="preview-label">จุดมุ่งหมายและวัตถุประสงค์</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('objectives', 'ไม่ได้ระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">คำอธิบายรายวิชา</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">จำนวน CLO ที่ระบุ</h4>
+            <p>{{ tqf.general_info.get('clo_text[]', tqf.general_info.get('clo_code[]', []))|length }} รายการ</p>
+        </div>
+        {% elif tqf_type == 'tqf4' %}
+        <div class="preview-block">
+            <h4 class="preview-label">จุดประสงค์การจัดการเรียนรู้ของการฝึก</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('field_objective', tqf.general_info.get('objectives', 'ไม่ได้ระบุ')) }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">คำอธิบายรายวิชา</h4>
+            <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">จำนวน CLO ที่ระบุ</h4>
+            <p>{{ tqf.general_info.get('clo_text[]', [])|length }} รายการ</p>
+        </div>
+        {% else %}
+        <div class="preview-block">
+            <h4 class="preview-label">สรุปจำนวนผู้เรียน</h4>
+            <p>ลงทะเบียน: {{ tqf.actual_teaching.get('students_enrolled', '0') }} | จบ: {{
+                tqf.actual_teaching.get('students_finished', '0') }} | ถอน: {{
+                tqf.actual_teaching.get('students_withdrawn', '0') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">ปัญหาที่พบและการแก้ไข</h4>
+            <p class="preserve-text">{{ tqf.actual_teaching.get('problems_fixed', 'ไม่มีระบุ') }}</p>
+        </div>
+        <div class="preview-block">
+            <h4 class="preview-label">ผลการทวนสอบ</h4>
+            <p class="preserve-text">{{ tqf.actual_teaching.get('verification_method', 'ไม่มีระบุ') }}</p>
+        </div>
+        {% endif %}
+
+        <div class="form-footnote text-xs">
+            * ดูข้อมูลฉบับเต็ม (ตามฟอร์ม) ด้านล่าง
         </div>
     </div>
 
-    <!-- Review Form -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem; height: fit-content; position: sticky; top: 2rem;">
-        <h3 style="margin-bottom: 1.5rem; color: var(--accent-warning);">ดำเนินการ Step E</h3>
-        <form method="POST">
-            <div class="form-group">
-                <label for="comment">ข้อเสนอแนะสำหรับการรับรอง / เหตุผลในการตีกลับ</label>
-                <textarea name="comment" id="comment" class="form-control" rows="8"
-                    placeholder="เช่น 'ข้อมูลครบถ้วน' หรือ 'กรุณาปรับปรุงหัวข้อ CLO'" required></textarea>
-            </div>
-
-            <div style="display: grid; gap: 1rem; margin-top: 1.5rem;">
-                <button type="submit" name="action" value="approve" class="btn btn-primary"
-                    style="background: var(--accent-success); border-color: var(--accent-success); padding: 1rem;">
-                    ✅ อนุมัติและรับรอง (Approve)
-                </button>
-                <button type="submit" name="action" value="reject" class="btn glass"
-                    style="border-color: var(--accent-danger); color: var(--accent-danger); padding: 1rem;">
-                    ↩️ ตีกลับเพื่อให้แก้ไข (Return)
-                </button>
-            </div>
-        </form>
+    <div class="mt-5">
+        {% if tqf_type == 'tqf3' %}
+            {% set section = tqf.section if tqf.section else None %}
+            {% set tqf3 = tqf %}
+            {% include 'shared/tqf3_readonly.html' %}
+        {% elif tqf_type == 'tqf4' %}
+            {% set section = tqf.section if tqf.section else None %}
+            {% set tqf4 = tqf %}
+            {% include 'shared/tqf4_readonly.html' %}
+        {% else %}
+            {% set section = tqf.section if tqf.section else None %}
+            {% set tqf5 = tqf %}
+            {% include 'shared/tqf5_readonly.html' %}
+        {% endif %}
     </div>
 </div>
 {% endblock %}

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>ER Diagram — TQF System</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 {
+      text-align: center;
+      color: #1e3a5f;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .diagram-wrapper {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+      padding: 32px;
+      overflow: auto;
+    }
+    .mermaid {
+      display: flex;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <h1>ER Diagram — ระบบ TQF (มคอ.)</h1>
+  <div class="diagram-wrapper">
+    <div class="mermaid">
+erDiagram
+    Faculty {
+        string id PK
+        string name
+    }
+    Department {
+        string id PK
+        string name
+        string faculty_id FK
+    }
+    Program {
+        string id PK
+        string name
+        string department_id FK
+        string faculty_id FK
+        int year
+    }
+    Course {
+        string id PK
+        string code
+        string name_th
+        string name_en
+        string credits
+        string program_id FK
+    }
+    Term {
+        string id PK
+        int year
+        int semester
+        bool is_open_tqf3
+        bool is_open_tqf5
+    }
+    TermProgram {
+        string id PK
+        string term_id FK
+        string program_id FK
+        datetime created_at
+    }
+    Section {
+        string id PK
+        string course_id FK
+        string term_id FK
+        string instructor_id FK
+        string section_number
+        string status
+    }
+    TQF3 {
+        string id PK
+        string section_id FK
+        string status
+        datetime submitted_at
+        object general_info
+        object clo_plo_mapping
+        object teaching_plan
+        object evaluation_plan
+    }
+    TQF5 {
+        string id PK
+        string section_id FK
+        string tqf3_id FK
+        string status
+        datetime submitted_at
+        object actual_teaching
+        object grade_distribution
+        object improvements
+        object verification_result
+    }
+    HeadTQF5Summary {
+        string id PK
+        string term_id FK
+        string scope_type
+        string scope_id
+        string head_id FK
+        string status
+        list source_tqf5_ids
+        object summary_data
+    }
+    Feedback {
+        string id PK
+        string tqf_type
+        string tqf_id
+        string reviewer_id FK
+        string comment
+        datetime created_at
+    }
+    CurriculumUpload {
+        string id PK
+        string source_filename
+        int revision_year
+        string program_id FK
+        string uploaded_by FK
+        datetime uploaded_at
+    }
+    User {
+        string id PK
+        string username
+        string full_name
+        list roles
+        string faculty_id FK
+        string department_id FK
+        string program_id FK
+    }
+
+    Faculty ||--o{ Department : "has"
+    Department ||--o{ Program : "has"
+    Faculty ||--o{ Program : "direct link"
+    Program ||--o{ Course : "has"
+    Term ||--o{ TermProgram : "links"
+    Program ||--o{ TermProgram : "links"
+    Course ||--o{ Section : "has"
+    Term ||--o{ Section : "in"
+    User ||--o{ Section : "teaches"
+    Section ||--o| TQF3 : "has"
+    Section ||--o| TQF5 : "has"
+    TQF3 ||--o| TQF5 : "references"
+    Term ||--o{ HeadTQF5Summary : "has"
+    User ||--o{ HeadTQF5Summary : "created by"
+    User ||--o{ Feedback : "writes"
+    Program ||--o{ CurriculumUpload : "linked to"
+    User ||--o{ CurriculumUpload : "uploaded by"
+    Faculty ||--o{ User : "belongs to"
+    Department ||--o{ User : "belongs to"
+    Program ||--o{ User : "belongs to"
+    </div>
+  </div>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'default',
+      er: {
+        diagramPadding: 30,
+        useMaxWidth: true,
+      },
+      themeVariables: {
+        primaryColor: '#dbeafe',
+        primaryTextColor: '#1e3a5f',
+        primaryBorderColor: '#3b82f6',
+        lineColor: '#6b7280',
+        secondaryColor: '#f0fdf4',
+        tertiaryColor: '#fff7ed',
+      }
+    });
+  </script>
+</body>
+</html>

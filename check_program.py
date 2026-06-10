@@ -1,21 +1,28 @@
-from app import app, db
-from models import Program, Course, User, Section
+from __future__ import annotations
 
-with app.app_context():
-    p = Program.query.filter_by(name='Computer Science').first()
+from models import Course, Program, Section, User
+
+
+def main() -> None:
+    programs = Program.find_by("name", "Computer Science")
+    p = programs[0] if programs else None
     if not p:
         print("Program 'Computer Science' not found.")
-    else:
-        print(f"Program: {p.name} (ID: {p.id})")
-        courses = Course.query.filter_by(program_id=p.id).all()
-        print(f"Associated Courses: {len(courses)}")
-        users = User.query.filter_by(program_id=p.id).all()
-        print(f"Associated Users: {len(users)}")
-        
-        # Check if any course in this program has sections
-        has_sections = False
-        for c in courses:
-            if Section.query.filter_by(course_id=c.id).first():
-                has_sections = True
-                break
-        print(f"Has Sections (Open Courses): {has_sections}")
+        return
+
+    print(f"Program: {p.name} (ID: {p.id})")
+    courses = Course.find_by("program_id", p.id)
+    users = User.find_by("program_id", p.id)
+    print(f"Associated Courses: {len(courses)}")
+    print(f"Associated Users: {len(users)}")
+
+    has_sections = False
+    for c in courses:
+        if Section.find_by("course_id", c.id):
+            has_sections = True
+            break
+    print(f"Has Sections (Open Courses): {has_sections}")
+
+
+if __name__ == "__main__":
+    main()

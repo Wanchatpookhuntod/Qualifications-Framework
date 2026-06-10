@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}รายการ มคอ. ของเทอม {{ term.semester }}/{{ term.year }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('academic_dashboard') }}">Dashboard ฝ่ายวิชาการ</a> /
+            <span class="text-muted">รายการ มคอ. ของเทอม {{ term.semester }}/{{ term.year }}</span>
+        </nav>
+        <h2>รวม มคอ. ตามเทอม</h2>
+        <p class="text-muted mb-0">เทอม {{ term.semester }}/{{ term.year }} — ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</p>
+    </div>
+</div>
+
+<div class="glass glass-card-sm mb-5">
+    <div class="flex-between flex-wrap mb-2">
+        <div>
+            <div class="fw-bold">สรุป มคอ.5 จากหัวหน้าสาขา</div>
+            <div class="text-muted text-xs">เอกสารสรุปรวมที่หัวหน้าส่งต่อให้ฝ่ายวิชาการ</div>
+        </div>
+        <span class="status-badge role-instructor">จำนวน {{ submitted_head_summaries|length }} ฉบับ</span>
+    </div>
+    <div class="grid-gap-sm">
+        {% for row in submitted_head_summaries %}
+        <div class="list-tile">
+            <div>
+                <div class="fw-bold">{{ (row.summary_data or {}).get('scope_label', 'สรุป มคอ.5') }}</div>
+                <div class="text-muted text-xs">
+                    {{ (row.summary_data or {}).get('program_names', '-') }}
+                    {% if row.submitted_at %} | ส่งเมื่อ {{ row.submitted_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
+                </div>
+            </div>
+            <a class="btn btn-secondary btn-compact" href="{{ url_for('academic_view_head_tqf5_summary', summary_id=row.id) }}">👁️ เปิดสรุป</a>
+        </div>
+        {% else %}
+        <div class="text-muted text-xs">ยังไม่มีหัวหน้าส่งสรุป มคอ.5 สำหรับเทอมนี้</div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Table of Sections and TQF statuses -->
+<div class="glass glass-card">
+
+    <div class="flex-between flex-wrap">
+        <div class="badge-list">
+            <span class="status-badge role-instructor">ทั้งหมด: {{ stats.total }}</span>
+            <span class="status-badge role-instructor">มคอ.3 ส่งแล้ว: {{ stats.tqf3_submitted }}</span>
+            <span class="status-badge role-instructor">มคอ.5 ส่งแล้ว: {{ stats.tqf5_submitted }}</span>
+        </div>
+        <form method="GET" action="{{ url_for('academic_term_documents', term_id=term.id) }}" class="filter-form">
+            <label class="text-muted text-xs mb-0">หลักสูตร</label>
+            <select name="program_id" class="form-control min-320" onchange="this.form.submit()">
+                <option value="" {% if not selected_program_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for p in programs %}
+                <option value="{{ p.id }}" {% if selected_program_id == p.id %}selected{% endif %}>
+                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+
+
+
+    <div class="table-wrapper mt-3">
+        <table class="data-table">
+            <colgroup>
+                <col style="width: 25%;">
+                <col style="width: 30%;">
+                <col style="width: 25%;">
+                <col style="width: 10%;">
+                <col style="width: 10%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th>หลักสูตร</th>
+                    <th>รายวิชา / กลุ่ม</th>
+                    <th>อาจารย์ผู้สอน</th>
+                    <th class="text-right">มคอ.3</th>
+                    <th class="text-right">มคอ.5</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr>
+                    <td class="table-t">
+                        {% if section.program %}
+                        <div class="text-table">{{ section.program.name | thai_wrap }}{% if section.program.year %} ({{ section.program.year }}){% endif %}</div>
+                        {% else %}
+                        <span class="text-muted text-xs">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="table-t">
+                        <div class="text-table">{{ section.course.code if section.course else '' }} {{ (section.course.name_th if section.course else '') | thai_wrap }}</div>
+                        <div class="text-muted text-xs">Section {{ section.section_number }}</div>
+                    </td>
+                    <td class="table-t">
+                        {% if section.instructor %}
+                        <div class="text-table">{{ section.instructor.full_name }}</div>
+                        {% else %}
+                        <span class="text-muted text-xs">ยังไม่มอบหมายผู้สอน</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right table-t">
+                        {% if section.tqf3 and section.tqf3.status == 'APPROVED' %}
+                        <a class="status-badge status-approved" href="{{ url_for('academic_view_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id, next=request.path) }}">อนุมัติแล้ว</a>
+                        {% else %}
+                        <span class="text-muted text-xs">-</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right table-t">
+                        {% if section.tqf5 and section.tqf5.status == 'APPROVED' %}
+                        <a class="status-badge status-approved" href="{{ url_for('academic_view_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id, next=request.path) }}">อนุมัติแล้ว</a>
+                        {% else %}
+                        <span class="text-muted text-xs">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="empty-state text-center text-muted">ยังไม่มีรายวิชาเปิดสอนในเทอมนี้</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

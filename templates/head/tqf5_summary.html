@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}สรุป มคอ.5{% endblock %}
+
+{% block content %}
+{% set summary_data = data or {} %}
+{% set hero_title = summary_data.get('report_title', 'สรุป มคอ.5') %}
+{% set hero_scope = summary_data.get('department_name') or summary_data.get('scope_label', '-') %}
+{% set hero_faculty = summary_data.get('faculty_name') %}
+{% set back_href = back_url or url_for('head_dashboard') %}
+
+{% macro render_table(title, subtitle, columns, rows, row_type='generic', editable=false, prefix='') %}
+<section class="summary-panel">
+    <div class="summary-panel-head">
+        <div>
+            <div class="summary-section-anchor">{{ title }}</div>
+            {% if subtitle %}<div class="summary-panel-subtitle">{{ subtitle }}</div>{% endif %}
+        </div>
+        <!-- <span class="summary-source-chip">ข้อมูลจากผู้สอน</span> -->
+    </div>
+    <div class="summary-panel-body">
+        <div class="summary-table-wrap">
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        {% for col in columns %}
+                        <th>{{ col }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if rows %}
+                        {% for row in rows %}
+                        <tr>
+                            {% if row_type == 'courses' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                <input type="hidden" name="{{ prefix }}_section_number[]" value="{{ row.section_number }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td>{{ row.section_number }}</td>
+                            <td>{% if editable %}<input class="form-control" name="{{ prefix }}_instructor_name[]" value="{{ row.instructor_name }}">{% else %}{{ row.instructor_name }}{% endif %}</td>
+                            {% set score_val = row.assessment_score or row.result_score %}
+                            <td>{% if editable %}<input class="form-control" name="{{ prefix }}_assessment_score[]" value="{{ score_val }}">{% else %}{{ score_val }}{% endif %}</td>
+                            {% elif row_type == 'uncovered' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                <input type="hidden" name="{{ prefix }}_section_number[]" value="{{ row.section_number }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td>{{ row.section_number }}</td>
+                            <td class="preserve-text">{% if editable %}<textarea class="form-control" name="{{ prefix }}_detail[]" rows="3">{{ row.detail }}</textarea>{% else %}{{ row.detail }}{% endif %}</td>
+                            {% elif row_type == 'detail3' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                {{ row.course_code }}
+                            </td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                {{ row.course_name }}
+                            </td>
+                            <td class="preserve-text">{% if editable %}<textarea class="form-control" name="{{ prefix }}_detail[]" rows="4">{{ row.detail }}</textarea>{% else %}{{ row.detail }}{% endif %}</td>
+                            {% elif row_type == 'issue' %}
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td class="preserve-text">{% if editable %}<textarea class="form-control" name="{{ prefix }}_issue[]" rows="3">{{ row.issue }}</textarea>{% else %}{{ row.issue }}{% endif %}</td>
+                            <td class="preserve-text">{% if editable %}<textarea class="form-control" name="{{ prefix }}_fix[]" rows="3">{{ row.fix or '' }}</textarea>{% else %}{{ row.fix or '-' }}{% endif %}</td>
+                            {% elif row_type == 'feedback' %}
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <input type="hidden" name="{{ prefix }}_section_id[]" value="{{ row.section_id or '' }}">
+                                <input type="hidden" name="{{ prefix }}_course_code[]" value="{{ row.course_code }}">
+                                <input type="hidden" name="{{ prefix }}_course_name[]" value="{{ row.course_name }}">
+                                {{ row.course_code }} {{ row.course_name }}
+                            </td>
+                            <td class="preserve-text">{% if editable %}<textarea class="form-control" name="{{ prefix }}_detail[]" rows="4">{{ row.detail }}</textarea>{% else %}{{ row.detail }}{% endif %}</td>
+                            {% else %}
+                            {% for col in columns %}
+                            <td class="preserve-text">{{ row.get(col, '') }}</td>
+                            {% endfor %}
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="{{ columns|length }}" class="summary-empty">ยังไม่มีข้อมูลจากผู้สอนในหัวข้อนี้</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endmacro %}
+
+<div class="mb-3">
+    <nav class="breadcrumb">
+        <a href="{{ back_href }}">Dashboard <span class="text-muted"> / สรุป มคอ.5</span> </a>
+        
+    </nav>
+</div>
+
+<div class="summary-shell">
+    <section class="summary-hero">
+        <div class="summary-hero-top">
+            <div>
+                <!-- <nav class="breadcrumb">
+                    <a href="{{ back_href }}">Dashboard</a> /
+                    <span class="text-muted">สรุป มคอ.5</span>
+                </nav> -->
+                
+                <h1 class="summary-title">{{ hero_title }}</h1>
+                <div class="summary-meta">
+                    {{ hero_scope }}{% if hero_faculty %} | {{ hero_faculty }}{% endif %}
+                </div>
+                {% if summary_data.get('meeting_text') %}
+                <div class="summary-note summary-readonly">{{ summary_data.get('meeting_text') }}</div>
+                {% endif %}
+            </div>
+            <div class="inline-actions">
+                <span class="status-badge {% if summary.status == 'SUBMITTED' %}status-approved{% else %}role-instructor{% endif %}">{{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(summary.status, summary.status) }}</span>
+                {% if summary.submitted_at %}
+                <span class="summary-meta">ส่งเมื่อ {{ summary.submitted_at.strftime('%d/%m/%Y %H:%M') }}</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="summary-kpis">
+            <div class="summary-kpi">
+                <div class="summary-kpi-label">รายวิชาที่สรุป</div>
+                <div class="summary-kpi-value">{{ summary_data.get('courses_count', '0') }}</div>
+            </div>
+            <div class="summary-kpi">
+                <div class="summary-kpi-label">ผู้สอน</div>
+                <div class="summary-kpi-value">{{ summary_data.get('instructors_count', '0') }}</div>
+            </div>
+            <div class="summary-kpi">
+                <div class="summary-kpi-label">ผู้เรียนทั้งหมด</div>
+                <div class="summary-kpi-value">{{ summary_data.get('students_registered_total', '0') }}</div>
+            </div>
+            <div class="summary-kpi">
+                <div class="summary-kpi-label">คงอยู่ / ถอน</div>
+                <div class="summary-kpi-value">{{ summary_data.get('students_remain_total', '0') }} / {{ summary_data.get('students_withdraw_total', '0') }}</div>
+            </div>
+        </div>
+    </section>
+
+    <form id="summary-form" method="POST">
+        <div class="summary-layout">
+            <div class="summary-main">
+                {{ render_table('1. รายวิชาที่เปิดสอนในภาคการศึกษา', '', ['ที่', 'รายวิชา', 'หมู่เรียน', 'ผู้สอน', 'ผลการประเมิน'], source_rows, 'courses', can_edit, 'source_rows') }}
+
+                {{ render_table('หัวข้อที่สอนไม่ครอบคลุมตามแผน', '', ['ที่', 'รายวิชา', 'หมู่เรียน', 'หัวข้อที่สอนไม่ครอบคลุมตามแผน'], summary_data.get('uncovered_topic_rows', []), 'uncovered', can_edit, 'uncovered_topic_rows') }}
+
+                {{ render_table('2. ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้', '', ['ที่', 'รหัสวิชา', 'ชื่อวิชา', 'รายละเอียด'], summary_data.get('during_improve_rows', []), 'detail3', can_edit, 'during_improve_rows') }}
+
+                {{ render_table('3. ผลสัมฤทธิ์ของนักศึกษาในแต่ละวิชา', '', ['ที่', 'รหัสวิชา', 'ชื่อวิชา', 'รายละเอียด'], summary_data.get('result_rows', []), 'detail3', can_edit, 'result_rows') }}
+
+                {{ render_table('4. ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้', '', ['รายวิชา', 'ประเด็น', 'แนวทางการปรับแก้ไข'], summary_data.get('issue_rows', []), 'issue', can_edit, 'issue_rows') }}
+
+                {{ render_table('5. ข้อเสนอแนะและการปรับปรุงการจัดการเรียนรู้ของผู้สอน', '', ['ที่', 'รหัสวิชาและชื่อวิชา', 'ข้อเสนอแนะ'], summary_data.get('feedback_rows', []), 'feedback', can_edit, 'feedback_rows') }}
+
+                {{ render_table('6. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา', '', ['ที่', 'รหัสวิชา', 'ชื่อวิชา', 'รายละเอียด'], summary_data.get('verification_rows', []), 'detail3', can_edit, 'verification_rows') }}
+
+                {{ render_table('7. ข้อวิพากษ์จากผลการประเมินโดยนักศึกษา/ผู้เรียน', '', ['ที่', 'รหัสวิชาและชื่อวิชา', 'รายละเอียด'], summary_data.get('eval_crit_rows', []), 'feedback', can_edit, 'eval_crit_rows') }}
+
+                {{ render_table('8. ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์', '', ['ที่', 'รหัสวิชาและชื่อวิชา', 'รายละเอียด'], summary_data.get('teacher_comment_rows', []), 'feedback', can_edit, 'teacher_comment_rows') }}
+
+                {{ render_table('9. แผนการปรับปรุงการจัดการเรียนรู้ของอาจารย์ผู้สอนรายวิชา', '', ['ที่', 'รหัสวิชาและชื่อวิชา', 'รายละเอียด'], summary_data.get('improve_plan_rows', []), 'feedback', can_edit, 'improve_plan_rows') }}
+
+                {{ render_table('10. ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร', '', ['ที่', 'รหัสวิชาและชื่อวิชา', 'รายละเอียด'], summary_data.get('committee_suggestion_rows', []), 'feedback', can_edit, 'committee_suggestion_rows') }}
+            </div>
+        </div>
+
+        <div class="summary-panel mt-4">
+            <div class="summary-panel-head">
+                <div>
+                    <div class="summary-section-anchor">ส่วนของหัวหน้า</div>
+                    <div class="summary-panel-subtitle">ตรวจทานข้อมูลจากผู้สอน แล้วแก้ไข/สรุปก่อนส่งฝ่ายวิชาการ</div>
+                </div>
+                {% if can_edit %}<span class="summary-source-chip">แก้ไขได้</span>{% endif %}
+            </div>
+            <div class="summary-panel-body">
+                <div class="summary-alert mt-3">
+                    การแก้ไขในหน้านี้จะบันทึกเฉพาะเอกสารสรุปของหัวหน้า และไม่กระทบ มคอ.5 ต้นฉบับของผู้สอน
+                </div>
+                <div class="summary-form-grid two mt-3">
+                    <div class="summary-form-card">
+                        <label for="faculty_name">คณะ</label>
+                        {% if can_edit %}
+                        <input id="faculty_name" name="faculty_name" class="form-control" value="{{ summary_data.get('faculty_name', '') }}">
+                        {% else %}
+                        <div class="summary-readonly">{{ summary_data.get('faculty_name', '-') }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="summary-form-card">
+                        <label for="program_names">หลักสูตรที่สรุป</label>
+                        {% if can_edit %}
+                        <input id="program_names" name="program_names" class="form-control" value="{{ summary_data.get('program_names', '') }}">
+                        {% else %}
+                        <div class="summary-readonly">{{ summary_data.get('program_names', '-') }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="summary-form-card mt-3">
+                    <label for="meeting_text">ข้อความการประชุม/รับรองรายงาน</label>
+                    {% if can_edit %}
+                    <textarea id="meeting_text" name="meeting_text" class="form-control" rows="3" placeholder="เช่น มีมติการประชุมคณะกรรมการบริหารหลักสูตร ...">{{ summary_data.get('meeting_text', '') }}</textarea>
+                    {% else %}
+                    <div class="summary-readonly">{{ summary_data.get('meeting_text', '-') }}</div>
+                    {% endif %}
+                </div>
+
+                {% for field_name, label, rows in [
+                    ('grade_summary', 'สรุปผลการเรียน/การกระจายเกรดภาพรวม', 4),
+                    ('head_conclusion', 'ข้อเสนอแนะสำหรับการปรับปรุงหลักสูตร', 6),
+                    ('head_recommendation', 'ผลการประชุมของคณะกรรมการบริหารหลักสูตร', 6)
+                ] %}
+                <div class="summary-form-card mt-3">
+                    <label for="{{ field_name }}">{{ label }}</label>
+                    {% if can_edit %}
+                    <textarea id="{{ field_name }}" name="{{ field_name }}" class="form-control" rows="{{ rows }}">{{ summary_data.get(field_name, '') }}</textarea>
+                    {% else %}
+                    <div class="summary-readonly">{{ summary_data.get(field_name, '-') }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+
+                {% if can_edit %}
+                <div class="qtf-grid three mt-3">
+                    <button type="submit" name="action" value="regenerate" class="btn btn-secondary">อัปเดตจากเอกสารผู้สอน</button>
+                    <button type="submit" name="action" value="save" class="btn btn-secondary">บันทึกร่างของหัวหน้า</button>
+                    <button type="submit" name="action" value="submit" class="btn btn-primary">ส่งฝ่ายวิชาการ</button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

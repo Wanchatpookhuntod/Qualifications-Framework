@@ -6,30 +6,158 @@
     <title>{% block title %}ระบบ มคอ.3 และ มคอ.5{% endblock %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Prompt:wght@400;500;600&family=Sarabun:wght@400;600;700&family=Kanit:wght@400;500;600&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Prompt:wght@400;500;600&family=Sarabun:wght@400;600;700&family=Kanit:wght@400;500;600&display=swap" media="print" onload="this.media='all'">
+    <noscript>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Prompt:wght@400;500;600&family=Sarabun:wght@400;600;700&family=Kanit:wght@400;500;600&display=swap">
+    </noscript>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     {% block head %}{% endblock %}
 </head>
 <body>
     {% if current_user.is_authenticated %}
+    {% set display_name = current_user.full_name or current_user.username or 'User' %}
+    {% set display_initial = display_name|first|upper %}
     <nav class="navbar glass">
-        <div class="nav-brand">TQF System</div>
-        <div class="nav-user">
-            <span>{{ current_user.full_name }} ({{ active_role or current_user.role }})</span>
-            <a href="{{ url_for('account') }}" class="btn btn-secondary" style="margin-left: 1rem; color: var(--text-muted);">บัญชีของฉัน</a>
-            {% if active_role and available_roles and available_roles|length > 1 %}
-            <form method="POST" action="{{ url_for('switch_role') }}" style="display:inline-flex; align-items:center; gap:0.5rem; margin-left: 1rem;">
-                <select name="role" class="form-control" style="height: 2rem; padding: 0.25rem 0.5rem;">
-                    {% for r in available_roles %}
-                    <option value="{{ r }}" {% if r == active_role %}selected{% endif %}>{{ r|upper }}</option>
-                    {% endfor %}
-                </select>
-                <button type="submit" class="btn btn-secondary" style="padding: 0.25rem 0.75rem; color: var(--text-muted);">สลับบทบาท</button>
-            </form>
-            {% endif %}
-            <a href="{{ url_for('logout') }}" class="btn btn-secondary" style="margin-left: 1rem; color: var(--text-muted);">ออกจากระบบ</a>
+        <div class="nav-inner">
+            <div class="nav-left">
+                <button class="side-nav-toggle" type="button" aria-label="เปิดเมนู / Open menu" aria-controls="sideNav" aria-expanded="false">
+                    <span class="material-symbols-rounded">menu</span>
+                </button>
+                <div class="nav-brand">
+                    <div class="nav-logo">TQF</div>
+                    <div>
+                        <div class="nav-brand-title">TQF System</div>
+                        <div class="nav-brand-subtitle">Thai Qualifications Console</div>
+                    </div>
+                </div>
+            </div>
+            <button class="nav-toggle" type="button" aria-label="Toggle navigation" aria-expanded="false" aria-controls="navActions">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+            <div class="nav-actions" id="navActions">
+                <div class="nav-session">
+                    <div class="nav-popover" data-nav-popover>
+                        <button
+                            type="button"
+                            class="nav-identity nav-popover-trigger"
+                            aria-haspopup="true"
+                            aria-expanded="false"
+                            aria-controls="userPopover"
+                        >
+                        <div class="nav-identity-text">
+                            <div class="nav-user-name">{{ display_name }}</div>
+                            <div class="nav-role-badge">{{ (active_role or current_user.best_role() or 'USER')|upper }}</div>
+                        </div>
+                        <div class="nav-avatar">{{ display_initial }}</div>
+                        </button>
+                        <div class="nav-popover-panel glass" id="userPopover" role="menu" aria-label="เมนูผู้ใช้" hidden>
+                            <div class="nav-menu" role="none">
+                                <a href="{{ url_for('account') }}" class="nav-menu-item" role="menuitem">บัญชีของฉัน</a>
+                                {% set _cur_role = (active_role or current_user.best_role() or 'instructor')|lower %}
+                                <a href="/manual/{{ _cur_role }}" class="nav-menu-item nav-menu-item--manual" role="menuitem" target="_blank">
+                                    คู่มือการใช้งาน
+                                </a>
+
+                                {% if available_roles and available_roles|length > 1 %}
+                                <div class="nav-submenu" role="none">
+                                    <button
+                                        type="button"
+                                        class="nav-menu-item nav-popover-disclosure nav-submenu-trigger"
+                                        role="menuitem"
+                                        aria-expanded="false"
+                                        aria-controls="roleSubmenu"
+                                        aria-haspopup="true"
+                                        data-popover-disclosure
+                                    >
+                                        สลับบทบาท
+                                    </button>
+                                    <div class="nav-submenu-panel glass" id="roleSubmenu" role="menu" aria-label="เลือกบทบาท" hidden>
+                                        {% for r in available_roles %}
+                                        <form method="POST" action="{{ url_for('switch_role') }}" class="nav-submenu-form" role="none" data-no-confirm>
+                                            <button
+                                                type="submit"
+                                                name="role"
+                                                value="{{ r }}"
+                                                class="nav-menu-item nav-submenu-item {% if r == (active_role or current_user.best_role()) %}is-active{% endif %}"
+                                                role="menuitem"
+                                            >
+                                                {{ r|upper }}
+                                            </button>
+                                        </form>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <div class="nav-menu-separator" role="none"></div>
+                                <a href="{{ url_for('logout') }}" class="nav-menu-item" role="menuitem">ออกจากระบบ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </nav>
+
+    {% set _side_role = (active_role or current_user.best_role() or 'instructor')|lower %}
+    {% macro side_nav_item(endpoint, icon, label) %}
+        <a href="{{ url_for(endpoint) }}" class="side-nav-item {% if request.endpoint == endpoint %}is-active{% endif %}"
+           {% if request.endpoint == endpoint %}aria-current="page"{% endif %}>
+            <span class="material-symbols-rounded" aria-hidden="true">{{ icon }}</span>
+            <span class="side-nav-label">{{ label }}</span>
+        </a>
+    {% endmacro %}
+    <div class="side-nav-backdrop" data-side-nav-backdrop></div>
+    <aside class="side-nav" id="sideNav" aria-hidden="true" aria-label="เมนูนำทางหลัก">
+        <div class="side-nav-header">
+            <div class="nav-logo">TQF</div>
+            <div class="side-nav-brand-text">
+                <div class="nav-brand-title">TQF System</div>
+                <div class="nav-brand-subtitle">{{ _side_role|upper }}</div>
+            </div>
+            <button class="side-nav-close" type="button" aria-label="ปิดเมนู / Close menu">
+                <span class="material-symbols-rounded" aria-hidden="true">close</span>
+            </button>
+        </div>
+        <nav class="side-nav-menu" aria-label="เมนูหลัก">
+            {% if _side_role == 'admin' %}
+                {{ side_nav_item('admin_dashboard', 'dashboard', 'แดชบอร์ด') }}
+                {{ side_nav_item('manage_faculties', 'account_balance', 'คณะ / ภาควิชา') }}
+                {{ side_nav_item('admin_manage_programs', 'menu_book', 'หลักสูตร') }}
+                {{ side_nav_item('manage_courses', 'book_2', 'รายวิชา') }}
+                {{ side_nav_item('manage_users', 'group', 'ผู้ใช้งาน') }}
+            {% elif _side_role == 'academic' %}
+                {{ side_nav_item('academic_dashboard', 'dashboard', 'แดชบอร์ด') }}
+                {{ side_nav_item('manage_terms', 'calendar_month', 'ภาคการศึกษา') }}
+                {{ side_nav_item('academic_manage_programs', 'menu_book', 'หลักสูตร') }}
+                {{ side_nav_item('academic_manage_courses', 'book_2', 'รายวิชา') }}
+                {{ side_nav_item('academic_view_plos', 'flag', 'PLOs หลักสูตร') }}
+            {% elif _side_role == 'head' %}
+                {{ side_nav_item('head_dashboard', 'dashboard', 'แดชบอร์ด') }}
+                {{ side_nav_item('head_sections', 'book_2', 'รายวิชา') }}
+                {{ side_nav_item('head_manage_plos', 'flag', 'จัดการ PLOs') }}
+                {{ side_nav_item('head_manage_course_clos', 'checklist', 'CLOs รายวิชา') }}
+            {% else %}
+                {{ side_nav_item('instructor_dashboard', 'dashboard', 'แดชบอร์ด') }}
+                {{ side_nav_item('instructor_plos', 'flag', 'PLOs หลักสูตร') }}
+            {% endif %}
+        </nav>
+        <div class="side-nav-footer">
+            {{ side_nav_item('account', 'person', 'บัญชีของฉัน') }}
+            <a href="/manual/{{ _side_role }}" class="side-nav-item" target="_blank" rel="noopener">
+                <span class="material-symbols-rounded" aria-hidden="true">menu_book</span>
+                <span class="side-nav-label">คู่มือการใช้งาน</span>
+            </a>
+            <a href="{{ url_for('logout') }}" class="side-nav-item side-nav-item--danger">
+                <span class="material-symbols-rounded" aria-hidden="true">logout</span>
+                <span class="side-nav-label">ออกจากระบบ</span>
+            </a>
+        </div>
+    </aside>
     {% endif %}
 
     <div class="container">
@@ -43,6 +171,331 @@
 
         {% block content %}{% endblock %}
     </div>
+
+    <script>
+        // Force fresh data when page is restored from bfcache
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) { window.location.reload(); }
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+
+
+            document.querySelectorAll('.alert').forEach(function (el) {
+                setTimeout(function () {
+                    el.style.transition = 'opacity 0.3s';
+                    el.style.opacity = '0';
+                    setTimeout(function () { el.remove(); }, 300);
+                }, 2000);
+            });
+
+            function updateButtonPointer(btn, event) {
+                const rect = btn.getBoundingClientRect();
+                const x = ((event.clientX - rect.left) / rect.width) * 100;
+                const y = ((event.clientY - rect.top) / rect.height) * 100;
+                btn.style.setProperty('--mouse-x', x + '%');
+                btn.style.setProperty('--mouse-y', y + '%');
+            }
+
+            document.querySelectorAll('.btn').forEach(function (btn) {
+                btn.addEventListener('pointermove', function (event) {
+                    updateButtonPointer(btn, event);
+                });
+                btn.addEventListener('pointerleave', function () {
+                    btn.style.removeProperty('--mouse-x');
+                    btn.style.removeProperty('--mouse-y');
+                });
+            });
+
+            // ── Custom Select ──────────────────────────────────────────
+            function csWrap(sel) {
+                if (sel.dataset.csInit) return;
+                sel.dataset.csInit = '1';
+                sel.classList.add('cs-hidden');
+
+                var wrap = document.createElement('div');
+                wrap.className = 'cs-wrapper';
+                if (sel.classList.contains('select-inline')) wrap.classList.add('cs-inline');
+                if (sel.classList.contains('text-xs'))       wrap.classList.add('cs-text-xs');
+
+                var trigger = document.createElement('button');
+                trigger.type = 'button';
+                trigger.className = 'cs-trigger';
+
+                var drop = document.createElement('div');
+                drop.className = 'cs-dropdown';
+
+                function buildOptions() {
+                    drop.innerHTML = '';
+                    Array.from(sel.options).forEach(function(opt) {
+                        var item = document.createElement('div');
+                        item.className = 'cs-option' + (opt.selected ? ' cs-selected' : '');
+                        item.textContent = opt.text;
+                        item.dataset.val = opt.value;
+                        item.addEventListener('mousedown', function(e) {
+                            e.preventDefault();
+                            sel.value = opt.value;
+                            sel.dispatchEvent(new Event('change', {bubbles:true}));
+                            syncTrigger();
+                            closeAll();
+                        });
+                        drop.appendChild(item);
+                    });
+                }
+
+                function syncTrigger() {
+                    var idx = sel.selectedIndex;
+                    trigger.textContent = idx >= 0 ? sel.options[idx].text : '';
+                    drop.querySelectorAll('.cs-option').forEach(function(el) {
+                        el.classList.toggle('cs-selected', el.dataset.val === sel.value);
+                    });
+                }
+
+                function positionDrop() {
+                    var rect = trigger.getBoundingClientRect();
+                    var spaceBelow = window.innerHeight - rect.bottom - 8;
+                    var spaceAbove = rect.top - 8;
+                    var maxH = Math.min(280, Math.max(spaceBelow, spaceAbove));
+                    drop.style.maxHeight = maxH + 'px';
+                    if (spaceBelow >= spaceAbove) {
+                        drop.style.top = (rect.bottom + 4) + 'px';
+                    } else {
+                        drop.style.top = '';
+                        drop.style.bottom = (window.innerHeight - rect.top + 4) + 'px';
+                    }
+                    drop.style.minWidth = rect.width + 'px';
+                    drop.style.width = 'max-content';
+                    drop.style.left = rect.left + 'px';
+                    requestAnimationFrame(function() {
+                        var dw = drop.getBoundingClientRect().width;
+                        if (rect.left + dw > window.innerWidth - 8) {
+                            drop.style.left = Math.max(8, window.innerWidth - dw - 8) + 'px';
+                        }
+                    });
+                }
+
+                trigger.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    var isOpen = wrap.classList.contains('open');
+                    closeAll();
+                    if (!isOpen) {
+                        buildOptions(); syncTrigger();
+                        drop.style.display = 'block';
+                        positionDrop();
+                        wrap.classList.add('open');
+                    }
+                });
+
+                trigger.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') { closeAll(); return; }
+                    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (!wrap.classList.contains('open')) { buildOptions(); syncTrigger(); wrap.classList.add('open'); }
+                        var items = Array.from(drop.querySelectorAll('.cs-option'));
+                        var cur = drop.querySelector('.cs-active');
+                        var idx2 = cur ? items.indexOf(cur) : -1;
+                        if (cur) cur.classList.remove('cs-active');
+                        idx2 = e.key === 'ArrowDown' ? Math.min(idx2+1, items.length-1) : Math.max(idx2-1, 0);
+                        if (items[idx2]) { items[idx2].classList.add('cs-active'); items[idx2].scrollIntoView({block:'nearest'}); }
+                    }
+                    if (e.key === 'Enter') {
+                        var active = drop.querySelector('.cs-active');
+                        if (active) active.dispatchEvent(new Event('mousedown'));
+                    }
+                });
+
+                sel.parentNode.insertBefore(wrap, sel);
+                wrap.appendChild(trigger);
+                wrap.appendChild(sel);
+                document.body.appendChild(drop);
+                drop.addEventListener('wheel', function(e) {
+                    var atTop = drop.scrollTop === 0;
+                    var atBottom = drop.scrollTop + drop.clientHeight >= drop.scrollHeight - 1;
+                    if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+                        e.preventDefault();
+                    }
+                    e.stopPropagation();
+                }, { passive: false });
+                buildOptions();
+                syncTrigger();
+            }
+
+            function closeAll() {
+                document.querySelectorAll('.cs-wrapper.open').forEach(function(w) { w.classList.remove('open'); });
+                document.querySelectorAll('.cs-dropdown').forEach(function(d) { d.style.display = 'none'; });
+            }
+
+            document.addEventListener('click', function() { closeAll(); });
+            window.addEventListener('scroll', function(e) {
+                if (e.target instanceof Element) return;
+                closeAll();
+            }, true);
+            window.addEventListener('resize', closeAll);
+
+            window.initCustomSelects = function(root) {
+                (root || document).querySelectorAll('select.form-control:not([data-cs-init])').forEach(csWrap);
+            };
+
+            window.setSelectValue = function(id, val) {
+                var sel = document.getElementById(id);
+                if (!sel) return;
+                sel.value = val;
+                var wrap = sel.closest('.cs-wrapper');
+                if (wrap) {
+                    var trigger = wrap.querySelector('.cs-trigger');
+                    var idx = sel.selectedIndex;
+                    if (trigger) trigger.textContent = idx >= 0 ? sel.options[idx].text : '';
+                    wrap.querySelectorAll('.cs-option').forEach(function(el) {
+                        el.classList.toggle('cs-selected', el.dataset.val === val);
+                    });
+                }
+            };
+
+            window.initCustomSelects();
+            // ── end Custom Select ──────────────────────────────────────
+
+            var navToggle = document.querySelector('.nav-toggle');
+            var navActions = document.getElementById('navActions');
+            if (navToggle && navActions) {
+                navToggle.addEventListener('click', function () {
+                    var isOpen = navActions.classList.toggle('is-open');
+                    navToggle.setAttribute('aria-expanded', isOpen);
+                });
+
+                window.addEventListener('resize', function () {
+                    if (window.innerWidth > 1024) {
+                        navActions.classList.remove('is-open');
+                        navToggle.setAttribute('aria-expanded', 'false');
+                    }
+                });
+            }
+
+            function setupNavPopover(popover) {
+                var trigger = popover.querySelector('.nav-popover-trigger');
+                var panel = popover.querySelector('.nav-popover-panel');
+                if (!trigger || !panel) return;
+
+                function setOpen(isOpen) {
+                    trigger.setAttribute('aria-expanded', String(isOpen));
+                    panel.hidden = !isOpen;
+
+                    if (!isOpen) {
+                        panel.querySelectorAll('[data-popover-disclosure]').forEach(function (btn) {
+                            var controlsId = btn.getAttribute('aria-controls');
+                            if (!controlsId) return;
+                            var controlled = panel.querySelector('#' + CSS.escape(controlsId));
+                            if (!controlled) return;
+                            btn.setAttribute('aria-expanded', 'false');
+                            controlled.hidden = true;
+                        });
+                    }
+                }
+
+                function isOpen() {
+                    return trigger.getAttribute('aria-expanded') === 'true' && panel.hidden === false;
+                }
+
+                trigger.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                    setOpen(!isOpen());
+                });
+
+                panel.addEventListener('click', function (event) {
+                    event.stopPropagation();
+                });
+
+                // Disclosure toggles (sub-panels) inside popover
+                panel.querySelectorAll('[data-popover-disclosure]').forEach(function (btn) {
+                    var controlsId = btn.getAttribute('aria-controls');
+                    if (!controlsId) return;
+                    var controlled = panel.querySelector('#' + CSS.escape(controlsId));
+                    if (!controlled) return;
+
+                    btn.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        var nextOpen = btn.getAttribute('aria-expanded') !== 'true';
+
+                        // Close other disclosures
+                        panel.querySelectorAll('[data-popover-disclosure]').forEach(function (otherBtn) {
+                            if (otherBtn === btn) return;
+                            var otherId = otherBtn.getAttribute('aria-controls');
+                            if (!otherId) return;
+                            var otherPanel = panel.querySelector('#' + CSS.escape(otherId));
+                            if (!otherPanel) return;
+                            otherBtn.setAttribute('aria-expanded', 'false');
+                            otherPanel.hidden = true;
+                        });
+
+                        btn.setAttribute('aria-expanded', String(nextOpen));
+                        controlled.hidden = !nextOpen;
+                    });
+                });
+
+                document.addEventListener('click', function () {
+                    if (isOpen()) setOpen(false);
+                });
+
+                document.addEventListener('keydown', function (event) {
+                    if (event.key === 'Escape' && isOpen()) {
+                        setOpen(false);
+                        trigger.focus();
+                    }
+                });
+
+                // Close after clicking regular links inside the panel
+                panel.querySelectorAll('a[href]').forEach(function (link) {
+                    link.addEventListener('click', function () {
+                        setOpen(false);
+                    });
+                });
+            }
+
+            document.querySelectorAll('[data-nav-popover]').forEach(function (popover) {
+                setupNavPopover(popover);
+            });
+
+            // ── Side slide navigation drawer ───────────────────────────
+            var sideNav = document.getElementById('sideNav');
+            var sideToggle = document.querySelector('.side-nav-toggle');
+            var sideBackdrop = document.querySelector('[data-side-nav-backdrop]');
+            var sideClose = document.querySelector('.side-nav-close');
+
+            if (sideNav && sideToggle) {
+                function openSideNav() {
+                    sideNav.classList.add('is-open');
+                    if (sideBackdrop) sideBackdrop.classList.add('is-open');
+                    sideNav.setAttribute('aria-hidden', 'false');
+                    sideToggle.setAttribute('aria-expanded', 'true');
+                    document.body.classList.add('side-nav-open');
+                    var firstLink = sideNav.querySelector('.side-nav-item');
+                    if (firstLink) firstLink.focus();
+                }
+
+                function closeSideNav() {
+                    sideNav.classList.remove('is-open');
+                    if (sideBackdrop) sideBackdrop.classList.remove('is-open');
+                    sideNav.setAttribute('aria-hidden', 'true');
+                    sideToggle.setAttribute('aria-expanded', 'false');
+                    document.body.classList.remove('side-nav-open');
+                }
+
+                sideToggle.addEventListener('click', function (e) {
+                    e.stopPropagation();
+                    if (sideNav.classList.contains('is-open')) closeSideNav();
+                    else openSideNav();
+                });
+                if (sideClose) sideClose.addEventListener('click', closeSideNav);
+                if (sideBackdrop) sideBackdrop.addEventListener('click', closeSideNav);
+
+                document.addEventListener('keydown', function (e) {
+                    if (e.key === 'Escape' && sideNav.classList.contains('is-open')) {
+                        closeSideNav();
+                        sideToggle.focus();
+                    }
+                });
+            }
+        });
+    </script>
 
     {% block scripts %}{% endblock %}
 </body>

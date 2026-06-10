@@ -2,347 +2,1146 @@
 
 {% block title %}แก้ไข มคอ.3 - {{ section.course.code }}{% endblock %}
 
+{% block head %}
+<script>
+var PCT_NAMES = ['pct_lecture','pct_discussion','pct_case','pct_practice','pct_group','pct_other'];
+function renderPctSum(s) {
+    var filled = document.getElementById('pct-filled');
+    var remain = document.getElementById('pct-remain');
+    var bar    = document.getElementById('pct-bar');
+    var color  = s > 100 ? '#f87171' : s === 100 ? '#34d399' : '#fbbf24';
+    if (filled) filled.textContent = s;
+    if (bar) { bar.style.width = Math.min(s, 100) + '%'; bar.style.background = color; }
+    if (remain) {
+        remain.style.color = color;
+        if (s === 100)    { remain.textContent = '✓ ครบ 100%'; }
+        else if (s > 100) { remain.textContent = 'เกิน ' + (Math.round((s-100)*10)/10) + '%'; }
+        else if (s > 0)   { remain.textContent = 'เหลืออีก ' + (Math.round((100-s)*10)/10) + '%'; }
+        else              { remain.textContent = ''; }
+    }
+}
+function updatePctSum(el) {
+    var othersSum = 0;
+    PCT_NAMES.forEach(function(n) {
+        if (n !== el.name) {
+            var f = document.querySelector('[name="'+n+'"]');
+            othersSum += f ? (parseFloat(f.value) || 0) : 0;
+        }
+    });
+    var max = Math.max(0, 100 - othersSum);
+    var v = parseFloat(el.value);
+    if (!isNaN(v) && v > max) { el.value = max; v = max; }
+    var s = othersSum + (isNaN(v) ? 0 : v);
+    renderPctSum(Math.round(s * 10) / 10);
+}
+document.addEventListener('DOMContentLoaded', function () {
+    var s = 0;
+    PCT_NAMES.forEach(function(n) {
+        var f = document.querySelector('[name="'+n+'"]');
+        s += f ? (parseFloat(f.value) || 0) : 0;
+    });
+    renderPctSum(Math.round(s * 10) / 10);
+});
+</script>
+{% endblock %}
+
 {% block content %}
 {% set is_locked = tqf3.status in ['SUBMITTED', 'APPROVED'] %}
 
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+{% if prefill_source and not is_locked %}
+<div class="qtf-alert qtf-alert-info">
+    <div class="flex-between flex-wrap">
+        <div>
+            <div class="fw-bold">มีการดึงข้อมูลเดิมมาเติมให้อัตโนมัติ</div>
+            <div class="qtf-alert-note">
+                แหล่งข้อมูล: มคอ.3 รายวิชาเดียวกัน{% if prefill_source.term_semester and prefill_source.term_year %} ({{ prefill_source.term_semester }}/{{ prefill_source.term_year }}){% endif %}{% if prefill_source.section_number %} sec {{ prefill_source.section_number }}{% endif %}{% if prefill_source.status %} • สถานะ: {{ prefill_source.status }}{% endif %}
+            </div>
+        </div>
+        <div class="qtf-alert-note">ตรวจทานแล้วกด “บันทึกฉบับร่าง” ได้เลย</div>
+    </div>
+</div>
+{% endif %}
+
+<div class="page-header">
     <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('instructor_dashboard') }}" style="color: var(--primary-color);">Dashboard</a> /
-            <span style="color: var(--text-muted);">แก้ไข มคอ.3</span>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('instructor_dashboard') }}">Dashboard</a> /
+            <span class="text-muted">แก้ไข มคอ.3</span>
         </nav>
-        <h2>มคอ.3: {{ section.course.code }} {{ section.course.name_th }}</h2>
-        <div style="display: flex; align-items: center; gap: 1rem; margin-top: 0.5rem;">
-            <span class="status-badge" style="
-                {% if tqf3.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                {% elif tqf3.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                {% elif tqf3.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-            ">สถานะ: {{ tqf3.status }}</span>
+        <h2>มคอ.3: {{ section.course.code }} {{ section.course.name_th | thai_wrap }}</h2>
+        <div class="flex-center-gap">
+            {% set badge_class = 'status-draft' %}
+            {% if tqf3.status == 'APPROVED' %}
+                {% set badge_class = 'status-approved' %}
+            {% elif tqf3.status == 'SUBMITTED' %}
+                {% set badge_class = 'status-submitted' %}
+            {% elif tqf3.status == 'RETURNED' %}
+                {% set badge_class = 'status-returned' %}
+            {% endif %}
+            <span class="status-badge {{ badge_class }}">สถานะ: {{ {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'}.get(tqf3.status, tqf3.status) }}</span>
             {% if is_locked %}
-            <span style="color: var(--text-muted); font-size: 0.875rem;">🔒 เอกสารถูกล็อก (Read-Only)</span>
+            <span class="qtf-status-note">เอกสารถูกส่งแล้ว</span>
             {% endif %}
         </div>
     </div>
-    <div style="display: flex; gap: 1rem;">
-        {% if not is_locked %}
-        <button type="submit" name="action" value="draft" form="tqf3-form" class="btn glass">บันทึกฉบับร่าง</button>
-        <button type="submit" name="action" value="submit" form="tqf3-form" class="btn btn-primary"
-            onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกและไม่สามารถแก้ไขได้จนกว่าจะมีการตีกลับ')">ส่งให้หัวหน้าสาขา</button>
-        {% else %}
-        <a href="{{ url_for('instructor_dashboard') }}" class="btn glass">ย้อนกลับ</a>
-        {% endif %}
+    <div class="flex-center-gap">
+        <a class="btn btn-secondary btn-compact" href="{{ url_for('export_tqf3_word', section_id=section.id) }}">
+            ดาวน์โหลด Word
+        </a>
+        <a class="btn btn-secondary btn-compact" href="{{ url_for('export_tqf3_pdf', section_id=section.id) }}" target="_blank" rel="noopener">
+            บันทึก PDF
+        </a>
     </div>
 </div>
 
 {% if feedbacks %}
-<div class="glass"
-    style="padding: 1.5rem; border-radius: 1rem; margin-bottom: 2rem; border: 1px solid rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.02);">
-    <h4 style="color: var(--accent-danger); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;">
-        <span>💬</span> ข้อเสนอแนะจากหัวหน้าสาขา
-    </h4>
+<div class="qtf-alert qtf-alert-danger">
+    <h4 class="mb-2">ข้อเสนอแนะจากหัวหน้าสาขา</h4>
     {% for fb in feedbacks %}
-    <div style="margin-bottom: 1rem; padding-bottom: 1rem; border-bottom: 1px dashed var(--border-color);">
-        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">{{
-            fb.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
-        <div style="color: var(--text-main);">{{ fb.comment }}</div>
+    <div class="qtf-feedback-item">
+        <div class="text-muted text-xs">{{ fb.created_at.strftime('%d/%m/%Y %H:%M') }}</div>
+        <div>{{ fb.comment }}</div>
     </div>
     {% endfor %}
 </div>
 {% endif %}
 
-<form id="tqf3-form" method="POST" class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
-    <fieldset {% if is_locked %}disabled{% endif %} style="border: none; padding: 0; margin: 0;">
-        <!-- 1.1 ข้อมูลรายวิชาพื้นฐาน -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                1.1 ข้อมูลรายวิชาพื้นฐาน (Course Information)</h3>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem;">
-                <div class="form-group">
-                    <label>รหัสวิชา</label>
-                    <input type="text" class="form-control" value="{{ section.course.code }}" disabled>
-                </div>
-                <div class="form-group">
-                    <label>ชื่อรายวิชา (TH/EN)</label>
-                    <input type="text" class="form-control"
-                        value="{{ section.course.name_th }} / {{ section.course.name_en }}" disabled>
-                </div>
-                <div class="form-group">
-                    <label>จำนวนหน่วยกิต</label>
-                    <input type="text" class="form-control" value="{{ section.course.credits }}" disabled>
-                </div>
-                <div class="form-group">
-                    <label>ภาคเรียน / ปีการศึกษา</label>
-                    <input type="text" class="form-control" value="{{ section.term.semester }}/{{ section.term.year }}"
-                        disabled>
-                </div>
-                <div class="form-group">
-                    <label>สถานที่เรียน (Onsite / Online / Hybrid)</label>
-                    <select name="location_type" class="form-control">
-                        <option value="Onsite" {% if tqf3.general_info.get('location_type')=='Onsite' %}selected{% endif
-                            %}>
-                            Onsite</option>
-                        <option value="Online" {% if tqf3.general_info.get('location_type')=='Online' %}selected{% endif
-                            %}>
-                            Online</option>
-                        <option value="Hybrid" {% if tqf3.general_info.get('location_type')=='Hybrid' %}selected{% endif
-                            %}>
-                            Hybrid</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>วันที่จัดทำ/ปรับปรุงล่าสุด</label>
-                    <input type="date" name="last_updated" class="form-control"
-                        value="{{ tqf3.general_info.get('last_updated', '') }}">
+<form id="tqf3-form" method="POST" class="glass panel" {% if not is_locked %}data-autosave{% endif %}
+    onkeydown="if(event.key==='Enter'&&event.target.tagName!=='TEXTAREA'){event.preventDefault();}">
+    {% set general = tqf3.general_info or {} %}
+
+    <fieldset {% if is_locked %}disabled{% endif %}>
+        <div class="text-center mb-3 mt-3">
+            <h3>{{ general.get('university', '') }} คณะ{{ general.get('faculty', '') }}</h3>
+            <h2>หลักสูตร {{ general.get('program', '') }}</h2>
+        </div>
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">ข้อมูลรายวิชา</div>
+            <div class="qtf-card qtf-highlight">
+                <div style="align-items: center;" class="mt-2">
+                    <div>รายวิชา {{ general.get('course_code', section.course.code) }} {{ general.get('course_name', section.course.name_th) | thai_wrap }} - 
+                        จำนวน {{ general.get('credits', section.course.credits) }} หน่วยกิต
+                    </div>
                 </div>
             </div>
-        </section>
 
-        <!-- 1.2 & 1.3 -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                1.2 - 1.3 คำอธิบายและจุดมุ่งหมาย</h3>
+            <div class="tqf-grid-new1" style="display: grid; grid-template-columns: 1fr 2fr; gap: 40px;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label>ปีการศึกษา</label>
+                        <input style="background-color: transparent; border: none;" type="text" class="form-control" value="{{ general.get('semester', section.term.semester) }} / {{ general.get('academic_year', section.term.year) }}" disabled>
+                        <input type="hidden" name="semester" value="{{ general.get('semester', section.term.semester) }}">
+                        <input type="hidden" name="academic_year" value="{{ general.get('academic_year', section.term.year) }}">
+                    </div>
+                    <div class="form-group">
+                        <label>ชั้นปี</label>
+                        <input type="text" name="year_level" class="form-control" value="{{ general.get('year_level', '') }}">
+                    </div>
+                </div>
+
+                {% set course_status_val = general.get('course_status', '') %}
+                {% set student_type_val = general.get('student_type', '') %}
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr;">
+                    <div class="form-group">
+                        <label>สถานภาพของวิชา</label>
+                        <div class="flex-center-gap mt-3" style=" gap:1rem; flex-wrap:wrap;">
+                            {% for opt in ['วิชาบังคับ', 'วิชาเลือก', 'วิชาเลือกเสรี'] %}
+                            <label class="qtf-radio"><input type="radio" name="course_status" value="{{ opt }}" {% if course_status_val == opt %}checked{% endif %}> {{ opt }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>ประเภทนักศึกษา</label>
+                        <div class="flex-center-gap mt-3" style="gap:1rem; flex-wrap:wrap;">
+                            {% for opt in ['ภาคปกติ', 'ภาคพิเศษ', 'บัณฑิตศึกษา'] %}
+                            <label class="qtf-radio"><input type="radio" name="student_type" value="{{ opt }}" {% if student_type_val == opt %}checked{% endif %}> {{ opt }}</label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="qtf-grid three mt-2">
+                    <div class="form-group mt-2">
+                        <label>หมู่เรียน (Section)</label>
+                        <input type="text" name="class_group" class="form-control" value="{{ general.get('class_group', section.section_number or '') }}" placeholder="เช่น หมู่ 1 หรือ sec A">
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>รายวิชาที่บังคับเรียนก่อน</label>
+                        <input type="text" name="prereq" class="form-control" value="{{ general.get('prereq', '') }}" placeholder="ถ้ามี / ถ้าไม่มีใส่ -">
+                    </div>
+                    <div class="form-group mt-2">
+                        <label>วันที่จัดทำ/ปรับปรุงล่าสุด</label>
+                        <input type="date" name="last_updated" class="form-control" value="{{ general.get('last_updated', '') }}">
+                    </div>
+                </div>
+            </div>
+
+
+            <div class="form-group mt-3">
+                <label>คำอธิบายรายวิชา</label>
+                <textarea name="description" class="form-control" rows="4">{{ general.get('description', section.course.description or '') }}</textarea>
+            </div>
+
+            <div class="qtf-grid three mt-2">
+                {% set course_owner_val = (general.get('course_owner') or general.get('instructor', '')) %}
+                <div class="form-group">
+                    <label>อาจารย์ผู้รับผิดชอบรายวิชา</label>
+                    <div>{{ course_owner_val }}</div>
+                    <input type="hidden" name="course_owner" value="{{ course_owner_val }}">
+                </div>
+                <div class="form-group">
+                    <label>ห้องเรียน / สถานที่เรียน</label>
+                    <input type="text" name="location" class="form-control" value="{{ general.get('location', '') }}" placeholder="เช่น 16/805 หรือ ออนไลน์">
+                </div>
+                <div class="form-group">
+                    <label>ระบบออนไลน์</label>
+                    <input type="text" name="online_system" class="form-control" value="{{ general.get('online_system', '') }}" placeholder="เช่น MS Teams / Google Classroom">
+                </div>
+            </div>
+            <div class="form-group mt-2">
+                <label>กรณีเรียนภายนอกมหาวิทยาลัย (สถานประกอบการ/ชุมชน/อื่นๆ)</label>
+                <input type="text" name="external_location" class="form-control" value="{{ general.get('external_location', '') }}" placeholder="ถ้ามี">
+            </div>
+
+            <div class="qtf-grid three mt-2">
+                {% set instructor_val = general.get('instructor', '') %}
+                <div class="form-group">
+                    <label>อาจารย์ผู้สอน</label>
+                    <div>{{ instructor_val }}</div>
+                    <input type="hidden" name="instructor" value="{{ instructor_val }}">
+                </div>
+                <div class="form-group">
+                    <label>โทรศัพท์</label>
+                    <input type="text" name="phone" class="form-control" value="{{ general.get('phone', '') }}" placeholder="เช่น 06xxxxxxxx">
+                </div>
+                <div class="form-group">
+                    <label>ห้องพัก</label>
+                    <input type="text" name="office" class="form-control" value="{{ general.get('office', '') }}" placeholder="เช่น ชั้น 3 อาคาร 16">
+                </div>
+            </div>
+        </div>
+
+
+
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้องกับรายวิชา</div>
             <div class="form-group">
-                <label>คำอธิบายรายวิชา (Course Description)</label>
-                <textarea name="description" class="form-control"
-                    rows="4">{{ tqf3.general_info.get('description', section.course.description or '') }}</textarea>
+                
+                <div id="ploChips" class="qtf-plo-chips" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+                <p id="ploEmpty" class="text-muted text-center text-xs " style="margin:0.25rem 0 0;">ยังไม่ได้เลือก PLO — กดปุ่ม “เพิ่ม PLO จากหลักสูตร”</p>
+                <textarea name="plos" id="plosTextarea" hidden>{{ general.get('plos', '') }}</textarea>
+                {% if not plos %}
+                <small class="text-muted text-center">ยังไม่มี PLO ในหลักสูตรนี้ หัวหน้าสาขาสามารถกำหนด PLOs ได้ที่เมนู “จัดการ PLOs”</small>
+                {% endif %}
+                <div class="qtf-plo-picker mt-3" style="margin-bottom:0.5rem;">
+                    <button type="button" id="ploPickerAddBtn" class="btn btn-primary"{% if not plos %} disabled{% endif %}>+ เพิ่ม PLO จากหลักสูตร</button>
+                </div>
             </div>
+        </div>
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)</div>
             <div class="form-group">
-                <label>จุดมุ่งหมายของรายวิชา (Course Objectives)</label>
-                <textarea name="objectives" class="form-control"
-                    rows="4">{{ tqf3.general_info.get('objectives', '') }}</textarea>
+                <div id="objList" class="qtf-obj-list" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
+                <p id="objEmpty" class="text-muted text-center text-xs" style="margin:0.25rem 0 0;">ยังไม่มีข้อ — กดปุ่ม “เพิ่มข้อ” เพื่อเริ่มกรอกทีละข้อ</p>
+                <textarea name="course_objective" id="objectiveData" hidden>{{ general.get('course_objective', general.get('objectives', '')) }}</textarea>
+                <input type="hidden" name="objectives" id="objectivesHidden" value="{{ general.get('course_objective', general.get('objectives', '')) }}">
+                <div class="qtf-btn-row mt-3">
+                    <button type="button" id="objAddBtn" class="btn btn-primary">+ เพิ่มข้อ</button>
+                </div>
             </div>
-        </section>
+        </div>
 
-        <!-- 1.4 CLO - PLO Mapping -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                1.4 CLO – PLO Mapping</h3>
-            <div style="overflow-x: auto;">
-                <table id="clo-table" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                            <th style="padding: 1rem; width: 120px;">รหัส CLO</th>
-                            <th style="padding: 1rem;">รายละเอียด CLO</th>
-                            <th style="padding: 1rem; width: 200px;">PLO ที่สอดคล้อง</th>
-                            <th style="padding: 1rem; width: 200px;">Bloom's Level</th>
-                            <th style="padding: 1rem; width: 50px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% set clo_codes = tqf3.general_info.get('clo_code[]', ['']) %}
-                        {% set clo_descs = tqf3.general_info.get('clo_desc[]', ['']) %}
-                        {% set clo_plos = tqf3.general_info.get('clo_plo[]', ['']) %}
-                        {% set clo_blooms = tqf3.general_info.get('clo_bloom[]', ['Remembering']) %}
+        <div class="qtf-card">
+            <div class="qtf-section-title">จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)</div>
+            <div class="qtf-grid four mt-2">
+                <div class="form-group">
+                    <label>ชั่วโมงบรรยาย/ภาค</label>
+                    <input type="number" name="lecture_hours" class="form-control" min="0" step="1" value="{{ general.get('lecture_hours', '') }}">
+                </div>
+                <div class="form-group">
+                    <label>ชั่วโมงปฏิบัติ/ภาคสนาม/ฝึกงาน</label>
+                    <input type="number" name="lab_hours" class="form-control" min="0" step="1" value="{{ general.get('lab_hours', '') }}">
+                </div>
+                <div class="form-group">
+                    <label>ชั่วโมงศึกษาด้วยตนเอง</label>
+                    <input type="number" name="self_hours" class="form-control" min="0" step="1" value="{{ general.get('self_hours', '') }}">
+                </div>
+                <div class="form-group">
+                    <label>ชั่วโมงให้คำปรึกษาต่อสัปดาห์</label>
+                    <input type="number" name="consult_hours" class="form-control" min="0" step="0.5" value="{{ general.get('consult_hours', '') }}">
+                </div>
+            </div>
+        </div>
 
-                        {% for i in range(clo_codes|length) %}
-                        <tr style="border-bottom: 1px solid var(--border-color);">
-                            <td style="padding: 1rem;"><input type="text" name="clo_code[]" class="form-control"
-                                    value="{{ clo_codes[i] }}" placeholder="CLO 1"></td>
-                            <td style="padding: 1rem;"><textarea name="clo_desc[]" class="form-control"
-                                    rows="2">{{ clo_descs[i] }}</textarea></td>
-                            <td style="padding: 1rem;"><input type="text" name="clo_plo[]" class="form-control"
-                                    value="{{ clo_plos[i] }}" placeholder="PLO 1, PLO 2"></td>
-                            <td style="padding: 1rem;">
-                                <select name="clo_bloom[]" class="form-control">
-                                    {% for level in ['Remembering', 'Understanding', 'Applying', 'Analyzing',
-                                    'Evaluating',
-                                    'Creating'] %}
-                                    <option value="{{ level }}" {% if clo_blooms[i]==level %}selected{% endif %}>{{
-                                        level }}
-                                    </option>
-                                    {% endfor %}
-                                </select>
-                            </td>
-                            <td style="padding: 1rem;"><button type="button" class="btn" onclick="removeRow(this)"
-                                    style="color: var(--accent-danger);">×</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+        <div class="qtf-card">
+            <div class="qtf-section-title">การอุทธรณ์</div>
+                <div class="qtf-grid two mt-2">
+                    <div class="form-group">
+                    <label>วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน (คะแนนระหว่างภาค/สอบกลางภาค)</label>
+                    <textarea name="appeal_channel" class="form-control" rows="3" placeholder="ระบุช่องทางสำหรับการติดต่ออาจารย์ผู้สอน ตามประกาศมหาวิทยาลัยฯ">{{ general.get('appeal_channel', '') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>หมายเหตุ / ช่องทางติดต่ออาจารย์</label>
+                    <input type="text" name="hours_note" class="form-control" value="{{ general.get('hours_note', '') }}" placeholder="เช่น ช่องทางติดต่อ">
+                </div>
+
+            </div>
+        </div>
+
+
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
+            <div class="table-wrapper mt-2">
+                <table id="cloTable" class="data-table data-table--stacked">
+                    <tbody></tbody>
                 </table>
             </div>
-            <button type="button" class="btn glass" onclick="addRow('clo-table')"
-                style="margin-top: 1rem; font-size: 0.875rem;">+ เพิ่ม CLO</button>
-        </section>
+            {% set clo_texts = general.get('clo_text[]') or [] %}
+            {% set clo_plos = general.get('clo_plo[]') or [] %}
+            {% set teachs = general.get('teach_strategy[]') or [] %}
+            {% set criterias = general.get('assess_criteria[]') or [] %}
+            {% set assesses = general.get('assess_strategy[]') or [] %}
+            {% set clo_rows = [] %}
+            {% for i in range(clo_texts|length) %}
+            {% set _ = clo_rows.append({'clo_text[]': clo_texts[i], 'clo_plo[]': clo_plos[i] if i < clo_plos|length else '', 'teach_strategy[]': teachs[i] if i < teachs|length else '', 'assess_criteria[]': criterias[i] if i < criterias|length else '', 'assess_strategy[]': assesses[i] if i < assesses|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="cloData">{{ clo_rows | tojson }}</script>
+            <div class="qtf-btn-row mt-3">
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('clo')">+ เพิ่ม CLO</button>
+            </div>
+            <div class="qtf-note mt-2">หมายเหตุ : ให้ระบุรายละเอียดของ CLOs, PLOs และกลยุทธ์การสอน วิธีการวัดประเมินผลที่สอดคล้องตามเล่มหลักสูตรกำหนด ในกรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้นำ TQF เดิมที่กำหนดในหลักสูตร (มคอ 2) มาใช้ไปพรางก่อน</div>
+        </div>
 
-        <!-- 1.5 Teaching Plan -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                1.5 แผนการสอนรายสัปดาห์ (Teaching Plan)</h3>
-            <div style="overflow-x: auto;">
-                <table id="plan-table" style="width: 100%; border-collapse: collapse;">
-                    <thead>
-                        <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                            <th style="padding: 1rem; width: 80px;">สัปดาห์</th>
-                            <th style="padding: 1rem;">หัวข้อ/รายละเอียด</th>
-                            <th style="padding: 1rem; width: 100px;">CLO</th>
-                            <th style="padding: 1rem; width: 80px;">บรรยาย</th>
-                            <th style="padding: 1rem; width: 80px;">ปฏิบัติ</th>
-                            <th style="padding: 1rem;">กิจกรรม/สื่อ</th>
-                            <th style="padding: 1rem; width: 50px;"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% set plan_topics = tqf3.general_info.get('plan_topic[]', ['']*15) %}
-                        {% set plan_clos = tqf3.general_info.get('plan_clo[]', ['']*15) %}
-                        {% set plan_lectures = tqf3.general_info.get('plan_lecture[]', ['2']*15) %}
-                        {% set plan_practices = tqf3.general_info.get('plan_practice[]', ['2']*15) %}
-                        {% set plan_medias = tqf3.general_info.get('plan_media[]', ['']*15) %}
-
-                        {% for i in range(plan_topics|length) %}
-                        <tr style="border-bottom: 1px solid var(--border-color);">
-                            <td style="padding: 1rem; text-align: center;">{{ i + 1 }}</td>
-                            <td style="padding: 1rem;"><input type="text" name="plan_topic[]" class="form-control"
-                                    value="{{ plan_topics[i] }}"></td>
-                            <td style="padding: 1rem;"><input type="text" name="plan_clo[]" class="form-control"
-                                    value="{{ plan_clos[i] }}"></td>
-                            <td style="padding: 1rem;"><input type="number" name="plan_lecture[]" class="form-control"
-                                    value="{{ plan_lectures[i] }}"></td>
-                            <td style="padding: 1rem;"><input type="number" name="plan_practice[]" class="form-control"
-                                    value="{{ plan_practices[i] }}"></td>
-                            <td style="padding: 1rem;"><input type="text" name="plan_media[]" class="form-control"
-                                    value="{{ plan_medias[i] }}"></td>
-                            <td style="padding: 1rem;"><button type="button" class="btn" onclick="removeRow(this)"
-                                    style="color: var(--accent-danger);">×</button></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
+        <div class="qtf-card">
+            <div class="qtf-section-title">แผนการจัดการเรียนรู้</div>
+            <div class="table-wrapper mt-2">
+                <table id="weeklyTable" class="data-table data-table--stacked">
+                    <tbody></tbody>
                 </table>
             </div>
-            <button type="button" class="btn glass" onclick="addPlanRow()"
-                style="margin-top: 1rem; font-size: 0.875rem;">+
-                เพิ่มสัปดาห์</button>
-        </section>
-
-        <!-- 1.7 Assessment Plan -->
-        <section style="margin-bottom: 4rem;">
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                1.7 แผนการประเมินผล (Assessment Plan)</h3>
-            <table id="assess-table" style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem;">CLO ที่ประเมิน</th>
-                        <th style="padding: 1rem;">วิธีการประเมิน</th>
-                        <th style="padding: 1rem; width: 100px;">สัปดาห์ที่</th>
-                        <th style="padding: 1rem; width: 100px;">สัดส่วน (%)</th>
-                        <th style="padding: 1rem; width: 50px;"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% set assess_clos = tqf3.general_info.get('assess_clo[]', ['']) %}
-                    {% set assess_methods = tqf3.general_info.get('assess_method[]', ['']) %}
-                    {% set assess_weeks = tqf3.general_info.get('assess_week[]', ['']) %}
-                    {% set assess_ratios = tqf3.general_info.get('assess_ratio[]', ['']) %}
-
-                    {% for i in range(assess_clos|length) %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem;"><input type="text" name="assess_clo[]" class="form-control"
-                                value="{{ assess_clos[i] }}"></td>
-                        <td style="padding: 1rem;"><input type="text" name="assess_method[]" class="form-control"
-                                value="{{ assess_methods[i] }}"></td>
-                        <td style="padding: 1rem;"><input type="text" name="assess_week[]" class="form-control"
-                                value="{{ assess_weeks[i] }}"></td>
-                        <td style="padding: 1rem;"><input type="number" name="assess_ratio[]" class="form-control"
-                                value="{{ assess_ratios[i] }}"></td>
-                        <td style="padding: 1rem;"><button type="button" class="btn" onclick="removeRow(this)"
-                                style="color: var(--accent-danger);">×</button></td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-            <button type="button" class="btn glass" onclick="addRow('assess-table')"
-                style="margin-top: 1rem; font-size: 0.875rem;">+ เพิ่มแผนการประเมิน</button>
-        </section>
-
-        <!-- 1.8 & 1.9 -->
-        <section>
-            <h3
-                style="border-left: 4px solid var(--primary-color); padding-left: 1rem; margin-bottom: 2rem; color: var(--text-main);">
-                1.8 - 1.9 ข้อมูลเพิ่มเติม</h3>
-            <div class="form-group">
-                <label>เอกสารอ้างอิงและตำราหลัก (APA)</label>
-                <textarea name="references" class="form-control"
-                    rows="3">{{ tqf3.general_info.get('references', '') }}</textarea>
+            {% set weeks = general.get('week[]') or [] %}
+            {% set topics = general.get('topic[]') or [] %}
+            {% set week_clos = general.get('week_clo[]') or [] %}
+            {% set hours = general.get('hours[]') or [] %}
+            {% set activities = general.get('activities[]') or [] %}
+            {% set medias = general.get('media[]') or [] %}
+            {% set teachers = general.get('teacher[]') or [] %}
+            {% set weekly_rows = [] %}
+            {% for i in range(weeks|length) %}
+            {% set act = (activities[i] if i < activities|length else '')|string %}
+            {% set med = (medias[i] if i < medias|length else '')|string %}
+            {% set act_media = (act ~ '\nสื่อที่ใช้: ' ~ med) if (act|trim and med|trim) else (act if act|trim else med) %}
+            {% set _ = weekly_rows.append({'week[]': weeks[i], 'topic[]': topics[i] if i < topics|length else '', 'week_clo[]': week_clos[i] if i < week_clos|length else '', 'hours[]': hours[i] if i < hours|length else '', 'activities[]': act_media, 'teacher[]': teachers[i] if i < teachers|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="weeklyData">{{ weekly_rows | tojson }}</script>
+            <div class="qtf-btn-row mt-3">
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('weekly')">+ เพิ่มสัปดาห์</button>
             </div>
-            <div class="form-group">
-                <label>กลยุทธ์การประเมินและการปรับปรุงการสอน</label>
-                <textarea name="improvement_strategy" class="form-control"
-                    rows="3">{{ tqf3.general_info.get('improvement_strategy', '') }}</textarea>
+        </div>
+        <div class="qtf-card">
+            <div class="qtf-section-title">วิธีจัดการเรียนการสอน</div>
+            <div class="qtf-grid three">
+                <div class="form-group">
+                    <label>การบรรยาย (%)</label>
+                    <input type="number" name="pct_lecture" class="form-control pct-field" min="0" value="{{ general.get('pct_lecture', '') }}" oninput="updatePctSum(this)">
+                </div>
+                <div class="form-group">
+                    <label>การบรรยายเชิงอภิปราย (%)</label>
+                    <input type="number" name="pct_discussion" class="form-control pct-field" min="0" value="{{ general.get('pct_discussion', '') }}" oninput="updatePctSum(this)">
+                </div>
+                <div class="form-group">
+                    <label>กรณีศึกษา (%)</label>
+                    <input type="number" name="pct_case" class="form-control pct-field" min="0" value="{{ general.get('pct_case', '') }}" oninput="updatePctSum(this)">
+                </div>
             </div>
-        </section>
+            <div class="qtf-grid three mt-2">
+                <div class="form-group">
+                    <label>การฝึกปฏิบัติ (%)</label>
+                    <input type="number" name="pct_practice" class="form-control pct-field" min="0" value="{{ general.get('pct_practice', '') }}" oninput="updatePctSum(this)">
+                </div>
+                <div class="form-group">
+                    <label>กิจกรรมกลุ่ม (%)</label>
+                    <input type="number" name="pct_group" class="form-control pct-field" min="0" value="{{ general.get('pct_group', '') }}" oninput="updatePctSum(this)">
+                </div>
+                <div class="form-group">
+                    <label>อื่นๆ (%)</label>
+                    <input type="number" name="pct_other" class="form-control pct-field" min="0" value="{{ general.get('pct_other', '') }}" oninput="updatePctSum(this)">
+                </div>
+            </div>
+            <!-- <div class=”form-group mt-2”>
+                <label>รายละเอียด “อื่นๆ”</label>
+                <input type=”text” name=”other_detail” class=”form-control” value=”{{ general.get('other_detail', '') }}” placeholder=”ระบุถ้ามี”>
+            </div> -->
+            {% set _pns = namespace(s=0) %}
+            {% for _pf in ['pct_lecture','pct_discussion','pct_case','pct_practice','pct_group','pct_other'] %}
+                {% set _pns.s = _pns.s + (general.get(_pf, 0) | string | replace(' ','') | int(0)) %}
+            {% endfor %}
+            {% set _pct_init = _pns.s %}
+            <div class="mt-2" id="pct-sum-box" style="border-radius:0.5rem; padding:0.65rem 0.9rem; background:rgba(255,255,255,0.06); font-size:0.88rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                    <span>กรอกแล้ว <strong id="pct-filled">{{ _pct_init }}</strong>% จาก 100%</span>
+                    <span id="pct-remain" style="font-weight:600;">{% if _pct_init == 100 %}✓ ครบ 100%{% elif _pct_init > 100 %}เกิน {{ _pct_init - 100 }}%{% elif _pct_init > 0 %}เหลืออีก {{ 100 - _pct_init }}%{% endif %}</span>
+                </div>
+                <div style="height: 8px; border-radius: 4px; background: rgba(255,255,255,0.12); overflow: hidden;">
+                    <div id="pct-bar" style="height:100%; width:0%; border-radius:4px; background:#fbbf24; transition:width 0.2s, background 0.2s;"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา</div>
+            <div class="table-wrapper mt-2">
+                <table id="assessTable" class="data-table data-table--stacked">
+                    <tbody></tbody>
+                </table>
+            </div>
+            {% set a_clo = general.get('assess_clo[]') or [] %}
+            {% set a_act = general.get('assess_activity[]') or [] %}
+            {% set a_crit = general.get('assess_plan_criteria[]') or [] %}
+            {% set a_pct = general.get('assess_pct[]') or [] %}
+            {% set assess_rows = [] %}
+            {% for i in range(a_clo|length) %}
+            {% set _ = assess_rows.append({'assess_clo[]': a_clo[i], 'assess_activity[]': a_act[i] if i < a_act|length else '', 'assess_plan_criteria[]': a_crit[i] if i < a_crit|length else '', 'assess_pct[]': a_pct[i] if i < a_pct|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="assessData">{{ assess_rows | tojson }}</script>
+            <div class="qtf-btn-row mt-3">
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('assess')">+ เพิ่มรายการประเมิน</button>
+            </div>
+            <div class="qtf-note mt-2">หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
+        </div>
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้ (Rubric Score และเกณฑ์การตัดสินการบรรลุผลลัพธ์การเรียนรู้)</div>
+            <div class="qtf-alert-note">ระบุประเด็นการประเมินและคำอธิบายแต่ละระดับ (5 = ดีมาก … 1 = ควรปรับปรุง)</div>
+            <div class="table-wrapper mt-2">
+                <table id="rubricTable" class="data-table data-table--stacked">
+                    <tbody></tbody>
+                </table>
+            </div>
+            {% set r_topic = general.get('rubric_topic[]') or [] %}
+            {% set r_l5 = general.get('rubric_l5[]') or [] %}
+            {% set r_l4 = general.get('rubric_l4[]') or [] %}
+            {% set r_l3 = general.get('rubric_l3[]') or [] %}
+            {% set r_l2 = general.get('rubric_l2[]') or [] %}
+            {% set r_l1 = general.get('rubric_l1[]') or [] %}
+            {% set rubric_rows = [] %}
+            {% for i in range(r_topic|length) %}
+            {% set _ = rubric_rows.append({'rubric_topic[]': r_topic[i], 'rubric_l5[]': r_l5[i] if i < r_l5|length else '', 'rubric_l4[]': r_l4[i] if i < r_l4|length else '', 'rubric_l3[]': r_l3[i] if i < r_l3|length else '', 'rubric_l2[]': r_l2[i] if i < r_l2|length else '', 'rubric_l1[]': r_l1[i] if i < r_l1|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="rubricData">{{ rubric_rows | tojson }}</script>
+            <div class="qtf-btn-row mt-3">
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('rubric')">+ เพิ่มประเด็นประเมิน</button>
+            </div>
+        </div>
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน (เขียนตามแบบบรรณานุกรม APA)</div>
+            <textarea name="references" class="form-control" rows="4" placeholder="เช่น Salen, K., & Zimmerman, E. (2003). Rules of Play...">{{ general.get('references', '') }}</textarea>
+        </div>
+
+        <div class="qtf-card">
+            <div class="qtf-section-title">การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา</div>
+            <div class="qtf-grid two">
+                <div class="form-group">
+                    <label>1. กลยุทธ์การประเมินการจัดการเรียนการสอนของรายวิชา</label>
+                    <textarea name="course_eval_strategy" class="form-control" rows="4">{{ general.get('course_eval_strategy', '') }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>2. การปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
+                    <textarea name="course_improve" class="form-control" rows="4">{{ general.get('course_improve', general.get('improvement_strategy', '')) }}</textarea>
+                    <input type="hidden" name="improvement_strategy" value="{{ general.get('course_improve', general.get('improvement_strategy', '')) }}">
+                </div>
+            </div>
+            <div class="form-group mt-2">
+                <label>3. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ทางการเรียน และผลลัพธ์การเรียนรู้ของนักศึกษา/ผู้เรียน</label>
+                <textarea name="verification" class="form-control" rows="4">{{ general.get('verification', '') }}</textarea>
+            </div>
+        </div>
+    </fieldset>
+
+    <div class="qtf-btn-row mt-4">
+        {% if not is_locked %}
+        <button type="submit" name="action" value="draft" class="btn btn-primary">บันทึกฉบับร่าง</button>
+        <button type="submit" name="action" value="submit" class="btn btn-primary" onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกและไม่สามารถแก้ไขได้จนกว่าจะมีการตีกลับ')">ส่งให้หัวหน้าสาขา</button>
+        <span id="autosaveStatus" class="autosave-status" aria-live="polite"></span>
+        {% else %}
+        <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary">ย้อนกลับ</a>
+        {% endif %}
+    </div>
 </form>
+
+<!-- PLO picker modal -->
+<div id="ploModal" class="modal" style="display:none;">
+    <div class="modal-card" style="max-width:560px; width:100%; margin:0;">
+        <div class="modal-header">
+            <h3 class="mb-0">เลือก PLOs ของหลักสูตร (เลือกได้หลายข้อ)</h3>
+            <button type="button" class="modal-close-btn" id="ploModalClose">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="ploModalList" style="display:flex; flex-direction:column; gap:0.5rem; max-height:50vh; overflow-y:auto;">
+                {% for p in plos or [] %}
+                <label class="qtf-plo-option" style="display:flex; gap:0.6rem; align-items:flex-start; padding:0.6rem 0.75rem; border:1px solid var(--border-color, #d0d5dd); border-radius:0.5rem; cursor:pointer;">
+                    <input type="checkbox" name="ploPickerCheck" value="{{ p.id }}" data-line="{{ p.code }}{% if p.description %} — {{ p.description }}{% endif %}" style="margin-top:0.2rem;">
+                    <span><strong>{{ p.code }}</strong>{% if p.description %} — {{ p.description }}{% endif %}</span>
+                </label>
+                {% endfor %}
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" id="ploModalCancel">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" id="ploModalConfirm">เพิ่ม</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Shared row editor modal -->
+<div id="rowModal" class="modal" style="display:none;">
+    <div class="modal-card" style="max-width:640px; width:100%; margin:0;">
+        <div class="modal-header">
+            <h3 class="mb-0" id="rowModalTitle">เพิ่มข้อมูล</h3>
+            <button type="button" class="modal-close-btn" onclick="QTFRows.close()">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div id="rowModalFields"></div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="QTFRows.close()">ยกเลิก</button>
+                <button type="button" class="btn btn-primary" onclick="QTFRows.save()">บันทึก</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-    function addRow(tableId) {
-        const table = document.getElementById(tableId).getElementsByTagName('tbody')[0];
-        const firstRow = table.rows[0];
-        const newRow = firstRow.cloneNode(true);
-
-        // Clear inputs in new row
-        const inputs = newRow.getElementsByTagName('input');
-        for (let i = 0; i < inputs.length; i++) {
-            inputs[i].value = '';
+const QTFRows = (function () {
+    const CONFIGS = {
+        clo: {
+            tableId: 'cloTable', dataId: 'cloData', noun: 'CLO', layout: 'stacked', showNumber: true, numPrefix: 'CLO',
+            fields: [
+                { name: 'clo_text[]', label: 'ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา', type: 'clo' },
+                { name: 'clo_plo[]', label: 'สัมพันธ์กับ PLO', type: 'plo_tags' },
+                { name: 'teach_strategy[]', label: 'กลยุทธ์การสอนตาม CLOs', type: 'textarea', ph: 'เช่น บรรยาย/ฝึกปฏิบัติ' },
+                { name: 'assess_criteria[]', label: 'เกณฑ์การวัดและการประเมินผล', type: 'textarea', ph: 'เช่น ผ่านเกณฑ์ร้อยละ 60' },
+                { name: 'assess_strategy[]', label: 'วิธีการวัดและประเมินผลตาม CLOs', type: 'textarea', ph: 'เช่น สอบ/โครงงาน' }
+            ]
+        },
+        weekly: {
+            tableId: 'weeklyTable', dataId: 'weeklyData', noun: 'สัปดาห์', layout: 'stacked',
+            fields: [
+                { name: 'week[]', label: 'สัปดาห์', type: 'text', ph: 'เช่น 1' },
+                { name: 'topic[]', label: 'หัวข้อ / รายละเอียด', type: 'textarea', ph: 'กรอกหัวข้อและรายละเอียด' },
+                { name: 'week_clo[]', label: 'LLOs', type: 'text', ph: 'เช่น LLO1' },
+                { name: 'hours[]', label: 'ชั่วโมง', type: 'number', ph: 'เช่น 4', min: '0', step: '0.5' },
+                { name: 'activities[]', label: 'กิจกรรมการเรียนการสอน สื่อที่ใช้ (ถ้ามี)', type: 'textarea', ph: 'เช่น บรรยาย + ฝึกปฏิบัติ / เอกสารประกอบการสอน' },
+                { name: 'teacher[]', label: 'ผู้สอน', type: 'text', ph: 'ผู้สอน' }
+            ]
+        },
+        assess: {
+            tableId: 'assessTable', dataId: 'assessData', noun: 'รายการประเมิน', layout: 'stacked', showNumber: true, numFromValue: true,
+            fields: [
+                { name: 'assess_clo[]', label: 'CLO', type: 'clo' },
+                { name: 'assess_activity[]', label: 'กิจกรรมการจัดการเรียนรู้ของผู้เรียน', type: 'textarea', ph: 'กิจกรรมการจัดการเรียนรู้' },
+                { name: 'assess_plan_criteria[]', label: 'เกณฑ์การประเมินผลลัพธ์การเรียนรู้', type: 'textarea', ph: 'เช่น Rubric / เกณฑ์ผ่าน' },
+                { name: 'assess_pct[]', label: 'สัดส่วน (%)', type: 'number', ph: 'เช่น 30', min: '0', max: '100', step: '1' }
+            ]
+        },
+        rubric: {
+            tableId: 'rubricTable', dataId: 'rubricData', noun: 'ประเด็นประเมิน', layout: 'stacked',
+            fields: [
+                { name: 'rubric_topic[]', label: 'ประเด็นการประเมิน', type: 'textarea', ph: 'เช่น ทักษะการสื่อสาร' },
+                { name: 'rubric_l5[]', label: 'ระดับ 5 (ดีมาก)', type: 'textarea', ph: 'คำอธิบาย' },
+                { name: 'rubric_l4[]', label: 'ระดับ 4', type: 'textarea', ph: 'คำอธิบาย' },
+                { name: 'rubric_l3[]', label: 'ระดับ 3', type: 'textarea', ph: 'คำอธิบาย' },
+                { name: 'rubric_l2[]', label: 'ระดับ 2', type: 'textarea', ph: 'คำอธิบาย' },
+                { name: 'rubric_l1[]', label: 'ระดับ 1 (ควรปรับปรุง)', type: 'textarea', ph: 'คำอธิบาย' }
+            ]
         }
-        const textareas = newRow.getElementsByTagName('textarea');
-        for (let i = 0; i < textareas.length; i++) {
-            textareas[i].value = '';
-        }
+    };
 
-        table.appendChild(newRow);
+    const modal = document.getElementById('rowModal');
+    const titleEl = document.getElementById('rowModalTitle');
+    const fieldsEl = document.getElementById('rowModalFields');
+    let current = null; // { type, mode, row }
+
+    // CLO items {code: 'CLO1', text} derived LIVE from the
+    // "จุดประสงค์การเรียนรู้ระดับรายวิชา (CLOs)" list — read fresh each time a
+    // row popup opens, so newly added CLOs are usable without a page refresh.
+    function getCloItems() {
+        const data = document.getElementById('objectiveData');
+        if (!data) return [];
+        return (data.value || '').split('\n').map(s => s.trim()).filter(Boolean)
+            .map((text, i) => ({ code: 'CLO' + (i + 1), text: text }));
     }
 
-    function addPlanRow() {
-        const table = document.getElementById('plan-table').getElementsByTagName('tbody')[0];
-        const rowCount = table.rows.length;
-        const firstRow = table.rows[0];
-        const newRow = firstRow.cloneNode(true);
+    function buildCloSelect(value) {
+        const sel = document.createElement('select');
+        const items = getCloItems();
+        const blank = document.createElement('option');
+        blank.value = '';
+        blank.textContent = items.length
+            ? '— เลือก CLO —'
+            : '— ยังไม่ได้เพิ่มจุดประสงค์การเรียนรู้ (CLOs) —';
+        sel.appendChild(blank);
+        let matched = false;
+        items.forEach(it => {
+            const op = document.createElement('option');
+            op.value = it.code;
+            op.textContent = it.text ? (it.code + ' — ' + it.text) : it.code;
+            if (String(value || '') === it.code) { op.selected = true; matched = true; }
+            sel.appendChild(op);
+        });
+        const v = String(value || '');
+        if (v && !matched) {
+            const op = document.createElement('option');
+            op.value = v;
+            op.textContent = v + ' (กำหนดเอง)';
+            op.selected = true;
+            sel.appendChild(op);
+        }
+        return sel;
+    }
 
-        // Set week number
-        newRow.cells[0].innerText = rowCount + 1;
+    function rowHasContent(cfg, values) {
+        return cfg.fields.some(f => String(values[f.name] || '').trim() !== '');
+    }
 
-        // Clear inputs
-        const inputs = newRow.getElementsByTagName('input');
-        for (let i = 0; i < inputs.length; i++) {
-            if (inputs[i].type === 'number') {
-                inputs[i].value = '2';
+    function makeEmptyRow(type) {
+        const cfg = CONFIGS[type];
+        const tr = document.createElement('tr');
+        tr.className = 'qtf-empty-row';
+        const td = document.createElement('td');
+        td.colSpan = cfg.layout === 'stacked' ? 1 : cfg.fields.length + 1;
+        td.className = 'text-center text-table text-muted text-xs';
+        td.textContent = 'ยังไม่มีข้อมูล — กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
+        tr.appendChild(td);
+        return tr;
+    }
+
+    function renumberCloRows(type) {
+        const types = type ? [type] : Object.keys(CONFIGS).filter(t => CONFIGS[t].showNumber);
+        types.forEach(t => {
+            const cfg = CONFIGS[t];
+            if (cfg.numFromValue) return; // badge text comes from the stored value, not position
+            const tbody = document.querySelector('#' + cfg.tableId + ' tbody');
+            if (!tbody) return;
+            const prefix = cfg.numPrefix || '';
+            tbody.querySelectorAll('tr[data-type="' + t + '"]').forEach((tr, idx) => {
+                tr.querySelectorAll('.qtf-clo-num').forEach(b => { b.textContent = prefix + (idx + 1); });
+            });
+        });
+    }
+
+    function makeStackedRow(type, values, cfg) {
+        const tr = document.createElement('tr');
+        tr.dataset.type = type;
+        const td = document.createElement('td');
+        td.className = 'qtf-stacked-cell';
+
+        const block = document.createElement('div');
+        block.className = 'qtf-stacked-block';
+
+        cfg.fields.forEach((f, fi) => {
+            const line = document.createElement('div');
+            line.className = 'qtf-stacked-line';
+            const v = String(values[f.name] || '').trim();
+
+            if (cfg.showNumber && fi === 0) {
+                // Render as: [CLO5 badge] : description — no separate label
+                line.style.cssText = 'align-items:center; gap:0.5rem; flex-wrap:nowrap;';
+                const numBadge = document.createElement('span');
+                numBadge.className = 'qtf-clo-num';
+                numBadge.style.cssText = 'flex-shrink:0; display:inline-block; padding:0.2rem 0.65rem; border-radius:0.4rem; font-size:0.85rem; font-weight:700; background:rgba(99,102,241,0.22); color:var(--primary,#818cf8);';
+                // numFromValue: badge text comes from the stored value (CLO code); otherwise auto-renumbered.
+                numBadge.textContent = cfg.numFromValue ? (v || 'CLO?') : 'CLO?';
+                const val = document.createElement('span');
+                val.className = 'qtf-stacked-value';
+                val.style.flex = '1';
+                // For numFromValue, the field stores a CLO code; look up the description.
+                let displayText = v;
+                if (cfg.numFromValue && v) {
+                    const found = getCloItems().find(it => it.code === v);
+                    if (found && found.text) displayText = found.text;
+                }
+                if (displayText) { val.textContent = displayText; } else { val.textContent = '—'; val.classList.add('text-muted'); }
+                line.appendChild(numBadge);
+                line.appendChild(val);
+                block.appendChild(line);
+                const inp = document.createElement('input');
+                inp.type = 'hidden'; inp.name = f.name; inp.value = String(values[f.name] || '');
+                block.appendChild(inp);
+                return;
+            }
+
+            const lab = document.createElement('span');
+            lab.className = 'qtf-stacked-label';
+            lab.textContent = f.label;
+            const val = document.createElement('span');
+            val.className = 'qtf-stacked-value';
+            if (f.type === 'plo_tags') {
+                if (v) {
+                    v.split(',').forEach(code => {
+                        const c = code.trim();
+                        if (!c) return;
+                        const badge = document.createElement('span');
+                        badge.textContent = c;
+                        badge.style.cssText = 'display:inline-block; margin:0.1rem 0.2rem; padding:0.15rem 0.45rem; border-radius:0.3rem; font-size:0.75rem; background:rgba(16,185,129,0.18); color:#34d399; font-weight:600;';
+                        val.appendChild(badge);
+                    });
+                } else {
+                    val.textContent = '—';
+                    val.classList.add('text-muted');
+                }
+            } else if (v) {
+                val.textContent = v;
             } else {
-                inputs[i].value = '';
+                val.textContent = '—';
+                val.classList.add('text-muted');
             }
-        }
+            line.appendChild(lab);
+            line.appendChild(val);
+            block.appendChild(line);
+            // Hidden input carries the real form value (submitted as name[] array).
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = f.name;
+            inp.value = String(values[f.name] || '');
+            block.appendChild(inp);
+        });
+        td.appendChild(block);
 
-        table.appendChild(newRow);
+        const actions = document.createElement('div');
+        actions.className = 'qtf-stacked-actions';
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn btn-outline-primary btn-compact';
+        editBtn.textContent = 'แก้ไข';
+        editBtn.addEventListener('click', () => openEdit(tr));
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-outline-danger btn-compact';
+        delBtn.textContent = 'ลบ';
+        delBtn.addEventListener('click', () => removeRow(tr));
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        td.appendChild(actions);
+
+        tr.appendChild(td);
+        return tr;
     }
 
-    function removeRow(btn) {
-        const row = btn.closest('tr');
-        const tableBody = row.parentNode;
-        if (tableBody.rows.length > 1) {
-            row.remove();
-            // If it's the plan table, re-index week numbers
-            if (tableBody.parentNode.id === 'plan-table') {
-                reindexPlan();
+    function makeRow(type, values) {
+        const cfg = CONFIGS[type];
+        if (cfg.layout === 'stacked') return makeStackedRow(type, values, cfg);
+        const tr = document.createElement('tr');
+        tr.dataset.type = type;
+        cfg.fields.forEach(f => {
+            const td = document.createElement('td');
+            const v = String(values[f.name] || '');
+            if (v.trim() === '') {
+                const span = document.createElement('span');
+                span.className = 'text-muted';
+                span.textContent = '—';
+                td.appendChild(span);
+            } else {
+                td.style.whiteSpace = 'pre-wrap';
+                td.textContent = v;
             }
+            tr.appendChild(td);
+        });
+
+        const actTd = document.createElement('td');
+        actTd.className = 'text-center';
+        // Hidden inputs carry the real form values (submitted as name[] arrays).
+        cfg.fields.forEach(f => {
+            const inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = f.name;
+            inp.value = String(values[f.name] || '');
+            actTd.appendChild(inp);
+        });
+        const actions = document.createElement('div');
+        actions.style.cssText = 'display:grid; gap:0.4rem; justify-content:center;';
+        const editBtn = document.createElement('button');
+        editBtn.type = 'button';
+        editBtn.className = 'btn btn-outline-primary btn-compact';
+        editBtn.textContent = 'แก้ไข';
+        editBtn.addEventListener('click', () => openEdit(tr));
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'btn btn-outline-danger btn-compact';
+        delBtn.textContent = 'ลบ';
+        delBtn.addEventListener('click', () => removeRow(tr));
+        actions.appendChild(editBtn);
+        actions.appendChild(delBtn);
+        actTd.appendChild(actions);
+        tr.appendChild(actTd);
+        return tr;
+    }
+
+    function readRowValues(tr) {
+        const values = {};
+        tr.querySelectorAll('input[type="hidden"]').forEach(inp => {
+            values[inp.name] = inp.value;
+        });
+        return values;
+    }
+
+    function renderTable(type) {
+        const cfg = CONFIGS[type];
+        const tbody = document.querySelector('#' + cfg.tableId + ' tbody');
+        const dataEl = document.getElementById(cfg.dataId);
+        let rows = [];
+        try { rows = JSON.parse(dataEl.textContent || '[]'); } catch (e) { rows = []; }
+        rows = rows.filter(r => rowHasContent(cfg, r));
+        tbody.innerHTML = '';
+        if (!rows.length) {
+            tbody.appendChild(makeEmptyRow(type));
+            return;
+        }
+        rows.forEach(r => tbody.appendChild(makeRow(type, r)));
+        if (CONFIGS[type].showNumber) renumberCloRows(type);
+    }
+
+    function buildFields(cfg, values) {
+        fieldsEl.innerHTML = '';
+        cfg.fields.forEach((f, idx) => {
+            const grp = document.createElement('div');
+            grp.className = 'form-group';
+            const label = document.createElement('label');
+            label.textContent = f.label;
+            grp.appendChild(label);
+            let input;
+            if (f.type === 'textarea') {
+                input = document.createElement('textarea');
+                input.rows = 3;
+            } else if (f.type === 'clo') {
+                input = buildCloSelect(values ? values[f.name] : '');
+            } else if (f.type === 'plo_tags') {
+                input = document.createElement('input');
+                input.type = 'text';
+                const hint = document.createElement('small');
+                hint.className = 'text-muted';
+                hint.textContent = 'รหัส PLO คั่นด้วย comma เช่น PLO1,PLO2 (กำหนดโดยหัวหน้าสาขา แก้ไขได้)';
+                grp.appendChild(hint);
+            } else {
+                input = document.createElement('input');
+                input.type = f.type || 'text';
+                if (f.min != null) input.min = f.min;
+                if (f.max != null) input.max = f.max;
+                if (f.step != null) input.step = f.step;
+            }
+            input.className = 'form-control';
+            input.id = 'rowf_' + idx;
+            input.dataset.field = f.name;
+            if (f.ph && f.type !== 'clo') input.placeholder = f.ph;
+            if (f.type !== 'clo') input.value = values ? String(values[f.name] || '') : '';
+            grp.appendChild(input);
+            fieldsEl.appendChild(grp);
+        });
+        // Enhance any <select> (e.g. the CLO picker) into the app's custom
+        // dropdown styling used elsewhere on the page.
+        if (window.initCustomSelects) window.initCustomSelects(fieldsEl);
+    }
+
+    function openModal() {
+        modal.style.display = 'flex';
+        const first = fieldsEl.querySelector('input, textarea');
+        if (first) setTimeout(() => first.focus(), 50);
+    }
+
+    function openAdd(type) {
+        const cfg = CONFIGS[type];
+        current = { type: type, mode: 'add', row: null };
+        titleEl.textContent = 'เพิ่ม' + cfg.noun;
+        buildFields(cfg, null);
+        openModal();
+    }
+
+    function openEdit(tr) {
+        const type = tr.dataset.type;
+        const cfg = CONFIGS[type];
+        current = { type: type, mode: 'edit', row: tr };
+        titleEl.textContent = 'แก้ไข' + cfg.noun;
+        buildFields(cfg, readRowValues(tr));
+        openModal();
+    }
+
+    function save() {
+        if (!current) return;
+        const cfg = CONFIGS[current.type];
+        const values = {};
+        fieldsEl.querySelectorAll('[data-field]').forEach(el => {
+            values[el.dataset.field] = el.value;
+        });
+        if (!rowHasContent(cfg, values)) {
+            alert('กรุณากรอกข้อมูลอย่างน้อยหนึ่งช่อง');
+            return;
+        }
+        const tbody = document.querySelector('#' + cfg.tableId + ' tbody');
+        const newRow = makeRow(current.type, values);
+        if (current.mode === 'edit' && current.row) {
+            current.row.replaceWith(newRow);
         } else {
-            // Just clear the row if it's the only one
-            const inputs = row.getElementsByTagName('input');
-            for (let i = 0; i < inputs.length; i++) inputs[i].value = '';
-            const textareas = row.getElementsByTagName('textarea');
-            for (let i = 0; i < textareas.length; i++) textareas[i].value = '';
+            const empty = tbody.querySelector('.qtf-empty-row');
+            if (empty) empty.remove();
+            tbody.appendChild(newRow);
         }
+        if (current && CONFIGS[current.type].showNumber) renumberCloRows(current.type);
+        close();
+        notifyChange();
     }
 
-    function reindexPlan() {
-        const tableBody = document.getElementById('plan-table').getElementsByTagName('tbody')[0];
-        for (let i = 0; i < tableBody.rows.length; i++) {
-            tableBody.rows[i].cells[0].innerText = i + 1;
-        }
+    // The row modal lives outside <form>, and committing a row writes hidden
+    // inputs without firing input/change. Tell autosave the form is dirty.
+    function notifyChange() {
+        const formEl = document.getElementById('tqf3-form');
+        if (formEl) formEl.dispatchEvent(new Event('input', { bubbles: true }));
     }
+
+    function removeRow(tr) {
+        const type = tr.dataset.type;
+        const cfg = CONFIGS[type];
+        const tbody = tr.parentNode;
+        tr.remove();
+        if (!tbody.querySelector('tr')) {
+            tbody.appendChild(makeEmptyRow(type));
+        }
+        if (CONFIGS[type].showNumber) renumberCloRows(type);
+        notifyChange();
+    }
+
+    function close() {
+        modal.style.display = 'none';
+        current = null;
+    }
+
+    function init() {
+        Object.keys(CONFIGS).forEach(renderTable);
+        modal.addEventListener('click', e => { if (e.target === modal) close(); });
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && modal.style.display !== 'none') close();
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+    return { openAdd: openAdd, save: save, close: close };
+})();
+
+// Course-level PLO picker: pick a program PLO from a popup; selections show as a removable list.
+(function () {
+    const addBtn = document.getElementById('ploPickerAddBtn');
+    const textarea = document.getElementById('plosTextarea');
+    const modal = document.getElementById('ploModal');
+    const chips = document.getElementById('ploChips');
+    const empty = document.getElementById('ploEmpty');
+    if (!addBtn || !textarea || !modal || !chips || !empty) return;
+
+    const confirmBtn = document.getElementById('ploModalConfirm');
+    const cancelBtn = document.getElementById('ploModalCancel');
+    const closeBtn = document.getElementById('ploModalClose');
+
+    function getItems() {
+        return textarea.value.split('\n').map(s => s.trim()).filter(Boolean);
+    }
+
+    function setItems(items) {
+        textarea.value = items.join('\n');
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        render();
+    }
+
+    function render() {
+        const items = getItems();
+        chips.innerHTML = '';
+        empty.style.display = items.length ? 'none' : '';
+        items.forEach((line, idx) => {
+            const row = document.createElement('div');
+            row.className = 'qtf-plo-chip';
+            row.style.cssText = 'display:flex; gap:0.6rem; align-items:center;';
+
+            // Split "PLO1 — description" into a left badge + the rest.
+            const sep = line.indexOf('—');
+            const code = sep >= 0 ? line.slice(0, sep).trim() : ('PLO' + (idx + 1));
+            const text = sep >= 0 ? line.slice(sep + 1).trim() : line;
+
+            const badge = document.createElement('span');
+            badge.className = 'obj-num text-muted';
+            badge.style.cssText = 'min-width:3rem; text-align:right; white-space:nowrap; flex-shrink:0;';
+            badge.textContent = code;
+
+            const box = document.createElement('div');
+            box.style.cssText = 'flex:1; padding:0.5rem 0.75rem; border:1px solid var(--border-color, #d0d5dd); border-radius:0.5rem; background:rgba(255,255,255,0.5);';
+            box.textContent = text;
+
+            const rm = document.createElement('button');
+            rm.type = 'button';
+            rm.className = 'btn btn-outline-danger btn-compact';
+            rm.textContent = 'ลบ';
+            rm.style.cssText = 'flex-shrink:0; white-space:nowrap;';
+            rm.addEventListener('click', () => {
+                const next = getItems();
+                next.splice(idx, 1);
+                setItems(next);
+            });
+            row.appendChild(badge);
+            row.appendChild(box);
+            row.appendChild(rm);
+            chips.appendChild(row);
+        });
+    }
+
+    function openModal() {
+        const current = getItems();
+        modal.querySelectorAll('input[name="ploPickerCheck"]').forEach(c => {
+            c.checked = current.includes(normalize(c.dataset.line));
+        });
+        modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+        modal.style.display = 'none';
+    }
+
+    function normalize(text) {
+        // Collapse internal newlines/whitespace so each PLO stays a single line/card.
+        return (text || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function appendSelected() {
+        const items = getItems();
+        modal.querySelectorAll('input[name="ploPickerCheck"]:checked').forEach(c => {
+            const line = normalize(c.dataset.line);
+            if (line && !items.includes(line)) items.push(line);
+        });
+        setItems(items);
+        closeModal();
+    }
+
+    addBtn.addEventListener('click', openModal);
+    confirmBtn.addEventListener('click', appendSelected);
+    cancelBtn.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', e => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape' && modal.style.display !== 'none') closeModal();
+    });
+
+    render();
+
+    // Auto-populate PLO section from CLO data if the PLO textarea is empty.
+    // Runs once on load so existing saved PLO choices are preserved.
+    function autoSyncPlosFromClos() {
+        if (textarea.value.trim()) return; // already has PLOs — don't overwrite
+        let rows = [];
+        try { rows = JSON.parse(document.getElementById('cloData').textContent || '[]'); } catch (e) { return; }
+        const seen = new Set();
+        const ordered = [];
+        rows.forEach(r => {
+            (r['clo_plo[]'] || '').split(',').forEach(code => {
+                code = code.trim();
+                if (code && !seen.has(code)) { seen.add(code); ordered.push(code); }
+            });
+        });
+        if (!ordered.length) return;
+        // Match against program PLO checkboxes to get full "PLO1 — desc" lines
+        const checkMap = {};
+        modal.querySelectorAll('input[name="ploPickerCheck"]').forEach(c => {
+            const line = normalize(c.dataset.line);
+            const code = line.indexOf('—') >= 0 ? line.slice(0, line.indexOf('—')).trim() : line;
+            checkMap[code] = line;
+        });
+        ordered.sort((a, b) => (parseInt(a.replace(/\D/g,'')) || 0) - (parseInt(b.replace(/\D/g,'')) || 0));
+        // Only codes defined in the program's PLO set — leave blank otherwise.
+        const lines = ordered.filter(code => checkMap[code]).map(code => checkMap[code]);
+        if (!lines.length) return;
+        setItems(lines);
+    }
+    document.addEventListener('DOMContentLoaded', autoSyncPlosFromClos);
+})();
+
+// Course learning outcomes (objectives): add/edit/remove one item at a time.
+// Items are stored newline-joined in the hidden course_objective/objectives fields
+// to stay compatible with the read-only view and Word exporter.
+(function () {
+    const addBtn = document.getElementById('objAddBtn');
+    const list = document.getElementById('objList');
+    const empty = document.getElementById('objEmpty');
+    const data = document.getElementById('objectiveData');
+    const hidden = document.getElementById('objectivesHidden');
+    if (!addBtn || !list || !empty || !data || !hidden) return;
+
+    function sync() {
+        const items = Array.from(list.querySelectorAll('input.obj-item'))
+            .map(inp => inp.value.trim())
+            .filter(Boolean);
+        const joined = items.join('\n');
+        data.value = joined;
+        hidden.value = joined;
+        data.dispatchEvent(new Event('input', { bubbles: true }));
+        empty.style.display = list.querySelector('.obj-row') ? 'none' : '';
+        renumber();
+    }
+
+    function renumber() {
+        list.querySelectorAll('.obj-row').forEach((row, idx) => {
+            const badge = row.querySelector('.obj-num');
+            if (badge) badge.textContent = 'CLO' + (idx + 1);
+        });
+    }
+
+    function addRow(value, focus) {
+        const row = document.createElement('div');
+        row.className = 'obj-row';
+        row.style.cssText = 'display:flex; gap:0.6rem; align-items:center;';
+
+        const badge = document.createElement('span');
+        badge.className = 'obj-num text-muted';
+        badge.style.cssText = 'min-width:3rem; text-align:right; white-space:nowrap; flex-shrink:0;';
+
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'form-control obj-item';
+        inp.placeholder = 'กรอกจุดประสงค์การเรียนรู้ 1 ข้อ';
+        inp.value = value || '';
+        inp.addEventListener('input', sync);
+        inp.addEventListener('keydown', e => {
+            if (e.key === 'Enter') { e.preventDefault(); addRow('', true); }
+        });
+
+        const rm = document.createElement('button');
+        rm.type = 'button';
+        rm.className = 'btn btn-outline-danger btn-compact';
+        rm.textContent = 'ลบ';
+        rm.style.cssText = 'flex-shrink:0; white-space:nowrap;';
+        rm.addEventListener('click', () => { row.remove(); sync(); });
+
+        row.appendChild(badge);
+        row.appendChild(inp);
+        row.appendChild(rm);
+        list.appendChild(row);
+        sync();
+        if (focus) inp.focus();
+    }
+
+    // Seed from any existing newline-separated value.
+    (data.value || '').split('\n').map(s => s.trim()).filter(Boolean).forEach(v => addRow(v, false));
+    sync();
+
+    addBtn.addEventListener('click', () => addRow('', true));
+})();
+
 </script>
+<script src="{{ url_for('static', filename='js/tqf_autosave.js', v=static_v('js/tqf_autosave.js')) }}"></script>
 {% endblock %}

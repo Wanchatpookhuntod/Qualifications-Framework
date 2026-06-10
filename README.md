@@ -1,11 +1,11 @@
 # QualificationsFramework (TQF System)
 
-ระบบตัวอย่างสำหรับจัดการการเปิดรายวิชา/ภาคเรียน และการจัดทำเอกสาร **มคอ.3 (TQF3)** และ **มคอ.5 (TQF5)** ด้วย Flask + SQLite
+ระบบตัวอย่างสำหรับจัดการการเปิดรายวิชา/ภาคเรียน และการจัดทำเอกสาร **มคอ.3 (TQF3)** และ **มคอ.5 (TQF5)** ด้วย Flask + Firestore
 
 ## Tech Stack
 - Python 3.10 (ดูไฟล์ `.python-version`)
-- Flask, Flask-Login, Flask-SQLAlchemy
-- SQLite (ไฟล์ DB: `tqf_system.db`)
+- Flask, Flask-Login
+- Firestore (Firebase Admin SDK)
 - Jinja templates (โฟลเดอร์ `templates/`) + static assets (โฟลเดอร์ `static/`)
 
 ## โครงสร้างระบบ (Roles)
@@ -18,7 +18,7 @@
 > Flow คร่าว ๆ อ้างอิงจาก `flow.md`: admin สร้าง user → (admin/academic) สร้างหลักสูตร/รายวิชา → academic สร้าง term/เปิดสอน → head/instructor จัดการเอกสาร
 
 ## Quick Start (Dev)
-> แนะนำให้รันทุกคำสั่งจาก root ของโปรเจกต์ (โฟลเดอร์เดียวกับ `app.py`) เพื่อให้ path ของ SQLite ถูกต้อง
+> แนะนำให้รันทุกคำสั่งจาก root ของโปรเจกต์ (โฟลเดอร์เดียวกับ `app.py`)
 
 ### 1) สร้าง virtualenv และติดตั้ง dependencies
 ```bash
@@ -39,19 +39,19 @@ PORT=5001
 - `PORT`: ค่า default ในโค้ดคือ `5001`
 
 ### 3) สร้าง DB และ seed ข้อมูลเริ่มต้น
-มี 2 วิธีหลัก:
+ก่อน seed ให้เตรียม credential สำหรับ Firestore:
+- ตั้งค่า `GOOGLE_APPLICATION_CREDENTIALS` ให้ชี้ไปที่ service account JSON หรือ
+- ใช้ไฟล์ที่อยู่ใน `instance/qualificationsframework-34219c0bd960.json`
 
-**วิธี A: ใช้ Flask CLI (แนะนำสำหรับ reset+seed แบบครบชุด)**
+Seed ผู้ใช้ขั้นต่ำสำหรับ login:
 ```bash
-flask --app app init-db
+python -m flask --app app seed-firestore
 ```
-คำสั่งนี้จะ `drop_all()` + `create_all()` และ seed ข้อมูลจาก `seed_data.py`
 
-**วิธี B: seed ด้วยสคริปต์โดยตรง**
+ถ้าต้องการ seed ข้อมูลตัวอย่างเพิ่ม (เช่น course/term/section + ผู้ใช้ตัวอย่าง):
 ```bash
 python seed_data.py
 ```
-สคริปต์จะ `create_all()` และ seed ข้อมูลตัวอย่าง
 
 ### 4) รันแอป
 ```bash
@@ -61,13 +61,14 @@ python app.py
 - http://localhost:5001
 
 ## Default Users (จาก seed_data.py)
-เมื่อใช้ `seed_data.py` หรือ `flask --app app init-db` จะได้ผู้ใช้ตัวอย่าง:
-- `admin` / `admin123` (role: admin)
-- `academic1` / `academic123` (role: academic)
-- `head1` / `head123` (role: head)
-- `instructor1` / `pass123` (role: instructor)
+ค่าเริ่มต้นที่แนะนำ (จาก `seed-firestore`):
+- `admin` / `password`
+- `academic` / `password`
 
-> หมายเหตุ: `clean_db.py` จะสร้างผู้ใช้ `admin/password` และ `academic/password` แบบ minimal สำหรับกรณีล้างข้อมูล
+ถ้ารัน `seed_data.py` เพิ่ม จะได้ผู้ใช้ตัวอย่าง:
+- `academic1` / `academic123`
+- `head1` / `head123`
+- `instructor1` / `pass123`
 
 ## การเพิ่มรายวิชาเข้า DB
 - เพิ่มแบบ manual ได้ที่หน้า **Admin → Courses**
@@ -89,22 +90,34 @@ python verify_seed.py
 ```
 
 ## Dev Utilities
-- `clean_db.py`: ล้างข้อมูลตารางหลัก ๆ และสร้าง user ขั้นต่ำเพื่อ login ได้
+- `clean_db.py`: ล้างข้อมูล collection หลัก ๆ และสร้าง user ขั้นต่ำเพื่อ login ได้
 - `check_program.py`: ตรวจความสัมพันธ์ program → courses/users/sections สำหรับ `Computer Science`
+- `purge_curriculum_uploads.py`: ลบข้อมูลเก่าใน collection `curriculum_uploads` (ค่าเริ่มต้นเป็น dry-run)
+
+ตัวอย่าง:
+```bash
+# ดูจำนวนที่จะลบ (ไม่ลบจริง)
+python purge_curriculum_uploads.py --limit 5
+
+# ลบทั้งหมด (ลบจริง)
+python purge_curriculum_uploads.py --all --yes
+
+# ลบเฉพาะก่อนวันที่กำหนด
+python purge_curriculum_uploads.py --before 2026-01-01 --yes
+```
 
 ## Database Notes
-- DB ใช้ SQLite และถูกตั้งค่าใน `app.py` เป็น:
-  - `sqlite:///tqf_system.db`
-- ไฟล์ DB จะถูกสร้างใน working directory ที่รันโปรแกรม (แนะนำให้รันจาก root โปรเจกต์เสมอ)
+- DB ใช้ Firestore ผ่าน Firebase Admin SDK
+- ตั้งค่า credential ด้วย `GOOGLE_APPLICATION_CREDENTIALS` หรือใช้ไฟล์ใน `instance/`
 
 ## โครงสร้างโฟลเดอร์สำคัญ
-- `app.py`: Flask app + routes + CLI command `init-db`
-- `models.py`: SQLAlchemy models (User, Course, Term, Section, TQF3, TQF5, Program, Faculty, Feedback)
+- `app.py`: Flask app + routes + CLI command `seed-firestore`
+- `models.py`: Firestore-backed models (User, Course, Term, Section, TQF3, TQF5, Program, Faculty, Feedback)
+- `firestore_db.py`: Firestore client initializer
 - `templates/`: UI ตามบทบาท (admin/academic/head/instructor)
 - `static/`: CSS/asset
 - `instance/`: ไฟล์ runtime บางส่วน (เช่น text/data)
 
 ## Troubleshooting
 - ถ้ารันแล้วหาแพ็กเกจไม่เจอ: ตรวจว่า activate venv แล้ว (`source .venv/bin/activate`)
-- ถ้า login ไม่ได้หลังล้าง DB: รัน `flask --app app init-db` เพื่อ reset และ seed ใหม่
-- ถ้า DB ไม่ถูกที่: ตรวจ working directory และดูว่ามีไฟล์ `tqf_system.db` อยู่ใน root โปรเจกต์หรือไม่
+- ถ้า Firestore เชื่อมต่อไม่ได้: ตรวจ `GOOGLE_APPLICATION_CREDENTIALS` หรือไฟล์ใน `instance/` และสิทธิ์โปรเจกต์

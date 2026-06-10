@@ -3,49 +3,53 @@
 {% block title %}บัญชีของฉัน - TQF System{% endblock %}
 
 {% block content %}
-<div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 2rem;">
+<div class="page-header">
     <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('dashboard') }}" style="color: var(--primary-color);">Dashboard</a> /
-            <span style="color: var(--text-muted);">บัญชีของฉัน</span>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> /
+            <span class="text-muted">บัญชีของฉัน</span>
         </nav>
         <h2>บัญชีของฉัน</h2>
-        <p style="color: var(--text-muted); margin: 0;">จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชี</p>
+        <p class="text-muted mb-0">จัดการข้อมูลส่วนตัวและความปลอดภัยของบัญชี</p>
     </div>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary" style="color: var(--text-muted);">กลับไป Dashboard</a>
 </div>
 
-<div style="display:grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items:start;">
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1rem; font-size: 1.15rem;">ข้อมูลบัญชี</h3>
-        <div style="display:grid; gap: 0.5rem; color: var(--text-muted);">
-            <div><strong style="color: var(--text-color);">ชื่อผู้ใช้:</strong> <span style="font-family: monospace;">{{ current_user.username }}</span></div>
-            <div><strong style="color: var(--text-color);">ชื่อ-นามสกุล:</strong> {{ current_user.full_name }}</div>
-            <div><strong style="color: var(--text-color);">บทบาทที่มี:</strong>
-                {% for r in current_user.role_names() %}
-                <span class="status-badge" style="margin-left: 0.5rem;">{{ r|upper }}</span>
-                {% endfor %}
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem">
+    <div class="glass glass-card">
+        <h3 class="mb-2 text-muted">ข้อมูลบัญชี</h3>
+        <div class="info-stack">
+            <div><strong>ชื่อผู้ใช้:</strong> <span class="text-mono">{{ current_user.username }}</span></div>
+            <div><strong>ชื่อ-นามสกุล:</strong> {{ current_user.full_name }}</div>
+            <div>
+                <strong>สถานะ:</strong>
+                <div class="mt-2">
+                    <span class="badge-list">
+                        {% for r in current_user.role_names() %}
+                        <span class="status-badge role-{{ r }}">{{ r|upper }}</span>
+                        {% endfor %}
+                    </span>
+                </div>
             </div>
         </div>
     </div>
+    <div class="glass glass-card">
+        <h3 class="mb-2 text-muted text-center">ความปลอดภัย</h3>
+        <div class="form-note mb-2 text-center">จัดการรหัสผ่านสำหรับเข้าสู่ระบบ</div>
+        <div style="max-width: 140px; margin: 0 auto;">
+            <button type="button" class="btn btn-primary" onclick="openChangePasswordModal()">เปลี่ยนรหัสผ่าน</button>
 
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1rem; font-size: 1.15rem;">ความปลอดภัย</h3>
-        <p style="color: var(--text-muted); margin-bottom: 1rem;">จัดการรหัสผ่านสำหรับเข้าสู่ระบบ</p>
-
-        <button type="button" class="btn btn-primary" onclick="openChangePasswordModal()">เปลี่ยนรหัสผ่าน</button>
-        <div style="margin-top: 0.75rem; color: var(--text-muted); font-size: 0.8125rem;">
-            แนะนำให้ตั้งรหัสผ่านอย่างน้อย 6 ตัวอักษร
         </div>
+        <div class="form-note mt-2 text-center">แนะนำให้ตั้งรหัสผ่านอย่างน้อย 5 ตัวอักษร</div>
     </div>
+
 </div>
 
 <!-- Change Password Modal -->
-<div id="changePasswordModal" class="modal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
-    <div class="glass" style="max-width: 520px; margin: 8vh auto; padding: 2rem; border-radius: 1.5rem;">
-        <div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-            <h3 style="margin:0; font-size: 1.15rem;">เปลี่ยนรหัสผ่าน</h3>
-            <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()" style="padding: 0.25rem 0.75rem; color: var(--text-muted);">ปิด</button>
+<div id="changePasswordModal" class="modal">
+    <div class="glass glass-card modal-panel">
+        <div class="flex-between mb-1">
+            <h3 class="mb-0">เปลี่ยนรหัสผ่าน</h3>
+            <button type="button" class="modal-close-btn" onclick="closeChangePasswordModal()"><span class="material-symbols-rounded">close</span></button>
         </div>
 
         <form method="POST">
@@ -61,8 +65,8 @@
                 <label>ยืนยันรหัสผ่านใหม่</label>
                 <input type="password" name="confirm_password" class="form-control" required autocomplete="new-password">
             </div>
-            <div style="display:flex; gap: 0.75rem; justify-content: flex-end;">
-                <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()" style="color: var(--text-muted);">ยกเลิก</button>
+            <div class="flex-end">
+                <button type="button" class="btn btn-secondary" onclick="closeChangePasswordModal()">ยกเลิก</button>
                 <button type="submit" class="btn btn-primary">บันทึก</button>
             </div>
         </form>
@@ -74,7 +78,7 @@
 <script>
     function openChangePasswordModal() {
         const modal = document.getElementById('changePasswordModal');
-        if (modal) modal.style.display = 'block';
+        if (modal) modal.style.display = 'flex';
     }
 
     function closeChangePasswordModal() {

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}รวม มคอ. ของเทอม {{ term.semester }}/{{ term.year }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('head_dashboard', term_id=term.id) }}">Dashboard</a>
+        </nav>
+        <h2>รวม มคอ. ตามเทอม (สำหรับหัวหน้าสาขา)</h2>
+        <p class="text-muted">เทอม {{ term.semester }}/{{ term.year }}</p>
+    </div>
+    <a href="{{ url_for('head_tqf5_summary', term_id=term.id) }}" class="btn btn-secondary">{{ '' if summary else 'สร้าง' }} สรุป มคอ.5</a>
+</div>
+
+<div class="stat-grid stat-grid-compact">
+    <div class="glass stat-card">
+        <div class="stat-label">รายวิชาทั้งหมด</div>
+        <div class="stat-value">{{ stats.total }}</div>
+    </div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.3 (ส่งแล้ว)</div>
+        <div class="stat-value text-primary">{{ stats.tqf3_submitted }}</div>
+    </div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.5 (ส่งแล้ว)</div>
+        <div class="stat-value text-primary">{{ stats.tqf5_submitted }}</div>
+    </div>
+</div>
+
+<div class="glass panel">
+    <div class="table-wrapper">
+        <table class="data-table">
+
+            <colgroup>
+                <col style="width: 40%;">
+                <col style="width: 30%;">
+                <col style="width: 15%;">
+                <col style="width: 15%;">
+               
+            </colgroup>
+
+            <thead>
+                <tr>
+                    <th>รายวิชา / กลุ่ม</th>
+                    <th>อาจารย์ผู้สอน</th>
+                    <th class="text-right">มคอ.3</th>
+                    <th class="text-right">มคอ.5</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for section in sections %}
+                <tr>
+                    <td class="table-t">
+                        <div class="text-table">{{ section.course.code if section.course else '' }} {{ (section.course.name_th if section.course else '') | thai_wrap }}</div>
+                        <div class="text-muted text-xs">Section {{ section.section_number }}</div>
+                    </td>
+                    <td class="table-t">
+                        {% if section.instructor %}
+                        <div class="text-table">{{ section.instructor.full_name }}</div>
+                        {% else %}
+                        <span class="text-muted text-xs">ยังไม่มอบหมายผู้สอน</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% set spec_doc = section.tqf4 if section.is_field else section.tqf3 %}
+                        {% set spec_type = 'tqf4' if section.is_field else 'tqf3' %}
+                        {% if spec_doc %}
+                        {% set s = spec_doc.status %}
+                        <div class="mb-2">
+                            {% if section.is_field %}<span class="text-muted text-xs">มคอ.4</span><br>{% endif %}
+                            {% if s in ['SUBMITTED', 'APPROVED'] %}
+                            <a href="{{ url_for('review_tqf', tqf_type=spec_type, tqf_id=spec_doc.id) }}">
+                            <span class="status-badge status-submitted">รอตรวจสอบ</span></a>
+                            {% else %}
+                            <a href="{{ url_for('review_tqf', tqf_type=spec_type, tqf_id=spec_doc.id) }}">
+                            <span class="status-badge role-instructor">ร่าง</span></a>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted text-xs">-{% if section.is_field %} (มคอ.4){% endif %}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-right">
+                        {% if section.tqf5 %}
+                        {% set s = section.tqf5.status %}
+                        <div class="mb-2">
+                            {% if s in ['SUBMITTED', 'APPROVED'] %}
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}">
+                            <span class="status-badge status-submitted">รอตรวจสอบ</span></a>
+                            {% else %}
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}">
+                            <span class="status-badge role-instructor">ร่าง</span></a>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <span class="text-muted text-xs">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4" class="empty-state text-center text-muted">ยังไม่มีรายวิชาเปิดสอนในเทอมนี้</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

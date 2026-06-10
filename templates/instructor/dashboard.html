@@ -1,110 +1,171 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard อาจารย์ - TQF System{% endblock %}
+{% block title %}หน้าหลักอาจารย์ผู้สอน{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h2>ยินดีต้อนรับ, {{ current_user.full_name }}</h2>
-    <p style="color: var(--text-muted);">รายวิชาที่คุณรับผิดชอบในทุกภาคการศึกษา</p>
-</div>
-
-<div class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
-    <div style="display:flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-        <h3 style="margin: 0; font-size: 1.25rem;">รายการวิชาที่สอน</h3>
-        <form method="GET" action="{{ url_for('instructor_dashboard') }}" style="display:flex; gap: 0.5rem; align-items: center;">
-            <label style="color: var(--text-muted); font-size: 0.875rem;">ภาคการศึกษา</label>
-            <select name="term_id" class="form-control" style="height: 2.25rem; padding: 0.25rem 0.5rem; min-width: 200px;">
+{% set status_label_map = {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'} %}
+{% set status_badge_map = {'APPROVED': 'status-approved', 'SUBMITTED': 'status-submitted', 'RETURNED': 'status-returned', 'DRAFT': 'role-instructor'} %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a> /
+            <span class="text-muted">สรุปหน้าที่ของฉัน</span>
+        </nav>
+        <h2>ผู้สอน : {{ current_user.full_name or current_user.username }}</h2>
+        <p class="text-muted mt-2">จัดทำ มคอ.3 และ มคอ.5 ที่ได้รับมอบหมาย</p>
+    </div>
+    <div class="inline-actions">
+        <form method="GET" action="{{ url_for('instructor_dashboard') }}" class="filter-form">
+            <label class="text-muted mb-0">ปีการศึกษา</label>
+            <select name="term_id" class="form-control select-inline min-220" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
                 <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
                 {% endfor %}
             </select>
-            <button type="submit" class="btn btn-secondary" style="padding: 0.35rem 0.9rem; color: var(--text-muted);">แสดง</button>
         </form>
     </div>
-
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                    <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
-                    <th style="padding: 1rem;">สถานะการเปิดกรอก</th>
-                    <th style="padding: 1rem;">การดำเนินการ มคอ.3</th>
-                    <th style="padding: 1rem;">การดำเนินการ มคอ.5</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for section in sections %}
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 1rem;">
-                        <div style="font-weight: bold;">{{ section.course.code }} {{ section.course.name_th }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}
-                            | {{ section.term.semester }}/{{ section.term.year }}</div>
-                    </td>
-                    <td style="padding: 1rem;">
-                        {% if section.is_open %}
-                        <span class="status-badge"
-                            style="background: rgba(16, 185, 129, 0.1); color: var(--accent-success);">🟢
-                            เปิดให้บันทึกข้อมูลแล้ว</span>
-                        {% else %}
-                        <span class="status-badge"
-                            style="background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);">🔒
-                            ยังไม่เปิดให้เข้าทำ</span>
-                        {% endif %}
-                    </td>
-
-                    <!-- TQF3 Action -->
-                    <td style="padding: 1rem;">
-                        {% if section.is_open %}
-                        <div style="margin-bottom: 0.5rem;">
-                            <span class="status-badge" style="
-                                    {% if section.tqf3 and section.tqf3.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                                    {% elif section.tqf3 and section.tqf3.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                                    {% elif section.tqf3 and section.tqf3.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-                                ">{{ section.tqf3.status if section.tqf3 else 'DRAFT' }}</span>
-                        </div>
-                        <a href="{{ url_for('edit_tqf3', section_id=section.id) }}"
-                            class="btn {% if section.tqf3 and section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}glass{% else %}btn-primary{% endif %}"
-                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            {% if section.tqf3 and section.tqf3.status in ['SUBMITTED', 'APPROVED'] %}👁️ ดูรายละเอียด{%
-                            else %}📝 บันทึกข้อมูล{% endif %}
-                        </a>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอผู้ดูแลเปิดให้กรอกข้อมูล</span>
-                        {% endif %}
-                    </td>
-
-                    <!-- TQF5 Action -->
-                    <td style="padding: 1rem;">
-                        {% if section.is_open %}
-                        <div style="margin-bottom: 0.5rem;">
-                            <span class="status-badge" style="
-                                    {% if section.tqf5 and section.tqf5.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                                    {% elif section.tqf5 and section.tqf5.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                                    {% elif section.tqf5 and section.tqf5.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-                                ">{{ section.tqf5.status if section.tqf5 else 'DRAFT' }}</span>
-                        </div>
-                        <a href="{{ url_for('edit_tqf5', section_id=section.id) }}"
-                            class="btn {% if section.tqf5 and section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}glass{% else %}btn-primary{% endif %}"
-                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            {% if section.tqf5 and section.tqf5.status in ['SUBMITTED', 'APPROVED'] %}👁️ ดูรายละเอียด{%
-                            else %}📝 บันทึกข้อมูล{% endif %}
-                        </a>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.8125rem;">รอผู้ดูแลเปิดให้กรอกข้อมูล</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="4" style="padding: 3rem; text-align: center; color: var(--text-muted);">
-                        ไม่พบรายวิชาที่คุณรับผิดชอบในขณะนี้</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 </div>
+
+{% if grouped_by_term %}
+    {% for group in grouped_by_term %}
+    <div class="glass panel mb-4"
+         data-term-id="{{ group.term.id }}"
+         data-tqf3="{{ 'true' if group.tqf3_open else 'false' }}"
+         data-tqf5="{{ 'true' if group.tqf5_open else 'false' }}">
+
+        <!-- Term Header with Status -->
+        <div class="flex-between flex-wrap mb-3">
+            <div>
+                <h3 class="mb-0">เทอม {{ group.term.semester }}/{{ group.term.year }}</h3>
+            </div>
+            <div class="badge-list flex-wrap" style="gap: 0.5rem;">
+                <span class="status-badge {{ 'status-approved' if group.tqf3_open else 'status-returned' }}">
+                    มคอ.3: {{ 'เปิด' if group.tqf3_open else 'ปิด' }}
+                </span>
+                <span class="status-badge {{ 'status-approved' if group.tqf5_open else 'status-returned' }}">
+                    มคอ.5: {{ 'เปิด' if group.tqf5_open else 'ปิด' }}
+                </span>
+                {% if not group.tqf3_open and not group.tqf5_open %}
+                <span class="text-muted text-xs" style="align-self: center;">ฝ่ายวิชาการยังไม่เปิดให้กรอก</span>
+                {% elif not group.tqf3_open %}
+                <span class="text-muted text-xs" style="align-self: center;">มคอ.3 ยังไม่เปิด</span>
+                {% elif not group.tqf5_open %}
+                <span class="text-muted text-xs" style="align-self: center;">มคอ.5 ยังไม่เปิด</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="data-table">
+                <colgroup>
+                    <col style="width: 70%;">
+                    <col style="width: 15%;">
+                    <col style="width: 15%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>รายวิชา / กลุ่ม</th>
+                        <th class="text-center">มคอ.3 / 4</th>
+                        <th class="text-center">มคอ.5</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for section in group.sections %}
+                    <tr>
+                        <td class="table-t">
+                            <div class="text-table">{{ section.course.code if section.course else '' }} {{ (section.course.name_th if section.course else '') | thai_wrap }}</div>
+                            <div class="text-muted text-xs">Section {{ section.section_number }}</div>
+                        </td>
+                        <td class="text-center table-t">
+                            {% if section.is_field %}
+                            {% set spec_doc = section.tqf4 %}
+                            {% set spec_route = 'edit_tqf4' %}
+                            {% set spec_label = 'มคอ.4' %}
+                            {% else %}
+                            {% set spec_doc = section.tqf3 %}
+                            {% set spec_route = 'edit_tqf3' %}
+                            {% set spec_label = 'มคอ.3' %}
+                            {% endif %}
+                            {% set s = (spec_doc.status if spec_doc else None) or 'DRAFT' %}
+                            <div class="status-action-stack">
+                                {% if section.is_field %}
+                                <div class="text-muted text-xs">{{ spec_label }}</div>
+                                {% endif %}
+                                <a href="{{ url_for(spec_route, section_id=section.id) }}"
+                                   class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if spec_doc else 'role-instructor' }}{% if not group.tqf3_open %} is-disabled{% endif %}"
+                                   title="แก้ไข {{ spec_label }}"
+                                   {% if not group.tqf3_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
+                                    {{ status_label_map.get(s, s) if spec_doc else 'เริ่มกรอก' }}
+                                </a>
+                                {% if spec_doc and spec_doc.submitted_at %}
+                                <div class="text-muted text-xs">ส่งเมื่อ {{ spec_doc.submitted_at.strftime('%d/%m/%Y') }}</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="text-center table-t">
+                            {% set s = (section.tqf5.status if section.tqf5 else None) or 'DRAFT' %}
+                            <div class="status-action-stack">
+                                <a href="{{ url_for('edit_tqf5', section_id=section.id) }}"
+                                   class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if section.tqf5 else 'role-instructor' }}{% if not group.tqf5_open %} is-disabled{% endif %}"
+                                   title="แก้ไข มคอ.5"
+                                   {% if not group.tqf5_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
+                                    {{ status_label_map.get(s, s) if section.tqf5 else 'เริ่มกรอก' }}
+                                </a>
+                                {% if section.tqf5 and section.tqf5.submitted_at %}
+                                <div class="text-muted text-xs">ส่งเมื่อ {{ section.tqf5.submitted_at.strftime('%d/%m/%Y') }}</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="empty-state text-center text-muted">ไม่มีรายวิชาในเทอมนี้</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ยังไม่มีรายวิชาที่ได้รับมอบหมาย หรือยังไม่ได้สร้างเทอม</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var initial = {};
+    document.querySelectorAll('[data-term-id]').forEach(function (el) {
+        initial[el.dataset.termId] = {
+            tqf3: el.dataset.tqf3 === 'true',
+            tqf5: el.dataset.tqf5 === 'true'
+        };
+    });
+    if (!Object.keys(initial).length) return;
+
+    function poll() {
+        fetch('/api/term-statuses')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var changed = false;
+                for (var id in initial) {
+                    var curr = data[id];
+                    if (!curr) continue;
+                    if (curr.tqf3 !== initial[id].tqf3 || curr.tqf5 !== initial[id].tqf5) {
+                        changed = true;
+                        break;
+                    }
+                }
+                if (changed) { window.location.reload(); }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(poll, 30000);
+}());
+</script>
 {% endblock %}

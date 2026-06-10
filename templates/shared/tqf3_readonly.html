@@ -1,0 +1,381 @@
+{# Read-only view of TQF3 — strictly mirrors the official layout in
+   format_tqf_new/10042569 ปรับปรุง มคอ 3 เกณฑ์ 65.docx
+   Section order, headings, table columns, notes and labels follow that document. #}
+
+<div class="glass glass-card">
+    <h3 class="mb-6 text-primary">ข้อมูลฉบับเต็ม (อ่านอย่างเดียว)</h3>
+
+    {% set general = tqf3.general_info or {} %}
+    {% set course = section.course if section and section.course else None %}
+    {% set term = section.term if section and section.term else None %}
+    {% set _prog = course.program if course else None %}
+    {% set _fac = _prog.faculty if _prog else None %}
+
+    <!-- ข้อมูลรายวิชา -->
+    <div class="qtf-card">
+        <h3>ข้อมูลรายวิชา</h3>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>รหัสวิชา:</h5></span>
+            <span>{{ general.get('course_code', course.code if course else '-') }}</span>
+            <span class="text-muted"><h5>ชื่อวิชา:</h5></span>
+            <span>{{ general.get('course_name', course.name_th if course else '-') | thai_wrap }}</span>
+            <span class="text-muted"><h5>จำนวนหน่วยกิต:</h5></span>
+            <span>{{ general.get('credits', course.credits if course else '-') }}</span>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>สถานภาพของวิชา:</h5></span>
+            <span>{{ general.get('course_status', '-') }}</span>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>รายวิชาสังกัดคณะ:</h5></span>
+            <span>{{ (general.get('faculty') or (_fac.name if _fac else '-')) | thai_wrap }}</span>
+            <span class="text-muted"><h5>หลักสูตร:</h5></span>
+            <span>{{ (general.get('program') or (_prog.name if _prog else '-')) | thai_wrap }}</span>
+            <span class="text-muted"><h5>วิชาเอก:</h5></span>
+            <span>{{ general.get('major', '-') }}</span>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>คำอธิบายรายวิชา:</h5></span>
+            <div class="preserve-text">{{ general.get('description', course.description if course else '-') }}</div>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>รายวิชาที่บังคับเรียนก่อน (Pre-requisite) (ถ้ามี):</h5></span>
+            <span>{{ general.get('prereq', '-') }}</span>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>ภาคการศึกษา / ปีการศึกษา:</h5></span>
+            <span>{{ general.get('semester', term.semester if term else '-') }} / {{ general.get('academic_year', term.year if term else '-') }}</span>
+            <span class="text-muted"><h5>ประเภทนักศึกษา:</h5></span>
+            <span>{{ general.get('student_type', '-') }}</span>
+            <span class="text-muted"><h5>ชั้นปีที่:</h5></span>
+            <span>{{ general.get('year_level', '-') }}</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 40% 30% 30%; gap: 16px; align-items: start;" class="mt-2">
+            <div>
+                <span class="text-muted"><h5>อาจารย์ผู้สอน:</h5></span>
+                <span>{{ general.get('instructor', section.instructor.full_name if section and section.instructor else '-') }}</span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ห้องพัก:</h5></span>
+                <span>{{ general.get('office', '-') }}</span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>โทรศัพท์:</h5></span>
+                <span>{{ general.get('phone', '-') }}</span>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 33% 33% 34%; gap: 16px; align-items: start;" class="mt-2">
+            <div>
+                <span class="text-muted"><h5>ห้องเรียน:</h5></span>
+                <span>{{ general.get('location', general.get('location_type', '-')) }}</span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ระบบออนไลน์:</h5></span>
+                <span>{{ general.get('online_system', '-') }}</span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>กรณีเรียนภายนอกมหาวิทยาลัย:</h5></span>
+                <span>{{ general.get('external_location', '-') }}</span>
+            </div>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>วันที่จัดทำหรือปรับปรุงประมวลการสอนหรือแผนการจัดการเรียนรู้ครั้งล่าสุด:</h5></span>
+            <span>{{ general.get('last_updated', '-') }}</span>
+        </div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (Program Learning Outcomes: PLOs) ที่เกี่ยวข้องกับรายวิชา:</h5></span>
+            <div class="preserve-text">{{ general.get('plos', '-') }}</div>
+        </div>
+
+        <div class="mt-2">
+            <span class="text-muted"><h5>จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs):</h5></span>
+            <div class="preserve-text">{{ general.get('course_objective', general.get('objectives', '-')) }}</div>
+        </div>
+
+        <div class="qtf-section-subtitle mt-3">จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)</div>
+        <div style="display: grid; grid-template-columns: 33% 33% 34%; gap: 16px; align-items: start;" class="mt-2">
+            <div>
+                <span class="text-muted"><h5>จำนวนชั่วโมงบรรยาย:</h5></span>
+                <span>{{ general.get('lecture_hours', '-') }}</span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ชั่วโมงฝึกปฏิบัติ/ภาคสนาม/การฝึกงาน:</h5></span>
+                <span>{{ general.get('lab_hours', '-') }}</span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>ชั่วโมงการศึกษาด้วยตนเอง:</h5></span>
+                <span>{{ general.get('self_hours', '-') }}</span>
+            </div>
+        </div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>จำนวนชั่วโมงต่อสัปดาห์ที่จะให้คำปรึกษาและแนะนำทางวิชาการแก่นักศึกษา / ช่องทางการติดต่ออาจารย์ผู้สอน:</h5></span>
+            <span>{{ general.get('consult_hours', '-') }}</span>
+            <div class="preserve-text">{{ general.get('hours_note', '-') }}</div>
+        </div>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน (กรณีอุทธรณ์ผลคะแนนระหว่างภาคและคะแนนสอบกลางภาค):</h5></span>
+            <div class="preserve-text">{{ general.get('appeal_channel', '-') }}</div>
+        </div>
+    </div>
+
+    <!-- การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง -->
+    <div class="qtf-card">
+        <h3>การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</h3>
+        {% set clo_texts = general.get('clo_text[]', []) %}
+        {% if clo_texts|length == 0 %}
+            {% set clo_texts = general.get('clo_desc[]', []) %}
+        {% endif %}
+        {% set teachs = general.get('teach_strategy[]', []) %}
+        {% set criterias = general.get('assess_criteria[]', []) %}
+        {% set assesses = general.get('assess_strategy[]', []) %}
+
+        {% if clo_texts|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+            <div class="qtf-table-wrapper">
+                <table class="qtf-table min-900">
+                    <thead>
+                        <tr>
+                            <th class="col-28p">ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)</th>
+                            <th class="col-24p">กลยุทธ์การสอนตาม CLOs</th>
+                            <th class="col-24p">เกณฑ์การวัดและการประเมินผล</th>
+                            <th class="col-24p">วิธีการวัดและประเมินผลตาม CLOs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(clo_texts|length) %}
+                        <tr>
+                            <td class="preserve-text">{{ clo_texts[i] or '-' }}</td>
+                            <td class="preserve-text">{{ teachs[i] if i < teachs|length else '-' }}</td>
+                            <td class="preserve-text">{{ criterias[i] if i < criterias|length else '-' }}</td>
+                            <td class="preserve-text">{{ assesses[i] if i < assesses|length else '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <div class="qtf-note mt-2">หมายเหตุ : ให้ระบุรายละเอียดของ CLOs, PLOs และกลยุทธ์การสอน วิธีการวัดประเมินผลที่สอดคล้องตามเล่มหลักสูตรกำหนด ในกรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้นำ TQF เดิมที่กำหนดในหลักสูตร (มคอ 2) มาใช้ไปพรางก่อน</div>
+    </div>
+
+    <!-- แผนการจัดการเรียนรู้ -->
+    <div class="qtf-card">
+        <h3>แผนการจัดการเรียนรู้</h3>
+        {% set weeks = general.get('week[]', []) %}
+        {% set topics = general.get('topic[]', []) %}
+        {% set week_clos = general.get('week_clo[]', []) %}
+        {% set hours = general.get('hours[]', []) %}
+        {% set activities = general.get('activities[]', []) %}
+        {% set medias = general.get('media[]', []) %}
+        {% set teachers = general.get('teacher[]', []) %}
+
+        {% if topics|length == 0 %}
+            {% set topics = general.get('plan_topic[]', []) %}
+            {% set week_clos = general.get('plan_clo[]', []) %}
+            {% set medias = general.get('plan_media[]', []) %}
+        {% endif %}
+
+        {% if topics|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+            <div class="qtf-table-wrapper">
+                <table class="qtf-table min-900">
+                    <thead>
+                        <tr>
+                            <th class="col-90">สัปดาห์ที่</th>
+                            <th class="min-260">หัวข้อ / รายละเอียด</th>
+                            <th class="col-140">Lesson Learning Outcome : LLOs</th>
+                            <th class="col-110">จำนวนชั่วโมง</th>
+                            <th class="min-260">กิจกรรมการเรียนการสอน สื่อที่ใช้ (ถ้ามี)</th>
+                            <th class="col-140">ผู้สอน</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% set plan_lectures = general.get('plan_lecture[]', []) %}
+                        {% set plan_practices = general.get('plan_practice[]', []) %}
+
+                        {% for i in range(topics|length) %}
+                        {% set wk = weeks[i] if i < weeks|length and (weeks[i]|string)|trim else (i + 1) %}
+                        {% set hr = hours[i] if i < hours|length else '' %}
+                        {% if (hr|string)|trim == '' and (plan_lectures|length > 0 or plan_practices|length > 0) %}
+                            {% set lec = (plan_lectures[i] if i < plan_lectures|length else 0)|float %}
+                            {% set prac = (plan_practices[i] if i < plan_practices|length else 0)|float %}
+                            {% set total = lec + prac %}
+                            {% set hr = total if total > 0 else '' %}
+                        {% endif %}
+                        {% set act = activities[i] if i < activities|length and (activities[i]|string)|trim else '' %}
+                        {% set med = medias[i] if i < medias|length and (medias[i]|string)|trim else '' %}
+                        <tr>
+                            <td>{{ wk }}</td>
+                            <td class="preserve-text">{{ topics[i] or '-' }}</td>
+                            <td class="preserve-text">{{ week_clos[i] if i < week_clos|length else '-' }}</td>
+                            <td>{{ hr if (hr|string)|trim else '-' }}</td>
+                            <td class="preserve-text">{% if act %}{{ act }}{% endif %}{% if med %}{% if act %}
+{% endif %}สื่อที่ใช้: {{ med }}{% endif %}{% if not act and not med %}-{% endif %}</td>
+                            <td class="preserve-text">{{ teachers[i] if i < teachers|length and (teachers[i]|string)|trim else '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- วิธีจัดการเรียนการสอน -->
+    <div class="qtf-card">
+        <h3>วิธีจัดการเรียนการสอน</h3>
+
+        <div style="display: grid; grid-template-columns: 33% 33% 34%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>การบรรยาย (ร้อยละของเวลาทั้งหมด):</h5></span>
+                <span> {{ general.get('pct_lecture', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>การบรรยายเชิงอภิปราย (ร้อยละ):</h5></span>
+                <span> {{ general.get('pct_discussion', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>กรณีศึกษา (ร้อยละ):</h5></span>
+                <span> {{ general.get('pct_case', '-') }} </span>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 33% 33% 34%; gap: 16px; align-items: start;" class="mt-3">
+            <div>
+                <span class="text-muted"><h5>การฝึกปฏิบัติ (ร้อยละ):</h5></span>
+                <span> {{ general.get('pct_practice', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>กิจกรรมกลุ่ม (ร้อยละ):</h5></span>
+                <span> {{ general.get('pct_group', '-') }} </span>
+            </div>
+            <div>
+                <span class="text-muted"><h5>อื่นๆ (ร้อยละ):</h5></span>
+                <span> {{ general.get('pct_other', '-') }} </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา -->
+    <div class="qtf-card">
+        <h3>แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา</h3>
+
+        {% set a_clo = general.get('assess_clo[]', []) %}
+        {% set a_act = general.get('assess_activity[]', general.get('assess_method[]', [])) %}
+        {% set a_crit = general.get('assess_plan_criteria[]', []) %}
+        {% set a_pct = general.get('assess_pct[]', general.get('assess_ratio[]', [])) %}
+
+        {% if a_clo|length == 0 %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+            <div class="qtf-table-wrapper">
+                <table class="qtf-table min-900">
+                    <thead>
+                        <tr>
+                            <th class="min-240">ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)</th>
+                            <th class="min-240">กิจกรรมการจัดการเรียนรู้ของผู้เรียน</th>
+                            <th class="min-240">เกณฑ์การประเมินผลลัพธ์การเรียนรู้ระดับรายวิชา</th>
+                            <th class="col-140">สัดส่วนของการประเมินผล</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(a_clo|length) %}
+                        <tr>
+                            <td class="preserve-text">{{ a_clo[i] or '-' }}</td>
+                            <td class="preserve-text">{{ a_act[i] if i < a_act|length else '-' }}</td>
+                            <td class="preserve-text">{{ a_crit[i] if i < a_crit|length else '-' }}</td>
+                            <td>{{ a_pct[i] if i < a_pct|length else '-' }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <div class="qtf-note mt-2">หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
+    </div>
+
+    <!-- เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้ (Rubric Score) -->
+    <div class="qtf-card">
+        <h3>เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้ (Rubric Score และเกณฑ์การตัดสินการบรรลุผลลัพธ์การเรียนรู้)</h3>
+        {% set r_topic = general.get('rubric_topic[]', []) %}
+        {% set r_l5 = general.get('rubric_l5[]', []) %}
+        {% set r_l4 = general.get('rubric_l4[]', []) %}
+        {% set r_l3 = general.get('rubric_l3[]', []) %}
+        {% set r_l2 = general.get('rubric_l2[]', []) %}
+        {% set r_l1 = general.get('rubric_l1[]', []) %}
+        {% set ns_r = namespace(has=false) %}
+        {% for i in range(r_topic|length) %}
+            {% if (r_topic[i]|string)|trim %}{% set ns_r.has = true %}{% endif %}
+        {% endfor %}
+        {% if not ns_r.has %}
+            <div class="text-muted">(ยังไม่มีข้อมูล)</div>
+        {% else %}
+            <div class="qtf-table-wrapper">
+                <table class="qtf-table min-900">
+                    <thead>
+                        <tr>
+                            <th class="col-22p">ประเด็นการประเมิน</th>
+                            <th>ระดับ 5</th>
+                            <th>ระดับ 4</th>
+                            <th>ระดับ 3</th>
+                            <th>ระดับ 2</th>
+                            <th>ระดับ 1</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(r_topic|length) %}
+                        {% if (r_topic[i]|string)|trim %}
+                        <tr>
+                            <td class="preserve-text">{{ r_topic[i] or '-' }}</td>
+                            <td class="preserve-text">{{ r_l5[i] if i < r_l5|length else '-' }}</td>
+                            <td class="preserve-text">{{ r_l4[i] if i < r_l4|length else '-' }}</td>
+                            <td class="preserve-text">{{ r_l3[i] if i < r_l3|length else '-' }}</td>
+                            <td class="preserve-text">{{ r_l2[i] if i < r_l2|length else '-' }}</td>
+                            <td class="preserve-text">{{ r_l1[i] if i < r_l1|length else '-' }}</td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        <div class="qtf-note mt-2">ควรแนบ Rubric Score ที่ใช้ประเมินงานที่สะท้อน CLOs โดยประเด็นการประเมินควรวัดพฤติกรรมบ่งชี้ ความรู้ ทักษะ จริยธรรม หรือคุณลักษณะที่ต้องการวัดให้ชัดเจน และควรมีความสอดคล้องและสะท้อนการบรรลุ CLOs</div>
+        <div class="qtf-note mt-1">หลักสูตรต้องกำหนด Rubric Score สำหรับใช้ประเมิน 1. ทักษะสื่อสาร 2. ทักษะการทำงานร่วมกัน 3. ทักษะด้านเทคโนโลยีดิจิทัล 4. ทักษะการคิดอย่างมีวิจารณญาณและการแก้ปัญหา 5. ความคิดสร้างสรรค์ 6. จิตสำนึกสาธารณะ ซึ่งผู้สอนสามารถนำมาปรับประยุกต์ใช้ได้อย่างเหมาะสม</div>
+    </div>
+
+    <!-- ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน (APA) -->
+    <div class="qtf-card">
+        <h3>ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน (เขียนตามแบบบรรณานุกรม APA)</h3>
+        <div class="preserve-text mt-3">{{ general.get('references', '-') }}</div>
+    </div>
+
+    <!-- การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา -->
+    <div class="qtf-card">
+        <h3>การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา</h3>
+
+        <div class="mt-3">
+            <span class="text-muted"><h5>1. กลยุทธ์การประเมินการจัดการเรียนการสอนของรายวิชา:</h5></span>
+            <div class="preserve-text">{{ general.get('course_eval_strategy', '-') }}</div>
+        </div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>2. การปรับปรุงการจัดการเรียนรู้ของรายวิชา:</h5></span>
+            <div class="preserve-text">{{ general.get('course_improve', general.get('improvement_strategy', '-')) }}</div>
+        </div>
+        <div class="mt-3">
+            <span class="text-muted"><h5>3. กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ทางการเรียน และผลลัพธ์การเรียนรู้ของนักศึกษา/ผู้เรียน:</h5></span>
+            <div class="preserve-text">{{ general.get('verification', '-') }}</div>
+        </div>
+    </div>
+</div>

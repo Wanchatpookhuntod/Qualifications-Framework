@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block title %}รายวิชา - TQF System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h2>รายวิชา{% if dept_name %} {{ dept_name }}{% endif %}</h2>
+        <p class="text-muted mb-0">มอบหมายผู้สอน และตรวจสอบ มคอ.</p>
+    </div>
+    <div class="inline-actions">
+        <form method="GET" action="{{ url_for('head_sections') }}" class="filter-form">
+            <label class="text-muted mb-0">ปีการศึกษา</label>
+            <select name="term_id" class="form-control select-inline min-200" onchange="this.form.submit()">
+                <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for t in terms %}
+                <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if grouped_by_term %}
+    {% for group in grouped_by_term %}
+    <form action="{{ url_for('assign_instructors_bulk') }}" method="POST">
+    <input type="hidden" name="next" value="{{ request.url }}">
+    <div class="glass panel mb-4"
+         data-term-id="{{ group.term.id }}"
+         data-tqf3="{{ 'true' if group.tqf3_open else 'false' }}"
+         data-tqf5="{{ 'true' if group.tqf5_open else 'false' }}">
+
+        <!-- Term Header with Status -->
+        <div class="flex-between flex-wrap mb-3">
+            <div class="flex-center-gap" style="gap: 1rem; flex-wrap: wrap;">
+                <h3 class="mb-0">เทอม {{ group.term.semester }}/{{ group.term.year }}</h3>
+                <div class="badge-list" style="gap: 0.4rem;">
+                    <span class="status-badge {{ 'status-approved' if group.tqf3_open else 'status-returned' }}">
+                        มคอ.3: {{ 'เปิด' if group.tqf3_open else 'ปิด' }}
+                    </span>
+                    <span class="status-badge {{ 'status-approved' if group.tqf5_open else 'status-returned' }}">
+                        มคอ.5: {{ 'เปิด' if group.tqf5_open else 'ปิด' }}
+                    </span>
+                </div>
+                {% if not group.tqf3_open and not group.tqf5_open %}
+                <span class="text-muted text-xs">ฝ่ายวิชาการยังไม่เปิดให้กรอก</span>
+                {% endif %}
+            </div>
+            <div class="inline-actions" style="flex-wrap: nowrap; align-items: stretch;">
+                <a class="btn btn-secondary btn-compact" style="white-space: nowrap; display: flex; align-items: center;" href="{{ url_for('head_term_documents', term_id=group.term.id) }}">มคอ. ทั้งหมด</a>
+                <a class="btn btn-secondary btn-compact" style="white-space: nowrap; display: flex; align-items: center;" href="{{ url_for('head_tqf5_summary', term_id=group.term.id) }}">สรุป มคอ.5</a>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="data-table" style="table-layout: fixed; width: 100%;">
+                <colgroup>
+                    <col style="width: 46%;">
+                    <col style="width: 36%;">
+                    <col style="width: 15%;">
+                    <col style="width: 15%;">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th>รายวิชา / กลุ่ม</th>
+                        <th style="text-align: center;">อาจารย์ผู้สอน</th>
+                        <th style="text-align: right;">มคอ. 3</th>
+                        <th style="text-align: right;">มคอ. 5</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for section in group.sections %}
+                    <tr>
+                        <td>
+                            <div class="text-table">{{ section.course.code }} {{ section.course.name_th | thai_wrap }}</div>
+                            <div class="text-muted text-xs">Section {{ section.section_number }}</div>
+                        </td>
+                        <td style="font-size:0.877rem;">
+                            <select name="instructor_{{ section.id }}" class="form-control">
+                                <option value="">-- รอการมอบหมาย --</option>
+                                {% for inst in instructors %}
+                                <option value="{{ inst.id }}" {% if section.instructor_id==inst.id %}selected{% endif %}>{{ inst.full_name }}</option>
+                                {% endfor %}
+                            </select>
+                        </td>
+                        {% set status_label_map = {'APPROVED': 'อนุมัติแล้ว', 'SUBMITTED': 'รอตรวจสอบ', 'RETURNED': 'ส่งคืน', 'DRAFT': 'ร่าง'} %}
+                        {% set status_badge_map = {'APPROVED': 'status-approved', 'SUBMITTED': 'status-submitted', 'RETURNED': 'status-returned', 'DRAFT': 'status-draft'} %}
+                        <td style="text-align: right;">
+                            {% set spec_doc = section.tqf4 if section.is_field else section.tqf3 %}
+                            {% set spec_type = 'tqf4' if section.is_field else 'tqf3' %}
+                            {% if spec_doc %}
+                            {% set s3 = spec_doc.status or 'DRAFT' %}
+                            <a href="{{ url_for('review_tqf', tqf_type=spec_type, tqf_id=spec_doc.id) }}" style="text-decoration: none;">
+                                {% if section.is_field %}<span class="text-muted text-xs">มคอ.4</span><br>{% endif %}
+                                <span class="status-badge {{ status_badge_map.get(s3, 'status-draft') }}">{{ status_label_map.get(s3, s3) }}</span>
+                            </a>
+                            {% else %}
+                            <span class="text-muted text-xs">รอดำเนินการ{% if section.is_field %} (มคอ.4){% endif %}</span>
+                            {% endif %}
+                        </td>
+                        <td style="text-align: right;">
+                            {% if section.tqf5 %}
+                            {% set s5 = section.tqf5.status or 'DRAFT' %}
+                            <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" style="text-decoration: none;">
+                                <span class="status-badge {{ status_badge_map.get(s5, 'status-draft') }}">{{ status_label_map.get(s5, s5) }}</span>
+                            </a>
+                            {% else %}
+                            <span class="text-muted text-xs">รอดำเนินการ</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="4" class="empty-state text-center text-muted">ไม่มีรายวิชาในเทอมนี้</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <button type="submit" class="btn btn-primary btn-compact mt-3" style="white-space: nowrap; width: auto; display: block; align-items: center;">บันทึก</button>
+
+        </div>
+    </div>
+
+    </form>
+    {% endfor %}
+{% else %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ไม่พบรายวิชาเปิดสอนในหลักสูตรของคุณ</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var initial = {};
+    document.querySelectorAll('[data-term-id]').forEach(function (el) {
+        initial[el.dataset.termId] = {
+            tqf3: el.dataset.tqf3 === 'true',
+            tqf5: el.dataset.tqf5 === 'true'
+        };
+    });
+    if (!Object.keys(initial).length) return;
+
+    function poll() {
+        fetch('/api/term-statuses')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var changed = false;
+                for (var id in initial) {
+                    var curr = data[id];
+                    if (!curr) continue;
+                    if (curr.tqf3 !== initial[id].tqf3 || curr.tqf5 !== initial[id].tqf5) {
+                        changed = true;
+                        break;
+                    }
+                }
+                if (changed) { window.location.reload(); }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(poll, 30000);
+}());
+</script>
+{% endblock %}

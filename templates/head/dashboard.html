@@ -3,110 +3,167 @@
 {% block title %}Dashboard หัวหน้าสาขา - TQF System{% endblock %}
 
 {% block content %}
-<div style="margin-bottom: 2rem;">
-    <h2>Dashboard หัวหน้าสาขา</h2>
-    <p style="color: var(--text-muted);">Step C & E: มอบหมายผู้สอน ตรวจสอบ และอนุมัติ มคอ.</p>
+<div class="page-header">
+    <div>
+        <h2>Dashboard หัวหน้าสาขา{% if dept_name %} {{ dept_name }}{% endif %}</h2>
+        <p class="text-muted mb-0">ภาพรวมรายวิชาและสถานะเอกสาร มคอ. ในหลักสูตรของคุณ</p>
+    </div>
+    <div class="inline-actions">
+        <form method="GET" action="{{ url_for('head_dashboard') }}" class="filter-form">
+            <label class="text-muted mb-0">ปีการศึกษา</label>
+            <select name="term_id" class="form-control select-inline min-200" onchange="this.form.submit()">
+                <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for t in terms %}
+                <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
 </div>
 
-<div class="glass" style="padding: 2.5rem; border-radius: 1.5rem;">
-    <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">รายวิชาในหลักสูตร {{ current_user.program.name }}</h3>
+{% set term_label = selected_term and (selected_term.semester ~ '/' ~ selected_term.year) %}
 
-    <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
+{% if selected_term %}
+<div class="flex-center-gap mb-3" style="gap: 0.5rem; flex-wrap: wrap;"
+     data-term-id="{{ selected_term.id }}"
+     data-tqf3="{{ 'true' if selected_term.is_open_tqf3 else 'false' }}"
+     data-tqf5="{{ 'true' if selected_term.is_open_tqf5 else 'false' }}">
+    <span class="text-muted">เทอม {{ term_label }}</span>
+    <span class="status-badge {{ 'status-approved' if selected_term.is_open_tqf3 else 'status-returned' }}">
+        มคอ.3: {{ 'เปิดส่ง' if selected_term.is_open_tqf3 else 'ปิดส่ง' }}
+    </span>
+    <span class="status-badge {{ 'status-approved' if selected_term.is_open_tqf5 else 'status-returned' }}">
+        มคอ.5: {{ 'เปิดส่ง' if selected_term.is_open_tqf5 else 'ปิดส่ง' }}
+    </span>
+</div>
+{% endif %}
+
+<!-- Stats -->
+<div class="stat-grid">
+    <div class="glass stat-card">
+        <div class="stat-label">รายวิชาที่เปิดสอน</div>
+        <div class="stat-value">{{ stats.total }}</div>
+        <div class="stat-sublabel">{% if term_label %}เทอม {{ term_label }}{% else %}ทุกปีการศึกษา{% endif %}</div>
+    </div>
+    <div class="glass stat-card {{ 'danger' if stats.unassigned else 'success' }}">
+        <div class="stat-label">มอบหมายผู้สอนแล้ว</div>
+        <div class="stat-value">{{ stats.assigned }}<span class="stat-value-sm">/{{ stats.total }}</span></div>
+        <div class="stat-sublabel">{% if stats.unassigned %}ยังไม่มอบหมาย {{ stats.unassigned }} วิชา{% else %}ครบทุกวิชา{% endif %}</div>
+    </div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.3 / มคอ.4 อนุมัติแล้ว</div>
+        <div class="stat-value text-primary">{{ stats.spec.APPROVED }}<span class="stat-value-sm">/{{ stats.total }}</span></div>
+        <div class="stat-sublabel">รอตรวจ {{ stats.spec.SUBMITTED }} · ส่งคืน {{ stats.spec.RETURNED }} · ยังไม่ส่ง {{ stats.spec.DRAFT + stats.spec.MISSING }}</div>
+    </div>
+    <div class="glass stat-card">
+        <div class="stat-label">มคอ.5 อนุมัติแล้ว</div>
+        <div class="stat-value text-primary">{{ stats.tqf5.APPROVED }}<span class="stat-value-sm">/{{ stats.total }}</span></div>
+        <div class="stat-sublabel">รอตรวจ {{ stats.tqf5.SUBMITTED }} · ส่งคืน {{ stats.tqf5.RETURNED }} · ยังไม่ส่ง {{ stats.tqf5.DRAFT + stats.tqf5.MISSING }}</div>
+    </div>
+</div>
+
+<!-- Quick links -->
+<div class="glass panel mb-4">
+    <div class="flex-between flex-wrap" style="gap: 1rem;">
+        <div>
+            <h3 class="mb-0">จัดการรายวิชา</h3>
+            <p class="text-muted mb-0 text-xs">มอบหมายผู้สอน และตรวจสอบสถานะ มคอ. รายวิชา</p>
+        </div>
+        <div class="inline-actions" style="flex-wrap: wrap;">
+            <a class="btn btn-primary" href="{{ url_for('head_sections', term_id=selected_term_id or '') }}">รายวิชา / มอบหมายผู้สอน</a>
+            {% if selected_term %}
+            <a class="btn btn-secondary" href="{{ url_for('head_term_documents', term_id=selected_term.id) }}">มคอ. ทั้งหมด</a>
+            <a class="btn btn-secondary" href="{{ url_for('head_tqf5_summary', term_id=selected_term.id) }}">สรุป มคอ.5</a>
+            {% endif %}
+            <a class="btn btn-secondary" href="{{ url_for('head_manage_plos') }}">จัดการ PLOs</a>
+            <a class="btn btn-secondary" href="{{ url_for('head_manage_course_clos') }}">CLOs รายวิชา</a>
+        </div>
+    </div>
+</div>
+
+<!-- Pending reviews -->
+<div class="glass panel">
+    <div class="flex-between flex-wrap mb-3">
+        <h3 class="mb-0">รอการตรวจสอบ</h3>
+        {% if pending_reviews %}
+        <span class="status-badge status-submitted">{{ pending_reviews|length }} รายการ</span>
+        {% endif %}
+    </div>
+    {% if pending_reviews %}
+    <div class="table-wrapper">
+        <table class="data-table">
+            <colgroup>
+                <col style="width: 50%;">
+                <col style="width: 15%;">
+                <col style="width: 15%;">
+                <col style="width: 20%;">
+            </colgroup>
             <thead>
-                <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                    <th style="padding: 1rem;">รายวิชา / กลุ่ม</th>
-                    <th style="padding: 1rem;">อาจารย์ผู้สอน (Step C)</th>
-                    <th style="padding: 1rem;">สถานะเอกสาร (Step C)</th>
-                    <th style="padding: 1rem;">มคอ. 3</th>
-                    <th style="padding: 1rem;">มคอ. 5</th>
+                <tr>
+                    <th>รายวิชา / กลุ่ม</th>
+                    <th style="text-align: center;">เอกสาร</th>
+                    <th style="text-align: center;">เทอม</th>
+                    <th style="text-align: right;"></th>
                 </tr>
             </thead>
             <tbody>
-                {% for section in sections %}
-                <tr style="border-bottom: 1px solid var(--border-color);">
-                    <td style="padding: 1rem;">
-                        <div style="font-weight: bold;">{{ section.course.code }} {{ section.course.name_th }}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-muted);">Section {{ section.section_number }}
-                        </div>
-                    </td>
-
-                    <!-- Instructor Assignment -->
-                    <td style="padding: 1rem;">
-                        <form action="{{ url_for('assign_instructor', section_id=section.id) }}" method="POST"
-                            style="display: flex; gap: 0.5rem;">
-                            <select name="instructor_id" class="form-control"
-                                style="width: 180px; font-size: 0.8125rem; padding: 0.25rem 0.5rem;">
-                                <option value="">-- รอการมอบหมาย --</option>
-                                {% for inst in instructors %}
-                                <option value="{{ inst.id }}" {% if section.instructor_id==inst.id %}selected{% endif
-                                    %}>{{ inst.full_name }}</option>
-                                {% endfor %}
-                            </select>
-                            <button type="submit" class="btn btn-primary"
-                                style="padding: 0.25rem 0.75rem; font-size: 0.75rem;">บันทึก</button>
-                        </form>
-                    </td>
-
-                    <!-- Toggle Open Status -->
-                    <td style="padding: 1rem;">
-                        <form action="{{ url_for('toggle_open', section_id=section.id) }}" method="POST">
-                            <button type="submit"
-                                class="btn {% if section.is_open %}glass{% else %}btn-primary{% endif %}"
-                                style="font-size: 0.75rem; padding: 0.5rem 1rem;">
-                                {% if section.is_open %}🔘 เปิดให้กรอกแล้ว{% else %}🔒 เริ่มเปิดกรอก{% endif %}
-                            </button>
-                        </form>
-                    </td>
-
-                    <!-- TQF 3 Status & Review -->
-                    <td style="padding: 1rem;">
-                        {% if section.tqf3 %}
-                        <div style="margin-bottom: 0.5rem;">
-                            <span class="status-badge" style="
-                                    {% if section.tqf3.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                                    {% elif section.tqf3.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                                    {% elif section.tqf3.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-                                ">{{ section.tqf3.status }}</span>
-                        </div>
-                        <a href="{{ url_for('review_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id) }}" class="btn glass"
-                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            {% if section.tqf3.status == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดูรายละเอียด{% endif %}
-                        </a>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.875rem;">รอดำเนินการ</span>
-                        {% endif %}
-                    </td>
-
-                    <!-- TQF 5 Status & Review -->
-                    <td style="padding: 1rem;">
-                        {% if section.tqf5 %}
-                        <div style="margin-bottom: 0.5rem;">
-                            <span class="status-badge" style="
-                                    {% if section.tqf5.status == 'APPROVED' %}background: rgba(16, 185, 129, 0.1); color: var(--accent-success);
-                                    {% elif section.tqf5.status == 'SUBMITTED' %}background: rgba(245, 158, 11, 0.1); color: #f59e0b;
-                                    {% elif section.tqf5.status == 'RETURNED' %}background: rgba(239, 68, 68, 0.1); color: var(--accent-danger);
-                                    {% else %}background: rgba(99, 102, 241, 0.1); color: var(--primary-color);{% endif %}
-                                ">{{ section.tqf5.status }}</span>
-                        </div>
-                        <a href="{{ url_for('review_tqf', tqf_type='tqf5', tqf_id=section.tqf5.id) }}" class="btn glass"
-                            style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">
-                            {% if section.tqf5.status == 'SUBMITTED' %}🔍 ตรวจสอบ{% else %}👁️ ดูรายละเอียด{% endif %}
-                        </a>
-                        {% else %}
-                        <span style="color: var(--text-muted); font-size: 0.875rem;">รอดำเนินการ</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% else %}
+                {% for item in pending_reviews %}
                 <tr>
-                    <td colspan="5" style="padding: 3rem; text-align: center; color: var(--text-muted);">
-                        ไม่พบรายวิชาเปิดสอนในหลักสูตรของคุณ</td>
+                    <td>
+                        <div class="text-table">{{ item.section.course.code }} {{ item.section.course.name_th | thai_wrap }}</div>
+                        <div class="text-muted text-xs">Section {{ item.section.section_number }}</div>
+                    </td>
+                    <td class="text-center">
+                        <span class="status-badge status-submitted">{{ item.label }}</span>
+                    </td>
+                    <td class="text-center text-muted">
+                        {% if item.section.term %}{{ item.section.term.semester }}/{{ item.section.term.year }}{% endif %}
+                    </td>
+                    <td style="text-align: right;">
+                        <a class="btn btn-primary btn-compact" href="{{ url_for('review_tqf', tqf_type=item.tqf_type, tqf_id=item.doc.id) }}">ตรวจสอบ</a>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
+    {% else %}
+    <div class="empty-state text-center text-muted">ไม่มีเอกสารรอการตรวจสอบ{% if term_label %}ในเทอม {{ term_label }}{% endif %}</div>
+    {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+    var initial = {};
+    document.querySelectorAll('[data-term-id]').forEach(function (el) {
+        initial[el.dataset.termId] = {
+            tqf3: el.dataset.tqf3 === 'true',
+            tqf5: el.dataset.tqf5 === 'true'
+        };
+    });
+    if (!Object.keys(initial).length) return;
+
+    function poll() {
+        fetch('/api/term-statuses')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var changed = false;
+                for (var id in initial) {
+                    var curr = data[id];
+                    if (!curr) continue;
+                    if (curr.tqf3 !== initial[id].tqf3 || curr.tqf5 !== initial[id].tqf5) {
+                        changed = true;
+                        break;
+                    }
+                }
+                if (changed) { window.location.reload(); }
+            })
+            .catch(function () {});
+    }
+
+    setInterval(poll, 30000);
+}());
+</script>
 {% endblock %}

@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}จัดการ CLOs - หัวหน้าสาขา{% endblock %}
+
+{% block content %}
+<style>
+.course-list-item {
+    display: block;
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    text-decoration: none;
+    transition: background 0.15s;
+    color: inherit;
+}
+.course-list-item:hover { background: rgba(255,255,255,0.06); }
+.course-list-item--active { background: rgba(99,102,241,0.18); font-weight: 600; }
+.course-list-code { font-size: 0.82rem; color: var(--text-muted, #94a3b8); }
+.course-list-name { font-size: 0.88rem; line-height: 1.35; margin-top: 0.1rem; }
+.course-list-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.course-plo-badge {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    background: rgba(16,185,129,0.18);
+    color: #34d399;
+    border-radius: 0.3rem;
+    padding: 0.1rem 0.4rem;
+    white-space: nowrap;
+}
+</style>
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('head_dashboard') }}">Dashboard</a> /
+            <span class="text-muted">จัดการ CLOs</span>
+        </nav>
+        <h2>จัดการผลลัพธ์การเรียนรู้ระดับรายวิชา (CLOs)</h2>
+        <p class="text-muted mb-0">กำหนด CLOs ของแต่ละรายวิชา เพื่อใช้อ้างอิงในการจัดทำ มคอ.</p>
+    </div>
+</div>
+
+<!-- Program selector -->
+<div class="glass panel mb-3">
+    <form method="GET" action="{{ url_for('head_manage_course_clos') }}" id="program-form">
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+            <label class="text-muted mb-0" style="white-space:nowrap; font-weight:500;">หลักสูตร</label>
+            {% if programs|length > 1 %}
+            <select name="program_id" class="form-control" style="flex:1; min-width:200px;"
+                onchange="this.form.submit()">
+                {% for p in programs %}
+                <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            {% elif programs %}
+            <input type="hidden" name="program_id" value="{{ programs[0].id }}">
+            <span class="text-table">{{ programs[0].name }}{% if programs[0].year %} ({{ programs[0].year }}){% endif %}</span>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% if programs %}
+<!-- Two-column layout -->
+<div style="display:grid; grid-template-columns:280px 1fr; gap:1rem; align-items:start;">
+
+    <!-- Left: Course list -->
+    <div class="glass panel" style="padding:0; overflow:hidden;">
+        <div style="padding:0.85rem 1rem; border-bottom:1px solid rgba(255,255,255,0.15);">
+            <h4 style="margin:0 0 0.6rem; font-size:0.95rem; font-weight:600;">รายวิชา</h4>
+            <input type="text" id="course-search" class="form-control" placeholder="ค้นหารหัสหรือชื่อวิชา..."
+                style="font-size:0.85rem; padding:0.4rem 0.65rem;"
+                oninput="filterCourses(this.value)">
+        </div>
+        <div style="overflow-y:auto; max-height:70vh;" id="course-list">
+            {% if courses %}
+            {% for c in courses %}
+            <a href="{{ url_for('head_manage_course_clos', program_id=selected_program.id if selected_program else '', course_id=c.id) }}"
+               class="course-list-item{% if selected_course and selected_course.id == c.id %} course-list-item--active{% endif %}">
+                <div class="course-list-head">
+                    <span class="course-list-code">{{ c.code }}</span>
+                    {% set clo_count = course_clo_counts.get(c.id, 0) if course_clo_counts else 0 %}
+                    {% if clo_count %}
+                    <span class="course-plo-badge">{{ clo_count }} CLO</span>
+                    {% endif %}
+                </div>
+                <div class="course-list-name">{{ c.name_th or c.name_en or '' }}</div>
+            </a>
+            {% endfor %}
+            {% else %}
+            <div class="empty-state text-center text-muted" style="padding:1.5rem;">ไม่มีรายวิชา</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right: CLO cards -->
+    <div class="glass panel">
+        {% if selected_course %}
+        <h3 style="margin:0 0 1.25rem; font-size:1.05rem;">{{ selected_course.code }} — {{ selected_course.name_th or selected_course.name_en or '' }}</h3>
+
+        {% if clos %}
+        <div style="display:flex; flex-direction:column; gap:0.65rem;">
+            {% for clo in clos %}
+            <div class="glass" style="border-radius:0.6rem; padding:0.85rem 1rem;
+                         background:rgba(255,255,255,0.06); display:flex; align-items:flex-start; gap:1rem;">
+                <div style="flex-shrink:0; background:rgba(99,102,241,0.25); color:var(--primary,#818cf8);
+                            border-radius:0.4rem; padding:0.3rem 0.6rem; font-size:0.82rem; font-weight:700;
+                            min-width:3rem; text-align:center;">
+                    {{ clo.code }}
+                </div>
+                <div style="flex:1; min-width:0;">
+                    <div style="font-size:0.92rem; line-height:1.5;">{{ clo.description | thai_wrap }}</div>
+                    {% if clo.plo_codes %}
+                    <div style="margin-top:0.4rem; display:flex; flex-wrap:wrap; gap:0.3rem;">
+                        {% for pc in clo.plo_codes.split(',') %}
+                        {% set pc = pc.strip() %}
+                        {% if pc %}
+                        <span style="font-size:0.75rem; background:rgba(16,185,129,0.18); color:#34d399;
+                                     border-radius:0.3rem; padding:0.15rem 0.45rem;">{{ pc }}</span>
+                        {% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div style="display:flex; flex-direction:column; gap:0.35rem; flex-shrink:0;">
+                    <button type="button" class="btn btn-secondary btn-compact"
+                        onclick="document.getElementById('modal-edit-clo-{{ clo.id }}').style.display='flex'">
+                        แก้ไข
+                    </button>
+                    <form action="{{ url_for('head_delete_course_clo', clo_id=clo.id) }}" method="POST"
+                        onsubmit="return confirm('ยืนยันการลบ {{ clo.code }}?')">
+                        <button type="submit" class="btn btn-outline-danger btn-compact" style="width:100%;" formnovalidate>ลบ</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state text-center text-muted" style="padding:2rem 0;">
+            ยังไม่มี CLO สำหรับรายวิชานี้
+        </div>
+        {% endif %}
+
+        <div style="margin-top:1rem;">
+            <button class="btn btn-primary" style="width:100%;"
+                onclick="document.getElementById('modal-create-clo').style.display='flex'">
+                + เพิ่ม CLO
+            </button>
+        </div>
+
+        {% else %}
+        <div class="empty-state text-center text-muted" style="padding:3rem 0;">
+            {% if courses %}
+            เลือกรายวิชาจากด้านซ้ายเพื่อดูและจัดการ CLOs
+            {% else %}
+            ยังไม่มีรายวิชาในหลักสูตรนี้
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+</div><!-- end grid -->
+
+{% else %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ</div>
+</div>
+{% endif %}
+
+<!-- Modal: เพิ่ม CLO -->
+{% if selected_course %}
+<div id="modal-create-clo" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:560px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">เพิ่ม CLO</h3>
+            <button onclick="document.getElementById('modal-create-clo').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form method="POST" action="{{ url_for('head_add_course_clo', course_id=selected_course.id) }}">
+            <div class="form-group">
+                <label>หมายเลข CLO</label>
+                <input type="number" name="number" class="form-control" min="1" step="1"
+                    placeholder="เช่น 1" value="{{ next_number }}" required>
+                <small class="text-muted">กรอกเฉพาะตัวเลข ระบบจะแสดงผลเป็น CLO1, CLO2, … (เติมเลขถัดไปให้อัตโนมัติ แก้ไขได้)</small>
+            </div>
+            <div class="form-group">
+                <label>คำอธิบาย</label>
+                <textarea name="description" class="form-control" rows="3"
+                    placeholder="ระบุผลลัพธ์การเรียนรู้ระดับรายวิชา" required></textarea>
+            </div>
+            <div class="form-group">
+                <label>สัมพันธ์กับ PLO <span class="text-muted">(ไม่บังคับ)</span></label>
+                {% if plos %}
+                <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
+                    {% for plo in plos %}
+                    <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer; font-size:0.88rem;">
+                        <input type="checkbox" class="plo-check-create" value="{{ plo.code }}"
+                            onchange="updatePloInput('plo_codes_create', 'plo-check-create')">
+                        {{ plo.code }}
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <input type="text" name="plo_codes" id="plo_codes_create" class="form-control"
+                    placeholder="เช่น PLO1,PLO2">
+                <small class="text-muted">คั่นด้วยเครื่องหมาย comma หรือเลือกจากรายการด้านบน</small>
+            </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกข้อมูล</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('modal-create-clo').style.display='none'">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modals: แก้ไข CLO -->
+{% for clo in clos %}
+<div id="modal-edit-clo-{{ clo.id }}" class="modal-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
+    <div class="glass glass-card" style="width:100%; max-width:560px; position:relative;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0;">แก้ไข {{ clo.code }}</h3>
+            <button onclick="document.getElementById('modal-edit-clo-{{ clo.id }}').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form method="POST" action="{{ url_for('head_update_course_clo', clo_id=clo.id) }}">
+            <div class="form-group">
+                <label>หมายเลข CLO</label>
+                <input type="number" name="number" class="form-control" min="1" step="1"
+                    value="{{ clo.order if clo.order is not none else (clo.code | replace('CLO', '')) }}" required>
+                <small class="text-muted">กรอกเฉพาะตัวเลข ระบบจะแสดงผลเป็น CLO1, CLO2, …</small>
+            </div>
+            <div class="form-group">
+                <label>คำอธิบาย</label>
+                <textarea name="description" class="form-control" rows="3" required>{{ clo.description }}</textarea>
+            </div>
+            <div class="form-group">
+                <label>สัมพันธ์กับ PLO <span class="text-muted">(ไม่บังคับ)</span></label>
+                {% if plos %}
+                <div style="display:flex; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
+                    {% set current_plos = clo.plo_codes.split(',') | map('trim') | list %}
+                    {% for plo in plos %}
+                    <label style="display:flex; align-items:center; gap:0.3rem; cursor:pointer; font-size:0.88rem;">
+                        <input type="checkbox" class="plo-check-edit-{{ clo.id }}" value="{{ plo.code }}"
+                            {% if plo.code in current_plos %}checked{% endif %}
+                            onchange="updatePloInput('plo_codes_{{ clo.id }}', 'plo-check-edit-{{ clo.id }}')">
+                        {{ plo.code }}
+                    </label>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                <input type="text" name="plo_codes" id="plo_codes_{{ clo.id }}" class="form-control"
+                    value="{{ clo.plo_codes }}">
+                <small class="text-muted">คั่นด้วยเครื่องหมาย comma หรือเลือกจากรายการด้านบน</small>
+            </div>
+            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
+                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกการแก้ไข</button>
+                <button type="button" class="btn btn-secondary"
+                    onclick="document.getElementById('modal-edit-clo-{{ clo.id }}').style.display='none'">ยกเลิก</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) {
+        if (e.target === this) this.style.display = 'none';
+    });
+});
+
+// Scroll the selected course to the top of the list so it stays visible
+// after the page reloads from choosing a course.
+(function () {
+    var list = document.getElementById('course-list');
+    var active = list && list.querySelector('.course-list-item--active');
+    if (list && active) {
+        list.scrollTop = active.offsetTop - list.offsetTop;
+    }
+})();
+
+function filterCourses(q) {
+    var items = document.querySelectorAll('#course-list .course-list-item');
+    var norm = q.trim().toLowerCase();
+    items.forEach(function (el) {
+        var text = el.textContent.toLowerCase();
+        el.style.display = (!norm || text.includes(norm)) ? '' : 'none';
+    });
+}
+
+function updatePloInput(inputId, checkClass) {
+    var checked = Array.from(document.querySelectorAll('.' + checkClass + ':checked'))
+        .map(function (cb) { return cb.value; });
+    var input = document.getElementById(inputId);
+    if (input) input.value = checked.join(',');
+}
+</script>
+{% endblock %}

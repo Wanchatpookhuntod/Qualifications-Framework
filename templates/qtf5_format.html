@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+
+{% block title %}ฟอร์มกรอกข้อมูล มคอ.5{% endblock %}
+
+{% block content %}
+<div class="section-lead">
+    <h2>รายงานผลการดำเนินการจัดการเรียนรู้ของรายวิชา (มคอ.5)</h2>
+    <p class="text-muted">โครงฟอร์มตัวช่วยรวบรวมข้อมูล มคอ.5 เต็มรูปแบบ พร้อมปุ่มบันทึก/โหลด JSON และพิมพ์ PDF</p>
+</div>
+
+<div class="glass panel">
+    <div class="inline-actions flex-wrap print-hidden">
+        <button type="button" class="btn btn-primary" onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+        <button type="button" class="btn btn-secondary" onclick="saveJSON()">บันทึกเป็น JSON</button>
+        <button type="button" class="btn btn-secondary" onclick="loadJSON()">นำเข้า JSON</button>
+        <span class="text-muted text-sm">ทิป: กรอกในเบราว์เซอร์แล้วใช้ “Print → Save as PDF”</span>
+        <input id="fileInput" type="file" accept="application/json" class="hidden" />
+    </div>
+
+    <div class="qtf-card">
+        <h3 class="qtf-section-title">1) ข้อมูลรายวิชา</h3>
+        <div class="qtf-grid three">
+            <div class="form-group">
+                <label for="course_code">รหัสวิชา</label>
+                <input name="course_code" id="course_code" class="form-control" placeholder="เช่น วท 6001414" />
+            </div>
+            <div class="form-group">
+                <label for="course_name">ชื่อวิชา</label>
+                <input name="course_name" id="course_name" class="form-control" placeholder="เช่น เทคโนโลยีผสมความจริงเสมือน" />
+            </div>
+            <div class="form-group">
+                <label for="credits">หน่วยกิต</label>
+                <input name="credits" id="credits" class="form-control" placeholder="เช่น 3" />
+            </div>
+        </div>
+
+        <div class="qtf-grid three mt-2">
+            <div class="form-group">
+                <label for="faculty">คณะ/สำนัก</label>
+                <input name="faculty" id="faculty" class="form-control" placeholder="เช่น เทคโนโลยีสารสนเทศ" />
+            </div>
+            <div class="form-group">
+                <label for="program">หลักสูตร</label>
+                <input name="program" id="program" class="form-control" placeholder="เช่น เทคโนโลยีมัลติมีเดีย" />
+            </div>
+            <div class="form-group">
+                <label for="major">วิชาเอก</label>
+                <input name="major" id="major" class="form-control" placeholder="(ถ้ามี)" />
+            </div>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="course_desc">คำอธิบายรายวิชา</label>
+            <textarea name="course_desc" id="course_desc" class="form-control" rows="3" placeholder="คัดลอก/พิมพ์คำอธิบายรายวิชา"></textarea>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="prereq">รายวิชาที่บังคับเรียนก่อน (Pre-requisite)</label>
+            <input name="prereq" id="prereq" class="form-control" placeholder="ถ้าไม่มีให้ใส่ -" />
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="assessment_score">คะแนนการประเมิน</label>
+            <input name="assessment_score" id="assessment_score" class="form-control" placeholder="เช่น 85/100 หรือ ดีมาก" />
+        </div>
+
+        <div class="qtf-grid four mt-2">
+            <div class="form-group">
+                <label for="semester">ภาคการศึกษา</label>
+                <input name="semester" id="semester" class="form-control" placeholder="เช่น 1" />
+            </div>
+            <div class="form-group">
+                <label for="academic_year">ปีการศึกษา</label>
+                <input name="academic_year" id="academic_year" class="form-control" placeholder="เช่น 2568" />
+            </div>
+            <div class="form-group">
+                <label for="year_level">ชั้นเรียนปีที่</label>
+                <input name="year_level" id="year_level" class="form-control" placeholder="เช่น 3" />
+            </div>
+            <div class="form-group">
+                <label for="last_update">วันที่จัดทำ/ปรับปรุงครั้งล่าสุด</label>
+                <input name="last_update" id="last_update" class="form-control" placeholder="เช่น 5/6/2567" />
+            </div>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="class_group">หมู่เรียน (Section)</label>
+            <input name="class_group" id="class_group" class="form-control" placeholder="เช่น หมู่ 1 หรือ Sec A" />
+        </div>
+
+        <div class="qtf-grid two mt-2">
+            <div class="form-group">
+                <label for="course_owner">อาจารย์ผู้รับผิดชอบรายวิชา</label>
+                <input name="course_owner" id="course_owner" class="form-control" placeholder="ชื่อ-สกุล" />
+            </div>
+            <div class="form-group">
+                <label for="instructors">อาจารย์ผู้สอน</label>
+                <input name="instructors" id="instructors" class="form-control" placeholder="ชื่อ-สกุล (คั่นด้วย , )" />
+            </div>
+        </div>
+
+        <div class="form-group mt-2">
+            <label for="teaching_hours">รายงานจำนวนชั่วโมงที่สอนจริงและที่คลาดเคลื่อน (ถ้ามี)</label>
+            <textarea name="teaching_hours" id="teaching_hours" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="uncovered_topics">หัวข้อที่สอบไม่ครอบคลุมจากแผน (ถ้ามี)</label>
+            <textarea name="uncovered_topics" id="uncovered_topics" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="during_improve">ระหว่างจัดการเรียนรู้มีการวิเคราะห์และปรับปรุงการจัดการเรียนรู้</label>
+            <textarea name="during_improve" id="during_improve" class="form-control" rows="3"></textarea>
+        </div>
+    </div>
+
+    <div class="qtf-card">
+        <h3 class="qtf-section-title">2) การจัดการเรียนรู้และวิธีการประเมินผลตาม CLOs</h3>
+        <div class="text-muted text-sm">ตารางอิงคอลัมน์ CLOs / กลยุทธ์สอน / วิธีประเมิน / ผลที่เกิด / แนวทางพัฒนา</div>
+        <div class="inline-actions flex-wrap mt-2 print-hidden">
+            <button type="button" class="btn btn-secondary" onclick="addRow('cloTable')">+ เพิ่มแถว CLO</button>
+            <button type="button" class="btn btn-outline-danger" onclick="delRow('cloTable')">ลบแถวสุดท้าย</button>
+        </div>
+        <div class="qtf-table-wrapper mt-2">
+            <table id="cloTable" class="qtf-table min-900">
+                <thead>
+                    <tr>
+                        <th class="col-16p">CLOs (ผลลัพธ์การเรียนรู้)</th>
+                        <th class="col-20p">กลยุทธ์การสอน/วิธีการจัดการเรียนรู้</th>
+                        <th class="col-18p">วิธีการประเมินผล</th>
+                        <th class="col-14p">ผลที่เกิดกับนักศึกษา</th>
+                        <th class="col-32p">แนวทางการพัฒนา/ปรับปรุง</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><textarea name="clo_desc_1" class="form-control" rows="2" placeholder="เช่น CLO1 ..."></textarea></td>
+                        <td><textarea name="clo_teach_1" class="form-control" rows="2"></textarea></td>
+                        <td><textarea name="clo_assess_1" class="form-control" rows="2"></textarea></td>
+                        <td><textarea name="clo_result_1" class="form-control" rows="2" placeholder="เช่น มากกว่า 80%..."></textarea></td>
+                        <td><textarea name="clo_improve_1" class="form-control" rows="2"></textarea></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="qtf-card">
+        <h3 class="qtf-section-title">3) สรุปผลการจัดการเรียนการสอนของรายวิชา</h3>
+        <div class="qtf-grid four">
+            <div class="form-group">
+                <label for="n_registered">จำนวนนักศึกษาที่ลงทะเบียน</label>
+                <input name="n_registered" id="n_registered" class="form-control" placeholder="เช่น 36" />
+            </div>
+            <div class="form-group">
+                <label for="n_remain">จำนวนนักศึกษาที่คงอยู่เมื่อสิ้นสุดภาคการศึกษา</label>
+                <input name="n_remain" id="n_remain" class="form-control" placeholder="เช่น 36" />
+            </div>
+            <div class="form-group">
+                <label for="n_withdraw">จำนวนนักศึกษาที่ถอน (W)</label>
+                <input name="n_withdraw" id="n_withdraw" class="form-control" placeholder="เช่น 0" />
+            </div>
+            <div class="form-group">
+                <label for="grade_abnormal_reason">ปัจจัยที่ทำให้ระดับคะแนนผิดปกติ (ถ้ามี)</label>
+                <input name="grade_abnormal_reason" id="grade_abnormal_reason" class="form-control" placeholder="เช่น ไม่ส่งงาน" />
+            </div>
+        </div>
+        <div class="form-group mt-2">
+            <label for="assessment_deviation">ความคลาดเคลื่อนจากแผนการประเมิน (ถ้ามี)</label>
+            <textarea name="assessment_deviation" id="assessment_deviation" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="verification">กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษา</label>
+            <textarea name="verification" id="verification" class="form-control" rows="3"></textarea>
+        </div>
+
+        <h4 class="mt-4">การกระจายของระดับคะแนน</h4>
+        <div class="inline-actions flex-wrap mt-2 print-hidden">
+            <button type="button" class="btn btn-secondary" onclick="addGradeRow()">+ เพิ่มแถวเกรด</button>
+            <button type="button" class="btn btn-outline-danger" onclick="delRow('gradeTable')">ลบแถวสุดท้าย</button>
+            <button type="button" class="btn btn-secondary" onclick="calcPercent()">คำนวณ % อัตโนมัติ</button>
+        </div>
+        <div class="qtf-table-wrapper mt-2">
+            <table id="gradeTable" class="qtf-table min-720">
+                <thead>
+                    <tr>
+                        <th class="col-20p">ระดับคะแนน</th>
+                        <th class="col-40p">จำนวนนักศึกษา (คน)</th>
+                        <th class="col-40p">คิดเป็นร้อยละ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set grade_options = ['A','B+','B','C+','C','D+','D','F','I','S','U','W','M'] %}
+                    {% for grade in grade_options %}
+                    <tr>
+                        <td><input name="g_level_{{ loop.index }}" value="{{ grade }}" class="form-control" /></td>
+                        <td><input name="g_count_{{ loop.index }}" type="number" min="0" class="form-control" /></td>
+                        <td><input name="g_percent_{{ loop.index }}" type="number" step="0.01" min="0" class="form-control" /></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="qtf-card">
+        <h3 class="qtf-section-title">4) ปัญหาและผลกระทบต่อการดำเนินการจัดการเรียนรู้</h3>
+        <div class="text-muted text-sm">ระบุ “ประเด็น” และ “แนวทางการปรับแก้ไข” ให้ครบถ้วน</div>
+        <div class="inline-actions flex-wrap mt-2 print-hidden">
+            <button type="button" class="btn btn-secondary" onclick="addRow('issueTable')">+ เพิ่มแถวปัญหา</button>
+            <button type="button" class="btn btn-outline-danger" onclick="delRow('issueTable')">ลบแถวสุดท้าย</button>
+        </div>
+        <div class="qtf-table-wrapper mt-2">
+            <table id="issueTable" class="qtf-table min-760">
+                <thead>
+                    <tr>
+                        <th class="col-35p">ประเด็น</th>
+                        <th class="col-65p">แนวทางการปรับแก้ไข</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><textarea name="issue_1" class="form-control" rows="2" placeholder="เช่น ด้านทรัพยากร/สิ่งสนับสนุนการเรียนรู้"></textarea></td>
+                        <td><textarea name="issue_fix_1" class="form-control" rows="2"></textarea></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="qtf-card">
+        <h3 class="qtf-section-title">5) การประเมินผลรายวิชา</h3>
+        <div class="form-group">
+            <label for="eval_crit">ข้อวิพากษ์ที่สำคัญจากผลการประเมินโดยนักศึกษา/ผู้เรียน</label>
+            <textarea name="eval_crit" id="eval_crit" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="teacher_comment">ข้อคิดเห็นของผู้สอนต่อข้อวิพากษ์</label>
+            <textarea name="teacher_comment" id="teacher_comment" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="improve_plan">แผนการปรับปรุงการจัดการเรียนรู้ของรายวิชา</label>
+            <textarea name="improve_plan" id="improve_plan" class="form-control" rows="3" placeholder="เช่น ปรับการสอนให้ช้าลง, เพิ่มการปฏิบัติจริง"></textarea>
+        </div>
+        <div class="form-group">
+            <label for="suggest_to_committee">ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร</label>
+            <textarea name="suggest_to_committee" id="suggest_to_committee" class="form-control" rows="3"></textarea>
+        </div>
+    </div>
+
+    <div class="qtf-card">
+        <h3 class="qtf-section-title">6) ลงชื่อ</h3>
+        <div class="signature-grid">
+            <div class="signature-box">
+                <div class="fw-bold">อาจารย์ผู้สอน</div>
+                <small>ลงชื่อ/วันที่</small>
+                <div class="form-group mt-2">
+                    <label for="sig_teacher_name">ชื่อ-สกุล</label>
+                    <input name="sig_teacher_name" id="sig_teacher_name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label for="sig_teacher_date">วันที่</label>
+                    <input name="sig_teacher_date" id="sig_teacher_date" class="form-control" placeholder="วันที่ .... / .... / ...." />
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="fw-bold">อาจารย์ผู้รับผิดชอบรายวิชา</div>
+                <small>ลงชื่อ/วันที่</small>
+                <div class="form-group mt-2">
+                    <label for="sig_owner_name">ชื่อ-สกุล</label>
+                    <input name="sig_owner_name" id="sig_owner_name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label for="sig_owner_date">วันที่</label>
+                    <input name="sig_owner_date" id="sig_owner_date" class="form-control" placeholder="วันที่ .... / .... / ...." />
+                </div>
+            </div>
+            <div class="signature-box">
+                <div class="fw-bold">ประธานบริหารหลักสูตร</div>
+                <small>ลงชื่อ/วันที่</small>
+                <div class="form-group mt-2">
+                    <label for="sig_head_name">ชื่อ-สกุล</label>
+                    <input name="sig_head_name" id="sig_head_name" class="form-control" />
+                </div>
+                <div class="form-group">
+                    <label for="sig_head_date">วันที่</label>
+                    <input name="sig_head_date" id="sig_head_date" class="form-control" placeholder="วันที่ .... / .... / ...." />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-muted text-sm mt-3">หมายเหตุ: โครงและหัวข้อสอดคล้องกับเอกสารตัวอย่าง มคอ.5 สามารถดาวน์โหลดหรือพิมพ์เพื่อใช้งานออฟไลน์ได้ทันที</p>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function addRow(tableId) {
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector('tbody');
+        const last = tbody.querySelector('tr:last-child');
+        const clone = last.cloneNode(true);
+
+        clone.querySelectorAll('input, textarea').forEach((el) => {
+            el.value = '';
+            if (el.name) {
+                const match = el.name.match(/_(\d+)$/);
+                if (match) {
+                    const next = parseInt(match[1], 10) + 1;
+                    el.name = el.name.replace(/_(\d+)$/, '_' + next);
+                }
+            }
+        });
+
+        tbody.appendChild(clone);
+    }
+
+    function delRow(tableId) {
+        const table = document.getElementById(tableId);
+        const tbody = table.querySelector('tbody');
+        if (tbody.rows.length > 1) {
+            tbody.deleteRow(tbody.rows.length - 1);
+        }
+    }
+
+    function addGradeRow() {
+        const tbody = document.querySelector('#gradeTable tbody');
+        const idx = tbody.rows.length + 1;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input name="g_level_${idx}" class="form-control" placeholder="เช่น A" /></td>
+            <td><input name="g_count_${idx}" type="number" min="0" class="form-control" /></td>
+            <td><input name="g_percent_${idx}" type="number" step="0.01" min="0" class="form-control" /></td>
+        `;
+        tbody.appendChild(tr);
+    }
+
+    function calcPercent() {
+        const remain = parseFloat(document.querySelector('[name="n_remain"]').value || '');
+        const rows = Array.from(document.querySelectorAll('#gradeTable tbody tr'));
+        let total = !isNaN(remain) && remain > 0 ? remain : 0;
+
+        if (!total) {
+            total = rows.reduce((sum, row) => {
+                const count = parseFloat(row.querySelector('input[name^="g_count_"]').value || 0);
+                return sum + (isNaN(count) ? 0 : count);
+            }, 0);
+        }
+
+        if (!total) {
+            alert('กรุณากรอกจำนวนคงอยู่ หรือจำนวนในตารางเกรดก่อน');
+            return;
+        }
+
+        rows.forEach((row) => {
+            const countEl = row.querySelector('input[name^="g_count_"]');
+            const percentEl = row.querySelector('input[name^="g_percent_"]');
+            const count = parseFloat(countEl.value || 0);
+            const pct = (isNaN(count) ? 0 : count) * 100 / total;
+            percentEl.value = (Math.round(pct * 100) / 100).toFixed(2);
+        });
+    }
+
+    function collect() {
+        const data = {};
+        document.querySelectorAll('input[name], textarea[name], select[name]').forEach((el) => {
+            data[el.name] = el.value;
+        });
+        return data;
+    }
+
+    function applyData(data) {
+        Object.entries(data || {}).forEach(([key, value]) => {
+            const el = document.querySelector(`[name="${CSS.escape(key)}"]`);
+            if (el) {
+                el.value = value;
+            }
+        });
+    }
+
+    function saveJSON() {
+        const data = collect();
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'tqf5_form_data.json';
+        link.click();
+        URL.revokeObjectURL(link.href);
+    }
+
+    function loadJSON() {
+        const input = document.getElementById('fileInput');
+        input.onchange = async (event) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                applyData(data);
+            } catch (err) {
+                alert('ไฟล์ JSON ไม่ถูกต้อง');
+            }
+            input.value = '';
+        };
+        input.click();
+    }
+</script>
+{% endblock %}

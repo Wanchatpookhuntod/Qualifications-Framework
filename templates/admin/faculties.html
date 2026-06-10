@@ -1,64 +1,506 @@
-{% extends "base.html" %}
-
-{% block title %}จัดการคณะ - Admin{% endblock %}
-
-{% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-    <div>
-        <nav style="font-size: 0.875rem; margin-bottom: 0.5rem;">
-            <a href="{{ url_for('admin_dashboard') }}" style="color: var(--primary-color);">Admin Dashboard</a> /
-            <span style="color: var(--text-muted);">จัดการคณะ</span>
-        </nav>
-        <h2>จัดการคณะ (Faculties)</h2>
-    </div>
+{% extends "base.html" %} {% block title %}จัดการคณะ - Admin{% endblock %} {%
+block content %}
+<div class="page-header">
+  <div>
+    <nav class="breadcrumb">
+      <a href="{{ url_for('admin_dashboard') }}">Admin Dashboard</a> /
+      <span class="text-muted">จัดการคณะ</span>
+    </nav>
+    <h2>จัดการคณะ (Faculties)</h2>
+  </div>
+  <div style="display: flex; gap: 0.75rem">
+    <button
+      class="btn btn-secondary"
+      onclick="
+        document.getElementById('modal-add-dept').style.display = 'flex';
+        window.initCustomSelects(document.getElementById('modal-add-dept'));
+      "
+      {% if not faculties %} disabled title="กรุณาเพิ่มคณะก่อน" {% endif %}
+    >
+      + เพิ่มสาขาวิชา
+    </button>
+    <button
+      class="btn btn-primary"
+      onclick="
+        document.getElementById('modal-add-faculty').style.display = 'flex'
+      "
+    >
+      + เพิ่มคณะใหม่
+    </button>
+  </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 350px 1fr; gap: 2rem; align-items: start;">
-    <!-- Add Faculty Form -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">เพิ่มคณะใหม่</h3>
-        <form method="POST">
-            <div class="form-group">
-                <label>ชื่อคณะ</label>
-                <input type="text" name="name" class="form-control" placeholder="เช่น คณะวิศวกรรมศาสตร์" required>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">บันทึกข้อมูล</button>
-        </form>
-    </div>
-
-    <!-- Faculty List -->
-    <div class="glass" style="padding: 2rem; border-radius: 1.5rem;">
-        <h3 style="margin-bottom: 1.5rem; font-size: 1.25rem;">รายชื่อคณะทั้งหมด</h3>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="text-align: left; border-bottom: 2px solid var(--border-color);">
-                        <th style="padding: 1rem; width: 80px;">ID</th>
-                        <th style="padding: 1rem;">ชื่อคณะ</th>
-                        <th style="padding: 1rem; width: 120px;">จำนวนหลักสูตร</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for faculty in faculties %}
-                    <tr style="border-bottom: 1px solid var(--border-color);">
-                        <td style="padding: 1rem; color: var(--text-muted);">#{{ faculty.id }}</td>
-                        <td style="padding: 1rem; font-weight: 500;">{{ faculty.name }}</td>
-                        <td style="padding: 1rem; text-align: center;">
-                            <span class="status-badge"
-                                style="background: rgba(99, 102, 241, 0.1); color: var(--primary-color);">
-                                {{ faculty.programs|length }}
-                            </span>
-                        </td>
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td colspan="3" style="padding: 3rem; text-align: center; color: var(--text-muted);">
-                            ไม่พบข้อมูลคณะในระบบ</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
+<!-- Faculty List -->
+<div class="glass glass-card">
+  <h3 class="mb-3">รายชื่อคณะทั้งหมด</h3>
+  <div class="table-wrapper">
+    <table class="data-table">
+      <colgroup>
+        <col style="width: 30%" />
+        <col style="width: 15%" />
+        <col style="width: 20%" />
+        <col style="width: 20%" />
+        <col style="width: 15%" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="col-30p">ชื่อคณะ</th>
+          <th style="text-align: center">จำนวนสาขา</th>
+          <th style="text-align: center">รายชื่อสาขา</th>
+          <th style="text-align: center">แก้ไขสาขา</th>
+          <th style="text-align: center" class="col-10p">จัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for faculty in faculties %}
+        <tr>
+          <td class="text-table">{{ faculty.name | thai_wrap }}</td>
+          <td style="text-align: center">
+            <span class="status-badge role-instructor"
+              >{{ faculty.departments|length }}</span
+            >
+          </td>
+          <td style="text-align: center">
+            {% if faculty.departments|length > 0 %}
+            <button
+              type="button"
+              class="btn btn-secondary btn-compact"
+              onclick="openViewDeptModal('{{ loop.index }}')"
+            >
+              ดูสาขา
+            </button>
+            {% else %}
+            <span class="text-muted text-xs">-</span>
+            {% endif %}
+          </td>
+          <td style="text-align: center">
+            {% if faculty.departments|length > 0 %}
+            <button
+              type="button"
+              class="btn btn-secondary btn-compact"
+              onclick="openEditDeptModal('{{ loop.index }}')"
+            >
+              แก้ไข
+            </button>
+            {% else %}
+            <span class="text-muted text-xs">-</span>
+            {% endif %}
+          </td>
+          <td style="text-align: center">
+            <form
+              action="{{ url_for('admin_delete_faculty', faculty_id=faculty.id) }}"
+              method="POST"
+              onsubmit="return confirm('ยืนยันการลบคณะนี้?');"
+            >
+              <button type="submit" class="btn btn-outline-danger">ลบ</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center text-muted empty-state">
+            ไม่พบข้อมูลคณะในระบบ
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    <script>
+      window._deptData = {
+          {% for faculty in faculties %}
+          '{{ loop.index }}': {
+              faculty: {{ faculty.name | tojson }},
+              depts: [{% for dept in faculty.departments %}{ id: {{ dept.id | tojson }}, name: {{ dept.name | tojson }}, major: {{ (dept.major or '') | tojson }} }{% if not loop.last %},{% endif %}{% endfor %}]
+          }{% if not loop.last %},{% endif %}
+          {% endfor %}
+      };
+    </script>
+  </div>
 </div>
+
+<!-- Modal: เพิ่มคณะใหม่ -->
+<div
+  id="modal-add-faculty"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  "
+>
+  <div
+    class="glass glass-card"
+    style="width: 100%; max-width: 440px; position: relative"
+  >
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+      "
+    >
+      <h3 style="margin: 0">เพิ่มคณะใหม่</h3>
+      <button
+        onclick="
+          document.getElementById('modal-add-faculty').style.display = 'none'
+        "
+        class="modal-close-btn"
+      >
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+    <form method="POST">
+      <input type="hidden" name="action" value="add_faculty" />
+      <div class="form-group">
+        <label>ชื่อคณะ</label>
+        <input
+          type="text"
+          name="name"
+          class="form-control"
+          placeholder="เช่น คณะเทคโนโลยีสารสนเทศ"
+          required
+        />
+      </div>
+      <div style="display: flex; gap: 0.75rem; margin-top: 1rem">
+        <button type="submit" class="btn btn-primary" style="flex: 1">
+          บันทึกข้อมูล
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          onclick="
+            document.getElementById('modal-add-faculty').style.display = 'none'
+          "
+        >
+          ยกเลิก
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: เพิ่มสาขาวิชา -->
+<div
+  id="modal-add-dept"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  "
+>
+  <div
+    class="glass glass-card"
+    style="width: 100%; max-width: 440px; position: relative"
+  >
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+      "
+    >
+      <h3 style="margin: 0">เพิ่มสาขาวิชาในคณะ</h3>
+      <button
+        onclick="
+          document.getElementById('modal-add-dept').style.display = 'none'
+        "
+        class="modal-close-btn"
+      >
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+    <form method="POST">
+      <input type="hidden" name="action" value="add_department" />
+      <div class="form-group">
+        <label>คณะ</label>
+        <select name="faculty_id" class="form-control" required>
+          {% for f in faculties %}
+          <option value="{{ f.id }}">{{ f.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ชื่อสาขาวิชา</label>
+        <input
+          type="text"
+          name="department_name"
+          class="form-control"
+          placeholder="เช่น เทคโนโลยีมัลติมีเดีย"
+          required
+        />
+      </div>
+      <div class="form-group">
+        <label>วิชาเอก <span class="text-muted text-xs">(ถ้ามี)</span></label>
+        <input
+          type="text"
+          name="major"
+          class="form-control"
+          placeholder="เช่น วิชาเอกแอนิเมชัน"
+        />
+      </div>
+      <div style="display: flex; gap: 0.75rem; margin-top: 1rem">
+        <button type="submit" class="btn btn-primary" style="flex: 1">
+          บันทึกข้อมูล
+        </button>
+        <button
+          type="button"
+          class="btn btn-secondary"
+          onclick="
+            document.getElementById('modal-add-dept').style.display = 'none'
+          "
+        >
+          ยกเลิก
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: ดูรายชื่อสาขา -->
+<div
+  id="modal-view-dept"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  "
+>
+  <div
+    class="glass glass-card"
+    style="width: 100%; max-width: 480px; position: relative"
+  >
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+      "
+    >
+      <h3 style="margin: 0">
+        รายชื่อสาขา — <span id="view-dept-faculty-name"></span>
+      </h3>
+      <button
+        onclick="
+          document.getElementById('modal-view-dept').style.display = 'none'
+        "
+        class="modal-close-btn"
+      >
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+    <div id="view-dept-list"></div>
+  </div>
+</div>
+
+<!-- Modal: แก้ไขสาขา -->
+<div
+  id="modal-edit-dept"
+  style="
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  "
+>
+  <div
+    class="glass glass-card"
+    style="
+      width: 100%;
+      max-width: 560px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      max-height: 85vh;
+    "
+  >
+    <div
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+      "
+    >
+      <h3 style="margin: 0">
+        แก้ไขสาขาวิชา — <span id="edit-dept-faculty-name"></span>
+      </h3>
+      <button onclick="closeEditDeptModal()" class="modal-close-btn">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </div>
+    <form
+      id="edit-dept-form"
+      method="POST"
+      action="/admin/departments/bulk-update"
+      style="display: flex; flex-direction: column; flex: 1; overflow: hidden"
+    >
+      <input type="hidden" name="next" value="" />
+      <div
+        id="edit-dept-list"
+        style="
+          overflow-y: auto;
+          flex: 1;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        "
+      ></div>
+      <style>
+        #edit-dept-list::-webkit-scrollbar {
+          display: none;
+        }
+      </style>
+      <div
+        style="
+          padding-top: 1rem;
+          border-top: 1px solid var(--border-color, #d7dfec);
+          margin-top: 0.5rem;
+        "
+      >
+        <button type="submit" class="btn btn-primary" style="width: auto">
+          บันทึกทั้งหมด
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  ["modal-add-faculty", "modal-add-dept", "modal-view-dept"].forEach(
+    function (id) {
+      document.getElementById(id).addEventListener("click", function (e) {
+        if (e.target === this) this.style.display = "none";
+      });
+    },
+  );
+  document
+    .getElementById("modal-edit-dept")
+    .addEventListener("click", function (e) {
+      if (e.target === this) closeEditDeptModal();
+    });
+
+  function _editDeptDirty() {
+    var form = document.getElementById("edit-dept-form");
+    if (!form) return false;
+    return Array.from(form.querySelectorAll('input[type="text"]')).some(
+      function (el) {
+        return el.defaultValue !== el.value;
+      },
+    );
+  }
+
+  function closeEditDeptModal() {
+    if (_editDeptDirty()) {
+      if (
+        !window.confirm(
+          "มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก\nต้องการปิดหรือไม่?",
+        )
+      )
+        return;
+    }
+    document.getElementById("modal-edit-dept").style.display = "none";
+  }
+
+  function openViewDeptModal(key) {
+    var data = window._deptData[key];
+    document.getElementById("view-dept-faculty-name").textContent =
+      data.faculty;
+    var list = document.getElementById("view-dept-list");
+    list.innerHTML = "";
+    data.depts.forEach(function (dept, i) {
+      var div = document.createElement("div");
+      div.style.cssText =
+        "padding:0.6rem 0; border-bottom:1px solid var(--border-color,#d7dfec); display:flex; gap:0.5rem; align-items:baseline;";
+      div.innerHTML =
+        '<span class="text-muted text-xs" style="min-width:1.5rem;">' +
+        (i + 1) +
+        ".</span>" +
+        "<span>" +
+        _esc(dept.name) +
+        (dept.major
+          ? ' <span class="text-muted text-xs">(' +
+            _esc(dept.major) +
+            ")</span>"
+          : "") +
+        "</span>";
+      list.appendChild(div);
+    });
+    document.getElementById("modal-view-dept").style.display = "flex";
+  }
+
+  function openEditDeptModal(key) {
+    var data = window._deptData[key];
+    document.getElementById("edit-dept-faculty-name").textContent =
+      data.faculty;
+    document.querySelector('#edit-dept-form input[name="next"]').value =
+      window.location.pathname;
+    var list = document.getElementById("edit-dept-list");
+    list.innerHTML = "";
+    data.depts.forEach(function (dept) {
+      var div = document.createElement("div");
+      div.style.cssText =
+        "border:1px solid var(--border-color,#d7dfec); border-radius:0.75rem; padding:1rem; margin-bottom:0.75rem;";
+      div.innerHTML =
+        '<div class="form-group" style="margin-bottom:0.5rem;">' +
+        '<label class="text-xs text-muted">ชื่อสาขาวิชา</label>' +
+        '<input type="text" name="name_' +
+        dept.id +
+        '" class="form-control" value="' +
+        _esc(dept.name) +
+        '" required>' +
+        "</div>" +
+        '<div class="form-group" style="margin-bottom:0.75rem;">' +
+        '<label class="text-xs text-muted">วิชาเอก (ถ้ามี)</label>' +
+        '<input type="text" name="major_' +
+        dept.id +
+        '" class="form-control" value="' +
+        _esc(dept.major) +
+        '">' +
+        "</div>" +
+        '<button type="button" class="btn btn-outline-danger btn-compact" onclick="deleteDept(\'' +
+        dept.id +
+        "')\">ลบสาขานี้</button>";
+      list.appendChild(div);
+    });
+    document.getElementById("modal-edit-dept").style.display = "flex";
+  }
+
+  function deleteDept(id) {
+    if (!confirm("ยืนยันการลบสาขานี้?")) return;
+    var f = document.getElementById("dept-delete-form");
+    f.action = "/admin/delete-department/" + id;
+    f.submit();
+  }
+
+  function _esc(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;");
+  }
+</script>
+
+<form id="dept-delete-form" method="POST" style="display: none">
+  <input type="hidden" name="next" value="{{ request.path }}" />
+</form>
 {% endblock %}

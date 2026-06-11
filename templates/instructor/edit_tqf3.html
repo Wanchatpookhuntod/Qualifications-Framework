@@ -109,13 +109,37 @@ document.addEventListener('DOMContentLoaded', function () {
 <form id="tqf3-form" method="POST" class="glass panel" {% if not is_locked %}data-autosave{% endif %}
     onkeydown="if(event.key==='Enter'&&event.target.tagName!=='TEXTAREA'){event.preventDefault();}">
     {% set general = tqf3.general_info or {} %}
+    {% set step_titles = [
+        ('ข้อมูลรายวิชา', 'ข้อมูลรายวิชา'),
+        ('การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้', 'การพัฒนานักศึกษา'),
+        ('แผนการจัดการเรียนรู้', 'แผนการเรียนรู้'),
+        ('แผนการประเมินตามผลลัพธ์การเรียนรู้', 'แผนการประเมิน'),
+        ('วิธีจัดการเรียนการสอน', 'วิธีจัดการสอน'),
+        ('เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้', 'เครื่องมือประเมิน'),
+        ('ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน', 'ตำราและเอกสาร'),
+        ('การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา', 'ประเมินและปรับปรุง'),
+    ] %}
 
+    <div class="text-center mb-3 mt-3">
+        <h3>{{ general.get('university', '') }} คณะ{{ general.get('faculty', '') }}</h3>
+        <h2>หลักสูตร {{ general.get('program', '') }}</h2>
+    </div>
+
+    <div class="tqf-steps-layout" id="tqfStepsLayout" data-store-key="tqf3-step-{{ section.id }}">
+        <nav class="tqf-steps-nav" aria-label="ขั้นตอนการกรอก มคอ.3">
+            {% for full, short in step_titles %}
+            <button type="button" class="tqf-step-link" data-step-link="{{ loop.index }}" data-full-title="{{ full }}" title="{{ full }}">
+                <span class="tqf-step-dot">{{ loop.index }}</span>
+                <span class="tqf-step-label">{{ short }}</span>
+            </button>
+            {% endfor %}
+        </nav>
+
+        <div class="tqf-steps-content">
+            <div class="tqf-step-heading" id="stepHeading" aria-live="polite"></div>
     <fieldset {% if is_locked %}disabled{% endif %}>
-        <div class="text-center mb-3 mt-3">
-            <h3>{{ general.get('university', '') }} คณะ{{ general.get('faculty', '') }}</h3>
-            <h2>หลักสูตร {{ general.get('program', '') }}</h2>
-        </div>
-
+        <!-- ขั้นตอนที่ 1: ข้อมูลรายวิชา -->
+        <div class="tqf-step" data-step="1">
         <div class="qtf-card">
             <div class="qtf-section-title">ข้อมูลรายวิชา</div>
             <div class="qtf-card qtf-highlight">
@@ -293,9 +317,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
             </div>
         </div>
+        </div>
 
-
-
+        <!-- ขั้นตอนที่ 2: การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ -->
+        <div class="tqf-step" data-step="2">
         <div class="qtf-card">
             <div class="qtf-section-title">การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
             <div class="table-wrapper mt-2">
@@ -318,7 +343,10 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
             <div class="qtf-note mt-2">หมายเหตุ : ให้ระบุรายละเอียดของ CLOs, PLOs และกลยุทธ์การสอน วิธีการวัดประเมินผลที่สอดคล้องตามเล่มหลักสูตรกำหนด ในกรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้นำ TQF เดิมที่กำหนดในหลักสูตร (มคอ 2) มาใช้ไปพรางก่อน</div>
         </div>
+        </div>
 
+        <!-- ขั้นตอนที่ 3: แผนการจัดการเรียนรู้ -->
+        <div class="tqf-step" data-step="3">
         <div class="qtf-card">
             <div class="qtf-section-title">แผนการจัดการเรียนรู้</div>
             <div class="table-wrapper mt-2">
@@ -345,6 +373,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('weekly')">+ เพิ่มสัปดาห์</button>
             </div>
         </div>
+        </div>
+
+        <!-- ขั้นตอนที่ 4: แผนการประเมินตามผลลัพธ์การเรียนรู้ -->
+        <div class="tqf-step" data-step="4">
+        <div class="qtf-card">
+            <div class="qtf-section-title">แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา</div>
+            <div class="table-wrapper mt-2">
+                <table id="assessTable" class="data-table data-table--stacked">
+                    <tbody></tbody>
+                </table>
+            </div>
+            {% set a_clo = general.get('assess_clo[]') or [] %}
+            {% set a_act = general.get('assess_activity[]') or [] %}
+            {% set a_crit = general.get('assess_plan_criteria[]') or [] %}
+            {% set a_pct = general.get('assess_pct[]') or [] %}
+            {% set assess_rows = [] %}
+            {% for i in range(a_clo|length) %}
+            {% set _ = assess_rows.append({'assess_clo[]': a_clo[i], 'assess_activity[]': a_act[i] if i < a_act|length else '', 'assess_plan_criteria[]': a_crit[i] if i < a_crit|length else '', 'assess_pct[]': a_pct[i] if i < a_pct|length else ''}) %}
+            {% endfor %}
+            <script type="application/json" id="assessData">{{ assess_rows | tojson }}</script>
+            <div class="qtf-btn-row mt-3">
+                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('assess')">+ เพิ่มรายการประเมิน</button>
+            </div>
+            <div class="qtf-note mt-2">หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
+        </div>
+        </div>
+
+        <!-- ขั้นตอนที่ 5: วิธีจัดการเรียนการสอน -->
+        <div class="tqf-step" data-step="5">
         <div class="qtf-card">
             <div class="qtf-section-title">วิธีจัดการเรียนการสอน</div>
             <div class="qtf-grid three">
@@ -375,10 +432,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     <input type="number" name="pct_other" class="form-control pct-field" min="0" value="{{ general.get('pct_other', '') }}" oninput="updatePctSum(this)">
                 </div>
             </div>
-            <!-- <div class=”form-group mt-2”>
-                <label>รายละเอียด “อื่นๆ”</label>
-                <input type=”text” name=”other_detail” class=”form-control” value=”{{ general.get('other_detail', '') }}” placeholder=”ระบุถ้ามี”>
-            </div> -->
             {% set _pns = namespace(s=0) %}
             {% for _pf in ['pct_lecture','pct_discussion','pct_case','pct_practice','pct_group','pct_other'] %}
                 {% set _pns.s = _pns.s + (general.get(_pf, 0) | string | replace(' ','') | int(0)) %}
@@ -394,29 +447,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             </div>
         </div>
-
-        <div class="qtf-card">
-            <div class="qtf-section-title">แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา</div>
-            <div class="table-wrapper mt-2">
-                <table id="assessTable" class="data-table data-table--stacked">
-                    <tbody></tbody>
-                </table>
-            </div>
-            {% set a_clo = general.get('assess_clo[]') or [] %}
-            {% set a_act = general.get('assess_activity[]') or [] %}
-            {% set a_crit = general.get('assess_plan_criteria[]') or [] %}
-            {% set a_pct = general.get('assess_pct[]') or [] %}
-            {% set assess_rows = [] %}
-            {% for i in range(a_clo|length) %}
-            {% set _ = assess_rows.append({'assess_clo[]': a_clo[i], 'assess_activity[]': a_act[i] if i < a_act|length else '', 'assess_plan_criteria[]': a_crit[i] if i < a_crit|length else '', 'assess_pct[]': a_pct[i] if i < a_pct|length else ''}) %}
-            {% endfor %}
-            <script type="application/json" id="assessData">{{ assess_rows | tojson }}</script>
-            <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('assess')">+ เพิ่มรายการประเมิน</button>
-            </div>
-            <div class="qtf-note mt-2">หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
         </div>
 
+        <!-- ขั้นตอนที่ 6: เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้ -->
+        <div class="tqf-step" data-step="6">
         <div class="qtf-card">
             <div class="qtf-section-title">เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้ (Rubric Score และเกณฑ์การตัดสินการบรรลุผลลัพธ์การเรียนรู้)</div>
             <div class="qtf-alert-note">ระบุประเด็นการประเมินและคำอธิบายแต่ละระดับ (5 = ดีมาก … 1 = ควรปรับปรุง)</div>
@@ -440,12 +474,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('rubric')">+ เพิ่มประเด็นประเมิน</button>
             </div>
         </div>
+        </div>
 
+        <!-- ขั้นตอนที่ 7: ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน -->
+        <div class="tqf-step" data-step="7">
         <div class="qtf-card">
             <div class="qtf-section-title">ตำราและเอกสารที่ใช้ประกอบการเรียนการสอน (เขียนตามแบบบรรณานุกรม APA)</div>
             <textarea name="references" class="form-control" rows="4" placeholder="เช่น Salen, K., & Zimmerman, E. (2003). Rules of Play...">{{ general.get('references', '') }}</textarea>
         </div>
+        </div>
 
+        <!-- ขั้นตอนที่ 8: การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา -->
+        <div class="tqf-step" data-step="8">
         <div class="qtf-card">
             <div class="qtf-section-title">การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา</div>
             <div class="qtf-grid two">
@@ -464,16 +504,27 @@ document.addEventListener('DOMContentLoaded', function () {
                 <textarea name="verification" class="form-control" rows="4">{{ general.get('verification', '') }}</textarea>
             </div>
         </div>
+        </div>
     </fieldset>
 
-    <div class="qtf-btn-row mt-4">
-        {% if not is_locked %}
-        <button type="submit" name="action" value="draft" class="btn btn-primary">บันทึกฉบับร่าง</button>
-        <button type="submit" name="action" value="submit" class="btn btn-primary" onclick="return confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกและไม่สามารถแก้ไขได้จนกว่าจะมีการตีกลับ')">ส่งให้หัวหน้าสาขา</button>
-        <span id="autosaveStatus" class="autosave-status" aria-live="polite"></span>
-        {% else %}
-        <a href="{{ url_for('instructor_dashboard') }}" class="btn btn-secondary">ย้อนกลับ</a>
-        {% endif %}
+    <div class="tqf-step-footer mt-4">
+        <div class="tqf-step-footer-left">
+            <button type="button" id="stepPrevBtn" class="tqf-step-nav-btn"><span class="material-symbols-rounded">arrow_back</span> ขั้นตอนก่อนหน้า</button>
+        </div>
+        <div class="tqf-step-footer-center">
+            {% if not is_locked %}
+            <button type="submit" name="action" value="draft" class="btn btn-secondary">บันทึกฉบับร่าง</button>
+            <button type="submit" name="action" value="submit" id="stepSubmitBtn" class="btn btn-primary">ส่งให้หัวหน้าสาขา</button>
+            <span id="autosaveStatus" class="autosave-status" aria-live="polite"></span>
+            {% else %}
+            <a href="{{ url_for('instructor_dashboard') }}" class="tqf-step-nav-btn"><span class="material-symbols-rounded">arrow_back</span> ย้อนกลับ</a>
+            {% endif %}
+        </div>
+        <div class="tqf-step-footer-right">
+            <button type="button" id="stepNextBtn" class="tqf-step-nav-btn tqf-step-nav-btn--primary">ขั้นตอนถัดไป <span class="material-symbols-rounded">arrow_forward</span></button>
+        </div>
+    </div>
+        </div>
     </div>
 </form>
 
@@ -1140,6 +1191,179 @@ const QTFRows = (function () {
     sync();
 
     addBtn.addEventListener('click', () => addRow('', true));
+})();
+
+// Step wizard: show one section (ขั้นตอน) at a time. All steps stay in the DOM
+// so every field still submits/autosaves; only visibility changes. The current
+// step is kept in sessionStorage so "บันทึกฉบับร่าง" (page reload) returns to it.
+(function () {
+    const layout = document.getElementById('tqfStepsLayout');
+    if (!layout) return;
+    const steps = Array.from(layout.querySelectorAll('.tqf-step'));
+    const links = Array.from(layout.querySelectorAll('.tqf-step-link'));
+    const prevBtn = document.getElementById('stepPrevBtn');
+    const nextBtn = document.getElementById('stepNextBtn');
+    const heading = document.getElementById('stepHeading');
+    const total = steps.length;
+    if (!total) return;
+    const storeKey = layout.dataset.storeKey || 'tqf3-step';
+
+    function show(n, scroll) {
+        const cur = Math.min(Math.max(n, 1), total);
+        steps.forEach(s => s.classList.toggle('is-active', +s.dataset.step === cur));
+        links.forEach(l => {
+            const i = +l.dataset.stepLink;
+            l.classList.toggle('is-active', i === cur);
+            l.classList.toggle('is-done', i < cur);
+        });
+        if (prevBtn) prevBtn.style.visibility = cur === 1 ? 'hidden' : '';
+        if (nextBtn) nextBtn.style.display = cur === total ? 'none' : '';
+        if (heading) {
+            const link = links.find(l => +l.dataset.stepLink === cur);
+            heading.textContent = link ? ('ขั้นตอนที่ ' + cur + ': ' + (link.dataset.fullTitle || '')) : '';
+        }
+        layout.dataset.current = cur;
+        try { sessionStorage.setItem(storeKey, String(cur)); } catch (e) { /* private mode */ }
+        if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    let initial = 1;
+    try { initial = parseInt(sessionStorage.getItem(storeKey), 10) || 1; } catch (e) { /* private mode */ }
+    layout.classList.add('is-ready'); // CSS hides inactive steps only when JS is running
+    show(initial, false);
+
+    if (prevBtn) prevBtn.addEventListener('click', () => show(+layout.dataset.current - 1, true));
+    if (nextBtn) nextBtn.addEventListener('click', () => show(+layout.dataset.current + 1, true));
+    links.forEach(l => l.addEventListener('click', () => show(+l.dataset.stepLink, true)));
+})();
+
+// Step completion: check key data of each step live; when complete the step dot
+// turns into a green checkmark. Submitting to the head is blocked until every
+// step is complete, with an alert listing exactly what is missing.
+(function () {
+    const form = document.getElementById('tqf3-form');
+    const layout = document.getElementById('tqfStepsLayout');
+    if (!form || !layout) return;
+    const links = Array.from(layout.querySelectorAll('.tqf-step-link'));
+    const submitBtn = document.getElementById('stepSubmitBtn');
+
+    function val(name) {
+        const el = form.querySelector('[name="' + name + '"]');
+        return el ? el.value.trim() : '';
+    }
+    function radioChecked(name) {
+        return !!form.querySelector('[name="' + name + '"]:checked');
+    }
+    function tableRows(tableId, type) {
+        return document.querySelectorAll('#' + tableId + ' tbody tr[data-type="' + type + '"]').length;
+    }
+    function sumInputs(name) {
+        let s = 0;
+        document.querySelectorAll('input[name="' + name + '"]').forEach(el => {
+            s += parseFloat(el.value) || 0;
+        });
+        return Math.round(s * 10) / 10;
+    }
+    function teachPctSum() {
+        let s = 0;
+        (window.PCT_NAMES || []).forEach(n => { s += parseFloat(val(n)) || 0; });
+        return Math.round(s * 10) / 10;
+    }
+
+    const STEP_CHECKS = [
+        { step: 1, items: [
+            { label: 'สถานภาพของวิชา', ok: () => radioChecked('course_status') },
+            { label: 'ประเภทนักศึกษา', ok: () => radioChecked('student_type') },
+            { label: 'คำอธิบายรายวิชา', ok: () => val('description') !== '' },
+            { label: 'จำนวนชั่วโมงต่อสัปดาห์ (อย่างน้อย 1 ช่อง)', ok: () =>
+                val('lecture_hours') !== '' || val('lab_hours') !== '' || val('self_hours') !== '' },
+            { label: 'จุดประสงค์การเรียนรู้ (CLOs) อย่างน้อย 1 ข้อ', ok: () => {
+                const d = document.getElementById('objectiveData');
+                return !!(d && d.value.trim());
+            } },
+        ] },
+        { step: 2, items: [
+            { label: 'CLO พร้อมกลยุทธ์การสอน อย่างน้อย 1 รายการ', ok: () => tableRows('cloTable', 'clo') > 0 },
+        ] },
+        { step: 3, items: [
+            { label: 'แผนการจัดการเรียนรู้อย่างน้อย 1 สัปดาห์', ok: () => tableRows('weeklyTable', 'weekly') > 0 },
+        ] },
+        { step: 4, items: [
+            { label: 'รายการประเมินอย่างน้อย 1 รายการ', ok: () => tableRows('assessTable', 'assess') > 0 },
+            { label: 'สัดส่วนการประเมินรวม 100% (ตอนนี้ได้ {x}%)', ok: () => sumInputs('assess_pct[]') === 100,
+              detail: () => sumInputs('assess_pct[]') },
+        ] },
+        { step: 5, items: [
+            { label: 'สัดส่วนวิธีจัดการเรียนการสอนรวม 100% (ตอนนี้ได้ {x}%)', ok: () => teachPctSum() === 100,
+              detail: () => teachPctSum() },
+        ] },
+        { step: 6, items: [
+            { label: 'ประเด็นประเมิน (Rubric) อย่างน้อย 1 ประเด็น', ok: () => tableRows('rubricTable', 'rubric') > 0 },
+        ] },
+        { step: 7, items: [
+            { label: 'ตำราและเอกสารประกอบการเรียนการสอน', ok: () => val('references') !== '' },
+        ] },
+        { step: 8, items: [
+            { label: 'กลยุทธ์การประเมินการจัดการเรียนการสอน', ok: () => val('course_eval_strategy') !== '' },
+            { label: 'การปรับปรุงการจัดการเรียนรู้ของรายวิชา', ok: () => val('course_improve') !== '' },
+            { label: 'กระบวนการยืนยันผลสัมฤทธิ์ทางการเรียน', ok: () => val('verification') !== '' },
+        ] },
+    ];
+
+    function missingByStep() {
+        return STEP_CHECKS.map(sc => ({
+            step: sc.step,
+            missing: sc.items.filter(it => !it.ok())
+                .map(it => it.detail ? it.label.replace('{x}', it.detail()) : it.label),
+        })).filter(sc => sc.missing.length);
+    }
+
+    function updateBadges() {
+        const missing = missingByStep().map(sc => sc.step);
+        links.forEach(l => {
+            const n = +l.dataset.stepLink;
+            const dot = l.querySelector('.tqf-step-dot');
+            if (!dot) return;
+            const complete = missing.indexOf(n) === -1;
+            l.classList.toggle('is-complete', complete);
+            dot.textContent = complete ? '✓' : String(n);
+        });
+        // ปุ่มส่งให้หัวหน้าสาขาโผล่เฉพาะเมื่อกรอกครบทุกขั้นตอน
+        if (submitBtn) submitBtn.style.display = missing.length ? 'none' : '';
+    }
+
+    let pending = null;
+    function scheduleUpdate() {
+        if (pending) clearTimeout(pending);
+        pending = setTimeout(updateBadges, 150);
+    }
+    form.addEventListener('input', scheduleUpdate);
+    form.addEventListener('change', scheduleUpdate);
+    document.addEventListener('DOMContentLoaded', updateBadges);
+
+    if (submitBtn) {
+        submitBtn.addEventListener('click', function (e) {
+            updateBadges();
+            const missing = missingByStep();
+            if (missing.length) {
+                e.preventDefault();
+                const fullTitle = n => {
+                    const l = links[n - 1];
+                    return l ? (l.dataset.fullTitle || '') : '';
+                };
+                const lines = missing.map(sc =>
+                    'ขั้นตอนที่ ' + sc.step + ' (' + fullTitle(sc.step) + ')\n' +
+                    sc.missing.map(m => '   • ' + m).join('\n'));
+                alert('ยังส่งไม่ได้ — กรอกข้อมูลไม่ครบ:\n\n' + lines.join('\n\n'));
+                const first = links[missing[0].step - 1];
+                if (first) first.click(); // กระโดดไปขั้นตอนแรกที่ยังไม่ครบ
+                return;
+            }
+            if (!confirm('ยืนยันการส่งให้หัวหน้าสาขา? เอกสารจะถูกล็อกและไม่สามารถแก้ไขได้จนกว่าจะมีการตีกลับ')) {
+                e.preventDefault();
+            }
+        });
+    }
 })();
 
 </script>

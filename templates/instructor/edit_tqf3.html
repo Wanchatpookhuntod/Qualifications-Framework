@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <div class="text-center mb-3 mt-3">
         <h3>{{ general.get('university', '') }} คณะ{{ general.get('faculty', '') }}</h3>
         <h2>หลักสูตร {{ general.get('program', '') }}</h2>
+        <h2>{{ general.get('course_code', section.course.code) }} {{ general.get('course_name', section.course.name_th) | thai_wrap }}</h2>
     </div>
 
     <div class="tqf-steps-layout" id="tqfStepsLayout" data-store-key="tqf3-step-{{ section.id }}">
@@ -262,8 +263,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 {% if not plos %}
                 <small class="text-muted text-center">ยังไม่มี PLO ในหลักสูตรนี้ หัวหน้าสาขาสามารถกำหนด PLOs ได้ที่เมนู “จัดการ PLOs”</small>
                 {% endif %}
-                <div class="qtf-plo-picker mt-3" style="margin-bottom:0.5rem;">
-                    <button type="button" id="ploPickerAddBtn" class="btn btn-primary"{% if not plos %} disabled{% endif %}>+ เพิ่ม PLO จากหลักสูตร</button>
+                <div class="qtf-plo-picker mt-3" style="margin-bottom:0.5rem; display:flex; justify-content:center;">
+                    <button type="button" id="ploPickerAddBtn" class="btn btn-primary" style="width: 150px;" {% if not plos %} disabled{% endif %}>+ เพิ่ม PLO </button>
                 </div>
             </div>
         </div>
@@ -275,8 +276,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p id="objEmpty" class="text-muted text-center text-xs" style="margin:0.25rem 0 0;">ยังไม่มีข้อ — กดปุ่ม “เพิ่มข้อ” เพื่อเริ่มกรอกทีละข้อ</p>
                 <textarea name="course_objective" id="objectiveData" hidden>{{ general.get('course_objective', general.get('objectives', '')) }}</textarea>
                 <input type="hidden" name="objectives" id="objectivesHidden" value="{{ general.get('course_objective', general.get('objectives', '')) }}">
-                <div class="qtf-btn-row mt-3">
-                    <button type="button" id="objAddBtn" class="btn btn-primary">+ เพิ่มข้อ</button>
+                <div class="qtf-btn-row mt-3" style="justify-content: center;">
+                    <button type="button" id="objAddBtn" class="btn btn-primary" style="width: 150px;">+ เพิ่ม CLO</button>
                 </div>
             </div>
         </div>
@@ -323,6 +324,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="tqf-step" data-step="2">
         <div class="qtf-card">
             <div class="qtf-section-title">การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
+            <div class="qtf-note mt-2">หมายเหตุ : ให้ระบุรายละเอียดของ CLOs, PLOs และกลยุทธ์การสอน วิธีการวัดประเมินผลที่สอดคล้องตามเล่มหลักสูตรกำหนด ในกรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้นำ TQF เดิมที่กำหนดในหลักสูตร (มคอ 2) มาใช้ไปพรางก่อน</div>
             <div class="table-wrapper mt-2">
                 <table id="cloTable" class="data-table data-table--stacked">
                     <tbody></tbody>
@@ -338,10 +340,9 @@ document.addEventListener('DOMContentLoaded', function () {
             {% set _ = clo_rows.append({'clo_text[]': clo_texts[i], 'clo_plo[]': clo_plos[i] if i < clo_plos|length else '', 'teach_strategy[]': teachs[i] if i < teachs|length else '', 'assess_criteria[]': criterias[i] if i < criterias|length else '', 'assess_strategy[]': assesses[i] if i < assesses|length else ''}) %}
             {% endfor %}
             <script type="application/json" id="cloData">{{ clo_rows | tojson }}</script>
-            <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('clo')">+ เพิ่ม CLO</button>
+            <div class="qtf-btn-row mt-3" style="justify-content: center;">
+                <button type="button" class="btn btn-primary" style="width: 150px;" onclick="QTFRows.openAdd('clo')">+ เพิ่ม CLO</button>
             </div>
-            <div class="qtf-note mt-2">หมายเหตุ : ให้ระบุรายละเอียดของ CLOs, PLOs และกลยุทธ์การสอน วิธีการวัดประเมินผลที่สอดคล้องตามเล่มหลักสูตรกำหนด ในกรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้นำ TQF เดิมที่กำหนดในหลักสูตร (มคอ 2) มาใช้ไปพรางก่อน</div>
         </div>
         </div>
 
@@ -369,8 +370,8 @@ document.addEventListener('DOMContentLoaded', function () {
             {% set _ = weekly_rows.append({'week[]': weeks[i], 'topic[]': topics[i] if i < topics|length else '', 'week_clo[]': week_clos[i] if i < week_clos|length else '', 'hours[]': hours[i] if i < hours|length else '', 'activities[]': act_media, 'teacher[]': teachers[i] if i < teachers|length else ''}) %}
             {% endfor %}
             <script type="application/json" id="weeklyData">{{ weekly_rows | tojson }}</script>
-            <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('weekly')">+ เพิ่มสัปดาห์</button>
+            <div class="qtf-btn-row mt-3" style="justify-content: center;">
+                <button type="button" class="btn btn-primary" style="width: 150px;" onclick="QTFRows.openAdd('weekly')">+ เพิ่มสัปดาห์</button>
             </div>
         </div>
         </div>
@@ -379,6 +380,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="tqf-step" data-step="4">
         <div class="qtf-card">
             <div class="qtf-section-title">แผนการประเมินตามผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา</div>
+            <div class="qtf-note mt-2">หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
             <div class="table-wrapper mt-2">
                 <table id="assessTable" class="data-table data-table--stacked">
                     <tbody></tbody>
@@ -393,10 +395,10 @@ document.addEventListener('DOMContentLoaded', function () {
             {% set _ = assess_rows.append({'assess_clo[]': a_clo[i], 'assess_activity[]': a_act[i] if i < a_act|length else '', 'assess_plan_criteria[]': a_crit[i] if i < a_crit|length else '', 'assess_pct[]': a_pct[i] if i < a_pct|length else ''}) %}
             {% endfor %}
             <script type="application/json" id="assessData">{{ assess_rows | tojson }}</script>
-            <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('assess')">+ เพิ่มรายการประเมิน</button>
+            <div class="qtf-btn-row mt-3" style="justify-content: center;">
+                <button type="button" class="btn btn-primary" style="width: 170px;" onclick="QTFRows.openAdd('assess')">+ เพิ่มรายการประเมิน</button>
             </div>
-            <div class="qtf-note mt-2">หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</div>
+            
         </div>
         </div>
 
@@ -453,7 +455,7 @@ document.addEventListener('DOMContentLoaded', function () {
         <div class="tqf-step" data-step="6">
         <div class="qtf-card">
             <div class="qtf-section-title">เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้ (Rubric Score และเกณฑ์การตัดสินการบรรลุผลลัพธ์การเรียนรู้)</div>
-            <div class="qtf-alert-note">ระบุประเด็นการประเมินและคำอธิบายแต่ละระดับ (5 = ดีมาก … 1 = ควรปรับปรุง)</div>
+            <div class="qtf-alert-note">ระบุประเด็นการประเมินและคำอธิบายแต่ละระดับ </div>
             <div class="table-wrapper mt-2">
                 <table id="rubricTable" class="data-table data-table--stacked">
                     <tbody></tbody>
@@ -470,8 +472,8 @@ document.addEventListener('DOMContentLoaded', function () {
             {% set _ = rubric_rows.append({'rubric_topic[]': r_topic[i], 'rubric_l5[]': r_l5[i] if i < r_l5|length else '', 'rubric_l4[]': r_l4[i] if i < r_l4|length else '', 'rubric_l3[]': r_l3[i] if i < r_l3|length else '', 'rubric_l2[]': r_l2[i] if i < r_l2|length else '', 'rubric_l1[]': r_l1[i] if i < r_l1|length else ''}) %}
             {% endfor %}
             <script type="application/json" id="rubricData">{{ rubric_rows | tojson }}</script>
-            <div class="qtf-btn-row mt-3">
-                <button type="button" class="btn btn-primary" onclick="QTFRows.openAdd('rubric')">+ เพิ่มประเด็นประเมิน</button>
+            <div class="qtf-btn-row mt-3" style="justify-content: center;">
+                <button type="button" class="btn btn-primary" style="width: 170px;"  onclick="QTFRows.openAdd('rubric')">+ เพิ่มประเด็นประเมิน</button>
             </div>
         </div>
         </div>
@@ -582,20 +584,20 @@ const QTFRows = (function () {
             tableId: 'cloTable', dataId: 'cloData', noun: 'CLO', layout: 'stacked', showNumber: true, numPrefix: 'CLO',
             fields: [
                 { name: 'clo_text[]', label: 'ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา', type: 'clo' },
-                { name: 'clo_plo[]', label: 'สัมพันธ์กับ PLO', type: 'plo_tags' },
+                { name: 'clo_plo[]', label: 'สัมพันธ์กับ', type: 'plo_tags' },
                 { name: 'teach_strategy[]', label: 'กลยุทธ์การสอนตาม CLOs', type: 'textarea', ph: 'เช่น บรรยาย/ฝึกปฏิบัติ' },
                 { name: 'assess_criteria[]', label: 'เกณฑ์การวัดและการประเมินผล', type: 'textarea', ph: 'เช่น ผ่านเกณฑ์ร้อยละ 60' },
                 { name: 'assess_strategy[]', label: 'วิธีการวัดและประเมินผลตาม CLOs', type: 'textarea', ph: 'เช่น สอบ/โครงงาน' }
             ]
         },
         weekly: {
-            tableId: 'weeklyTable', dataId: 'weeklyData', noun: 'สัปดาห์', layout: 'stacked',
+            tableId: 'weeklyTable', dataId: 'weeklyData', noun: 'สัปดาห์', layout: 'stacked', inlineValues: true,
             fields: [
                 { name: 'week[]', label: 'สัปดาห์', type: 'text', ph: 'เช่น 1' },
                 { name: 'topic[]', label: 'หัวข้อ / รายละเอียด', type: 'textarea', ph: 'กรอกหัวข้อและรายละเอียด' },
                 { name: 'week_clo[]', label: 'LLOs', type: 'text', ph: 'เช่น LLO1' },
                 { name: 'hours[]', label: 'ชั่วโมง', type: 'number', ph: 'เช่น 4', min: '0', step: '0.5' },
-                { name: 'activities[]', label: 'กิจกรรมการเรียนการสอน สื่อที่ใช้ (ถ้ามี)', type: 'textarea', ph: 'เช่น บรรยาย + ฝึกปฏิบัติ / เอกสารประกอบการสอน' },
+                { name: 'activities[]', label: 'กิจกรรมการเรียนการสอน สื่อที่ใช้', type: 'textarea', ph: 'เช่น บรรยาย + ฝึกปฏิบัติ / เอกสารประกอบการสอน' },
                 { name: 'teacher[]', label: 'ผู้สอน', type: 'text', ph: 'ผู้สอน' }
             ]
         },
@@ -612,11 +614,11 @@ const QTFRows = (function () {
             tableId: 'rubricTable', dataId: 'rubricData', noun: 'ประเด็นประเมิน', layout: 'stacked',
             fields: [
                 { name: 'rubric_topic[]', label: 'ประเด็นการประเมิน', type: 'textarea', ph: 'เช่น ทักษะการสื่อสาร' },
-                { name: 'rubric_l5[]', label: 'ระดับ 5 (ดีมาก)', type: 'textarea', ph: 'คำอธิบาย' },
+                { name: 'rubric_l5[]', label: 'ระดับ 5', type: 'textarea', ph: 'คำอธิบาย' },
                 { name: 'rubric_l4[]', label: 'ระดับ 4', type: 'textarea', ph: 'คำอธิบาย' },
                 { name: 'rubric_l3[]', label: 'ระดับ 3', type: 'textarea', ph: 'คำอธิบาย' },
                 { name: 'rubric_l2[]', label: 'ระดับ 2', type: 'textarea', ph: 'คำอธิบาย' },
-                { name: 'rubric_l1[]', label: 'ระดับ 1 (ควรปรับปรุง)', type: 'textarea', ph: 'คำอธิบาย' }
+                { name: 'rubric_l1[]', label: 'ระดับ 1', type: 'textarea', ph: 'คำอธิบาย' }
             ]
         }
     };
@@ -706,17 +708,23 @@ const QTFRows = (function () {
         cfg.fields.forEach((f, fi) => {
             const line = document.createElement('div');
             line.className = 'qtf-stacked-line';
+            // Short fields (text/number/PLO tags) show the value inline after the
+            // label, e.g. "สัปดาห์: 1"; long fields (textarea ฯลฯ) stack label/value.
+            // cfg.inlineValues forces every field of the table inline (แผนการจัดการเรียนรู้).
+            if (cfg.inlineValues || f.type === 'text' || f.type === 'number' || f.type === 'plo_tags') {
+                line.classList.add('qtf-stacked-line--inline');
+            }
             const v = String(values[f.name] || '').trim();
 
             if (cfg.showNumber && fi === 0) {
                 // Render as: [CLO5 badge] : description — no separate label
-                line.style.cssText = 'align-items:center; gap:0.5rem; flex-wrap:nowrap;';
+                line.style.cssText = 'flex-direction:row; align-items:center; gap:0.5rem; flex-wrap:nowrap;';
                 const numBadge = document.createElement('span');
                 numBadge.className = 'qtf-clo-num';
                 numBadge.style.cssText = 'flex-shrink:0; display:inline-block; padding:0.2rem 0.65rem; border-radius:0.4rem; font-size:0.85rem; font-weight:700; background:rgba(99,102,241,0.22); color:var(--primary,#818cf8);';
                 // numFromValue: badge text comes from the stored value (CLO code); otherwise auto-renumbered.
                 numBadge.textContent = cfg.numFromValue ? (v || 'CLO?') : 'CLO?';
-                const val = document.createElement('span');
+                const val = document.createElement('div');
                 val.className = 'qtf-stacked-value';
                 val.style.flex = '1';
                 // For numFromValue, the field stores a CLO code; look up the description.
@@ -735,10 +743,10 @@ const QTFRows = (function () {
                 return;
             }
 
-            const lab = document.createElement('span');
+            const lab = document.createElement('div');
             lab.className = 'qtf-stacked-label';
             lab.textContent = f.label;
-            const val = document.createElement('span');
+            const val = document.createElement('div');
             val.className = 'qtf-stacked-value';
             if (f.type === 'plo_tags') {
                 if (v) {

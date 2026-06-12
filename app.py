@@ -822,6 +822,15 @@ def _as_clo_numbered_list(text) -> str:
     return "\n".join(out)
 
 
+def _collapse_ws(text: str | None) -> str:
+    """Collapse all internal whitespace (incl. newlines pasted from Word) to single spaces.
+
+    PLO descriptions must stay single-line: the TQF editor stores one PLO per
+    line in a textarea, so an embedded newline splits a PLO into bogus rows.
+    """
+    return " ".join((text or "").split())
+
+
 def _plos_for_section(section: Section) -> list:
     """Return the program's defined PLOs for a section (sorted), or []."""
     try:
@@ -1690,7 +1699,8 @@ def edit_tqf3(section_id):
                     p = plo_map.get(code)
                     if not p:
                         continue
-                    plo_lines.append(f"{p.code} — {p.description}" if p.description else p.code)
+                    desc = _collapse_ws(p.description)
+                    plo_lines.append(f"{p.code} — {desc}" if desc else p.code)
                 if plo_lines:
                     gi["plos"] = "\n".join(plo_lines)
         clo_n = max(
@@ -2063,7 +2073,8 @@ def edit_tqf4(section_id):
                     p = plo_map.get(code)
                     if not p:
                         continue
-                    plo_lines.append(f"{p.code} — {p.description}" if p.description else p.code)
+                    desc = _collapse_ws(p.description)
+                    plo_lines.append(f"{p.code} — {desc}" if desc else p.code)
                 if plo_lines:
                     gi["plos"] = "\n".join(plo_lines)
 
@@ -2958,7 +2969,7 @@ def head_manage_plos():
     if request.method == "POST":
         program_id = (request.form.get("program_id") or "").strip()
         number = _parse_plo_number(request.form.get("number"))
-        description = (request.form.get("description") or "").strip()
+        description = _collapse_ws(request.form.get("description"))
 
         if program_id not in program_by_id:
             flash("ไม่พบหลักสูตร หรือคุณไม่มีสิทธิ์จัดการหลักสูตรนี้", "danger")
@@ -3018,7 +3029,7 @@ def head_update_plo(plo_id):
         return redirect_response
 
     number = _parse_plo_number(request.form.get("number"))
-    description = (request.form.get("description") or "").strip()
+    description = _collapse_ws(request.form.get("description"))
 
     if number is None or not description:
         flash("กรุณากรอกหมายเลข PLO (ตัวเลข) และคำอธิบายให้ครบถ้วน", "warning")

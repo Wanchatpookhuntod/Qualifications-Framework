@@ -402,24 +402,36 @@ select {
 
 .qtf-stacked-line {
     display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.qtf-stacked-line--inline {
+    flex-direction: row;
+    align-items: center;
     gap: 0.5rem;
-    align-items: baseline;
     flex-wrap: wrap;
 }
 
-.qtf-stacked-label {
-    flex: 0 0 auto;
-    font-weight: 600;
-    color: var(--text-main);
+/* Long values sit beside the badge and wrap within their own column. */
+.qtf-stacked-line--inline .qtf-stacked-value {
+    flex: 1 1 220px;
+    min-width: 0;
 }
 
-.qtf-stacked-label::after {
-    content: ':';
-    margin-left: 0.1rem;
+.qtf-stacked-label {
+    align-self: flex-start;
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    border-radius: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    background: rgba(15, 131, 166, 0.12);
+    color: var(--primary-color);
+    white-space: nowrap;
 }
 
 .qtf-stacked-value {
-    flex: 1 1 220px;
     white-space: pre-wrap;
     overflow-wrap: break-word;
     word-break: break-word;
@@ -850,6 +862,11 @@ select {
     width: fit-content;
     min-width: min(480px, 96%);
     max-width: min(960px, 96%);
+    /* Never taller than the viewport (minus the overlay padding); the body
+       scrolls instead, so the header and action buttons stay reachable. */
+    max-height: calc(100vh - 4rem);
+    display: flex;
+    flex-direction: column;
     margin: 0;
     border-radius: var(--radius-xl);
     background: var(--bg-card);
@@ -887,6 +904,8 @@ select {
 
 .modal-body {
     padding: 1.25rem 1.5rem;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .modal-actions {
@@ -1402,7 +1421,7 @@ select {
 
 .qtf-note {
     color: var(--text-muted);
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     margin-bottom: 0.75rem;
 }
 

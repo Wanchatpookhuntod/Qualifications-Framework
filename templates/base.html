@@ -18,7 +18,13 @@
 <body>
     {% if current_user.is_authenticated %}
     {% set display_name = current_user.full_name or current_user.username or 'User' %}
-    {% set display_initial = display_name|first|upper %}
+    {# Avatar initial: first English letter from the username (then the display
+       name); Thai names have no Latin letter, so fall back to the first char. #}
+    {% set _init = namespace(ch='') %}
+    {% for c in (current_user.username or '') ~ ' ' ~ display_name %}
+        {% if not _init.ch and c|lower >= 'a' and c|lower <= 'z' %}{% set _init.ch = c|upper %}{% endif %}
+    {% endfor %}
+    {% set display_initial = _init.ch or display_name|first|upper %}
     <nav class="navbar glass">
         <div class="nav-inner">
             <div class="nav-left">

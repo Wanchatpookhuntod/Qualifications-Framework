@@ -64,19 +64,20 @@
 
 <!-- Quick links -->
 <div class="glass panel mb-4">
-    <div class="flex-between flex-wrap" style="gap: 1rem;">
-        <div>
-            <h3 class="mb-0">จัดการรายวิชา</h3>
-            <p class="text-muted mb-0 text-xs">มอบหมายผู้สอน และตรวจสอบสถานะ มคอ. รายวิชา</p>
-        </div>
+    <div>
+        <h3 class="mb-0">จัดการรายวิชา</h3>
+        <p class="text-muted mb-0 text-xs">มอบหมายผู้สอน และตรวจสอบสถานะ มคอ. รายวิชา</p>
+    </div>
+    <div class="flex-between flex-wrap mt-3" style="gap: 1rem;">
         <div class="inline-actions" style="flex-wrap: wrap;">
-            <a style="margin: auto;" class="btn btn-primary" href="{{ url_for('head_sections', term_id=selected_term_id or '') }}">รายวิชา / มอบหมายผู้สอน</a>
+            <a class="btn btn-primary" href="{{ url_for('head_sections', term_id=selected_term_id or '') }}">รายวิชา / มอบหมายผู้สอน</a>
             {% if selected_term %}
             <a class="btn btn-secondary" href="{{ url_for('head_term_documents', term_id=selected_term.id) }}">มคอ. ทั้งหมด</a>
             <a class="btn btn-secondary" href="{{ url_for('head_tqf5_summary', term_id=selected_term.id) }}">สรุป มคอ.5</a>
             {% endif %}
             <a class="btn btn-secondary" href="{{ url_for('head_manage_plos') }}">จัดการ PLOs</a>
             <a class="btn btn-secondary" href="{{ url_for('head_manage_course_clos') }}">CLOs รายวิชา</a>
+            
         </div>
     </div>
 </div>

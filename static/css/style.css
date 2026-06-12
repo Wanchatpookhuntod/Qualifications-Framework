@@ -810,6 +810,40 @@ select {
     color: var(--primary-color);
 }
 
+/* Badge กางรายละเอียดรายวิชา ("n CLO" / "คำอธิบาย" ในตารางรายวิชา) — ให้เห็นชัดว่ากดได้ */
+.status-badge.clo-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border: 1px solid rgba(15, 131, 166, 0.3);
+    cursor: pointer;
+    box-shadow: var(--shadow-soft);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.status-badge.clo-toggle::after {
+    content: '▾';
+    font-size: 0.7em;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+
+.status-badge.clo-toggle:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    background: rgba(15, 131, 166, 0.24);
+    color: var(--primary-color);
+}
+
+.status-badge.clo-toggle:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-soft);
+}
+
+.status-badge.clo-toggle[aria-expanded="true"]::after {
+    transform: rotate(180deg);
+}
+
 .btn-compact {
     /* padding: 0.35rem 0.8rem; */
     font-size: 0.85rem;
@@ -2770,6 +2804,37 @@ a.status-submitted:hover {
     display: flex;
     gap: 0.5rem;
     align-items: center;
+}
+
+/* ตัวกรองแบบ label อยู่เหนือช่องเลือก (เหมือน .form-group) */
+.filter-form--stacked {
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.filter-form--stacked .filter-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.filter-form--stacked .filter-field > label {
+    font-size: 0.775rem;
+    color: var(--text-muted);
+    margin-bottom: 0;
+}
+
+/* select ไม่ยอมเตี้ยกว่าความสูงเนื้อหาของตัวเอง — ตัด padding แนวตั้งแล้วล็อกความสูงให้เท่ากันทุกช่อง */
+.filter-form--stacked .filter-field > .form-control {
+    height: 44px;
+    padding-top: 0;
+    padding-bottom: 0;
+}
+
+/* ดันตัวกรองตั้งแต่ช่องนี้เป็นต้นไปไปชิดขวาของ card */
+.filter-form--stacked .filter-field--right {
+    margin-left: auto;
 }
 
 .select-inline {

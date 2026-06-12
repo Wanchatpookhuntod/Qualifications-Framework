@@ -1605,11 +1605,38 @@ def instructor_courses():
     courses = Course.find_by("program_id", selected_program.id) if selected_program else []
     courses.sort(key=lambda c: (c.code or "", c.name_th or ""))
 
-    # Mark courses the instructor is assigned to teach.
-    my_sections = Section.find_by("instructor_id", current_user.id)
-    my_course_ids = {s.course_id for s in my_sections if s.course_id}
-    for c in courses:
-        c.is_mine = c.id in my_course_ids
+    # ตัวกรองปีการศึกษา: ค่าเริ่มต้นทั้งหมด เลือกเทอมเพื่อดูเฉพาะวิชาที่สอนในเทอมนั้น
+    all_terms = Term.find_all()
+    all_terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+    selected_term_id = request.args.get("term_id") or ""
+
+    # เลือกเทอม → เหลือเฉพาะวิชาที่เปิดสอนในเทอมนั้น
+    if selected_term_id:
+        term_course_ids = {
+            s.course_id for s in Section.find_by("term_id", selected_term_id) if s.course_id
+        }
+        courses = [c for c in courses if c.id in term_course_ids]
+
+    # ตัวกรองผู้สอน: รายชื่ออาจารย์ในสาขาเดียวกับหลักสูตรที่เลือก ค่าเริ่มต้นทั้งหมด
+    instructors = users_with_role("instructor")
+    if selected_program:
+        instructors = [
+            u for u in instructors
+            if (selected_program.department_id
+                and u.department_id == selected_program.department_id)
+            or (u.program_id and u.program_id == selected_program.id)
+        ]
+    instructors.sort(key=lambda u: u.full_name or u.username)
+    selected_instructor_id = request.args.get("instructor_id") or ""
+    if selected_instructor_id not in {u.id for u in instructors}:
+        selected_instructor_id = ""
+
+    if selected_instructor_id:
+        their_sections = Section.find_by("instructor_id", selected_instructor_id)
+        if selected_term_id:
+            their_sections = [s for s in their_sections if s.term_id == selected_term_id]
+        their_course_ids = {s.course_id for s in their_sections if s.course_id}
+        courses = [c for c in courses if c.id in their_course_ids]
 
     # CLOs ของทุกวิชาในหลักสูตร (query ครั้งเดียว) พร้อมรหัส PLO ที่รองรับ
     program_clos = CourseCLO.find_by("program_id", selected_program.id) if selected_program else []
@@ -1627,6 +1654,10 @@ def instructor_courses():
         selected_program=selected_program,
         courses=courses,
         clos_by_course=clos_by_course,
+        instructors=instructors,
+        selected_instructor_id=selected_instructor_id,
+        terms=all_terms,
+        selected_term_id=selected_term_id,
     )
 
 
@@ -2999,6 +3030,28 @@ def _head_sections_context(term_id_param: str | None) -> dict:
     return ctx
 
 
+def _head_pending_reviews(sections: list) -> list[dict]:
+    """เอกสาร มคอ. สถานะ SUBMITTED ที่รอหัวหน้าสาขาตรวจ จาก sections ที่แนบ tqf docs แล้ว"""
+    pending = []
+    for s in sections:
+        spec_doc = s.tqf4 if s.is_field else s.tqf3
+        if spec_doc and spec_doc.status == "SUBMITTED":
+            pending.append({
+                "section": s,
+                "doc": spec_doc,
+                "tqf_type": "tqf4" if s.is_field else "tqf3",
+                "label": "มคอ.4" if s.is_field else "มคอ.3",
+            })
+        if s.tqf5 and s.tqf5.status == "SUBMITTED":
+            pending.append({
+                "section": s,
+                "doc": s.tqf5,
+                "tqf_type": "tqf5",
+                "label": "มคอ.5",
+            })
+    return pending
+
+
 @app.route("/head/dashboard")
 @login_required
 @roles_required("head")
@@ -3022,25 +3075,6 @@ def head_dashboard():
     spec_counts = _doc_counts([(s.tqf4 if s.is_field else s.tqf3) for s in sections])
     tqf5_counts = _doc_counts([s.tqf5 for s in sections])
 
-    # Documents waiting for the head's review (SUBMITTED)
-    pending_reviews = []
-    for s in sections:
-        spec_doc = s.tqf4 if s.is_field else s.tqf3
-        if spec_doc and spec_doc.status == "SUBMITTED":
-            pending_reviews.append({
-                "section": s,
-                "doc": spec_doc,
-                "tqf_type": "tqf4" if s.is_field else "tqf3",
-                "label": "มคอ.4" if s.is_field else "มคอ.3",
-            })
-        if s.tqf5 and s.tqf5.status == "SUBMITTED":
-            pending_reviews.append({
-                "section": s,
-                "doc": s.tqf5,
-                "tqf_type": "tqf5",
-                "label": "มคอ.5",
-            })
-
     selected_term = next(
         (t for t in ctx["all_terms"] if t.id == ctx["selected_term_id"]), None
     )
@@ -3054,12 +3088,31 @@ def head_dashboard():
             "spec": spec_counts,
             "tqf5": tqf5_counts,
         },
-        pending_reviews=pending_reviews,
+        pending_reviews=_head_pending_reviews(sections),
         terms=ctx["all_terms"],
         selected_term_id=ctx["selected_term_id"],
         selected_term=selected_term,
         dept_name=ctx["dept_name"],
     )
+
+
+@app.route("/head/documents")
+@login_required
+@roles_required("head")
+def head_documents():
+    """ทางเข้าหน้า มคอ. ทั้งหมด: ใช้เทอมจาก ?term_id หรือเทอมปัจจุบันถ้าไม่ระบุ"""
+    term_id = request.args.get("term_id")
+    if not term_id:
+        terms = Term.find_all()
+        current = _find_current_term(terms) if terms else None
+        if not current and terms:
+            terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+            current = terms[0]
+        if not current:
+            flash("ยังไม่มีภาคการศึกษาในระบบ", "warning")
+            return redirect(url_for("head_dashboard"))
+        term_id = current.id
+    return redirect(url_for("head_term_documents", term_id=term_id))
 
 
 @app.route("/head/sections")
@@ -3117,6 +3170,122 @@ def _head_programs_for(user: User) -> list[Program]:
     programs = [p for p in (Program.get(pid) for pid in program_ids) if p]
     programs.sort(key=lambda p: (p.name, p.year or 0))
     return programs
+
+
+@app.route("/head/courses", methods=["GET", "POST"])
+@login_required
+@roles_required("head")
+def head_manage_courses():
+    """จัดการรายวิชาในหลักสูตรที่หัวหน้าสาขาดูแล (ผู้สอนดูได้ที่ /instructor/courses)"""
+    programs = _head_programs_for(current_user)
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    if not programs:
+        flash("ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ", "warning")
+
+    if request.method == "POST":
+        code = (request.form.get("code") or "").strip()
+        name_th = (request.form.get("name_th") or "").strip()
+        name_en = (request.form.get("name_en") or "").strip()
+        credits = (request.form.get("credits") or "").strip() or None
+        description = (request.form.get("description") or "").strip() or None
+        program_id = request.form.get("program_id") or None
+
+        if program_id not in program_by_id:
+            flash("ไม่พบหลักสูตร หรือคุณไม่มีสิทธิ์จัดการหลักสูตรนี้", "danger")
+        elif code and name_th:
+            Course(
+                code=code,
+                name_th=name_th,
+                name_en=name_en or name_th,
+                credits=credits,
+                description=description,
+                program_id=program_id,
+            ).save()
+            flash("เพิ่มรายวิชาเรียบร้อย", "success")
+
+    selected_program_id = request.args.get("program_id")
+    if selected_program_id not in program_by_id:
+        selected_program_id = None
+
+    # ตัวกรองปีการศึกษา: ค่าเริ่มต้นทั้งหมด เลือกเทอมเพื่อดูผู้สอนเฉพาะเทอมนั้น
+    all_terms = Term.find_all()
+    all_terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+    selected_term_id = request.args.get("term_id") or ""
+
+    clos_by_course: dict[str, list[CourseCLO]] = {}
+    courses_by_program: dict[str, list[Course]] = {}
+    for program in programs:
+        if selected_program_id and program.id != selected_program_id:
+            continue
+        courses = Course.find_by("program_id", program.id)
+        if not courses:
+            continue
+        courses.sort(key=lambda c: c.code or "")
+        courses_by_program[program.id] = courses
+
+        for clo in CourseCLO.find_by("program_id", program.id):
+            if clo.course_id:
+                clo.plo_list = _split_clo_plo_codes(clo.plo_codes)
+                clos_by_course.setdefault(clo.course_id, []).append(clo)
+    for rows in clos_by_course.values():
+        rows.sort(key=lambda c: (c.order if c.order is not None else 999))
+
+    # sections ของวิชาในหลักสูตรที่ดูแล (Section ไม่มี program_id จึงกรองด้วย course_id)
+    # → รายชื่อผู้สอนต่อวิชา และวิชาที่เปิดสอนจริงในเทอมที่เลือก
+    all_course_ids = {c.id for cs in courses_by_program.values() for c in cs}
+    instructor_names_by_course: dict[str, list[str]] = {}
+    instructor_by_id = {u.id: u for u in users_with_role("instructor") if u.id}
+    sections = (
+        Section.find_by("term_id", selected_term_id) if selected_term_id else Section.find_all()
+    )
+    term_course_ids = set()
+    for sec in sections:
+        if sec.course_id not in all_course_ids:
+            continue
+        term_course_ids.add(sec.course_id)
+        instructor = instructor_by_id.get(sec.instructor_id)
+        if not instructor:
+            continue
+        names = instructor_names_by_course.setdefault(sec.course_id, [])
+        if instructor.full_name not in names:
+            names.append(instructor.full_name)
+
+    grouped_courses = {}
+    for program in programs:
+        courses = courses_by_program.get(program.id)
+        if not courses:
+            continue
+        if selected_term_id:
+            # เลือกเทอม → เหลือเฉพาะวิชาที่เปิดสอนในเทอมนั้น
+            courses = [c for c in courses if c.id in term_course_ids]
+            if not courses:
+                continue
+        prog_name = program.name + (f" ({program.year})" if program.year else "")
+        grouped_courses[prog_name] = courses
+
+    return render_template(
+        "head/courses.html",
+        grouped_courses=grouped_courses,
+        programs=programs,
+        selected_program_id=selected_program_id,
+        clos_by_course=clos_by_course,
+        instructor_names_by_course=instructor_names_by_course,
+        terms=all_terms,
+        selected_term_id=selected_term_id,
+    )
+
+
+@app.route("/head/delete-course/<course_id>", methods=["POST"])
+@login_required
+@roles_required("head")
+def head_delete_course(course_id):
+    course = _get_or_404(Course, course_id)
+    head_program_ids = {p.id for p in _head_programs_for(current_user)}
+    if course.program_id not in head_program_ids:
+        flash("คุณไม่มีสิทธิ์จัดการรายวิชานี้", "danger")
+        return _safe_redirect_next("head_manage_courses")
+    return _delete_course(course_id, "head_manage_courses")
 
 
 @app.route("/head/plos", methods=["GET", "POST"])
@@ -4135,6 +4304,7 @@ def _handle_courses_request():
         name_th = (request.form.get("name_th") or "").strip()
         name_en = (request.form.get("name_en") or "").strip()
         credits = (request.form.get("credits") or "").strip() or None
+        description = (request.form.get("description") or "").strip() or None
         program_id = request.form.get("program_id") or None
 
         if code and name_th:
@@ -4143,6 +4313,7 @@ def _handle_courses_request():
                 name_th=name_th,
                 name_en=name_en or name_th,
                 credits=credits,
+                description=description,
                 program_id=program_id,
             ).save()
             flash("เพิ่มรายวิชาเรียบร้อย", "success")
@@ -4753,6 +4924,9 @@ def head_term_documents(term_id):
     term = _get_or_404(Term, term_id)
     scope = _get_head_scope(current_user)
 
+    all_terms = Term.find_all()
+    all_terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+
     # Head belongs to a department (สาขา) which may have multiple programs.
     program_ids = set()
     if current_user.department_id:
@@ -4764,6 +4938,7 @@ def head_term_documents(term_id):
         return render_template(
             "head/term_documents.html",
             term=term,
+            terms=all_terms,
             sections=[],
             stats={"total": 0, "tqf3_submitted": 0, "tqf3_approved": 0, "tqf5_submitted": 0, "tqf5_approved": 0},
         )
@@ -4814,6 +4989,7 @@ def head_term_documents(term_id):
     return render_template(
         "head/term_documents.html",
         term=term,
+        terms=all_terms,
         sections=rows,
         stats={
             "total": total,

@@ -16,15 +16,37 @@
 
 {% if programs %}
 <div class="glass panel mb-3">
-    <form method="GET" action="{{ url_for('instructor_courses') }}" class="filter-form">
-        <label class="text-muted mb-0">หลักสูตร / ปี</label>
-        <select name="program_id" class="form-control select-inline min-220" onchange="this.form.submit()">
-            {% for p in programs %}
-            <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
-                {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
-            </option>
-            {% endfor %}
-        </select>
+    <form method="GET" action="{{ url_for('instructor_courses') }}" class="filter-form filter-form--stacked">
+        <div class="filter-field">
+            <label>หลักสูตร / ปี</label>
+            <select name="program_id" class="form-control select-inline min-220" onchange="this.form.submit()">
+                {% for p in programs %}
+                <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-field filter-field--right">
+            <label>ภาคเรียน/ปีการศึกษา</label>
+            <select name="term_id" class="form-control select-inline" onchange="this.form.submit()">
+                <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for t in terms %}
+                <option value="{{ t.id }}" {% if selected_term_id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="filter-field">
+            <label>ผู้สอน</label>
+            <select name="instructor_id" class="form-control select-inline" onchange="this.form.submit()">
+                <option value="" {% if not selected_instructor_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for u in instructors %}
+                <option value="{{ u.id }}" {% if selected_instructor_id == u.id %}selected{% endif %}>
+                    {{ u.full_name or u.username }}{% if u.id == current_user.id %} (ฉัน){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
     </form>
 </div>
 
@@ -36,18 +58,16 @@
         <table class="data-table" style="table-layout: fixed; width: 100%;">
             <colgroup>
                 <col style="width: 13%;">
-                <col style="width: 47%;">
+                <col style="width: 55%;">
                 <col style="width: 12%;">
-                <col style="width: 13%;">
-                <col style="width: 15%;">
+                <col style="width: 20%;">
             </colgroup>
             <thead>
                 <tr>
                     <th class="text-center">รหัสวิชา</th>
                     <th>ชื่อรายวิชา</th>
                     <th class="text-center">หน่วยกิต</th>
-                    <th class="text-center">CLO</th>
-                    <th class="text-center">สถานะ</th>
+                    <th class="text-center">รายละเอียด</th>
                 </tr>
             </thead>
             <tbody>
@@ -63,28 +83,28 @@
                     </td>
                     <td class="text-center text-table">{{ course.credits or '-' }}</td>
                     <td class="text-center text-table">
-                        {% if clos %}
-                        <button style="border: none;" type="button" class="status-badge status-btn role-instructor clo-toggle"
+                        {% if clos or course.description %}
+                        <button type="button" class="status-badge status-btn role-instructor clo-toggle"
                                 data-target="clo-detail-{{ course.id }}" aria-expanded="false"
-                                title="ดู CLO และการรองรับ PLO">
-                            {{ clos | length }} CLO
+                                title="ดูคำอธิบายรายวิชา CLO และการรองรับ PLO">
+                            {{ (clos | length ~ ' CLO') if clos else 'คำอธิบาย' }}
                         </button>
                         {% else %}
                         <span class="text-muted text-xs">ยังไม่กำหนด</span>
                         {% endif %}
                     </td>
-                    <td class="text-center text-table">
-                        {% if course.is_mine %}
-                        <span class="status-badge status-approved">วิชาที่ฉันสอน</span>
-                        {% else %}
-                        <span class="text-muted text-xs">-</span>
-                        {% endif %}
-                    </td>
                 </tr>
-                {% if clos %}
+                {% if clos or course.description %}
                 <tr id="clo-detail-{{ course.id }}" class="clo-detail-row" style="display:none;">
-                    <td colspan="5" style="padding: 0.75rem 1rem 1rem;">
+                    <td colspan="4" style="padding: 0.75rem 1rem 1rem;">
                         <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                            {% if course.description %}
+                            <div class="glass" style="border-radius:0.6rem; padding:0.7rem 0.9rem;
+                                         background:rgba(255,255,255,0.06);">
+                                <div class="text-muted text-xs" style="margin-bottom:0.3rem;">คำอธิบายรายวิชา</div>
+                                <div style="font-size:0.9rem; line-height:1.6;">{{ course.description | thai_wrap }}</div>
+                            </div>
+                            {% endif %}
                             {% for clo in clos %}
                             <div class="glass" style="border-radius:0.6rem; padding:0.7rem 0.9rem;
                                          background:rgba(255,255,255,0.06); display:flex; align-items:flex-start; gap:0.9rem;">
@@ -96,7 +116,7 @@
                                 <div style="flex:1; min-width:0;">
                                     <div style="font-size:0.9rem; line-height:1.5;">{{ clo.description | thai_wrap }}</div>
                                     <div style="margin-top:0.35rem; display:flex; flex-wrap:wrap; gap:0.3rem; align-items:center;">
-                                        <span class="text-muted text-xs">รองรับ PLO:</span>
+                                        <span class="text-muted text-xs">รองรับ:</span>
                                         {% for pc in clo.plo_list %}
                                         <span style="font-size:0.75rem; background:rgba(16,185,129,0.18); color:#34d399;
                                                      border-radius:0.3rem; padding:0.15rem 0.45rem;">{{ pc }}</span>
@@ -113,7 +133,9 @@
                 {% endif %}
                 {% else %}
                 <tr>
-                    <td colspan="5" class="empty-state text-center text-muted">ยังไม่มีรายวิชาในหลักสูตรนี้</td>
+                    <td colspan="4" class="empty-state text-center text-muted">
+                        {% if selected_instructor_id %}ไม่มีวิชาที่อาจารย์ท่านนี้สอนตามเงื่อนไขที่เลือก{% else %}ยังไม่มีรายวิชาในหลักสูตรนี้{% endif %}
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>

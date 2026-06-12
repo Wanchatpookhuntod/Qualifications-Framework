@@ -5,15 +5,15 @@
 {% block content %}
 <style>
 /* โทนสีประจำ PLO (วนซ้ำทุก 8 ตัว) */
-.plo-c0 { --plo-color: #60a5fa; }
-.plo-c1 { --plo-color: #34d399; }
-.plo-c2 { --plo-color: #fb923c; }
-.plo-c3 { --plo-color: #a78bfa; }
-.plo-c4 { --plo-color: #f472b6; }
-.plo-c5 { --plo-color: #2dd4bf; }
-.plo-c6 { --plo-color: #facc15; }
-.plo-c7 { --plo-color: #f87171; }
-.plo-cx { --plo-color: #fbbf24; } /* ไม่ระบุ PLO */
+.plo-c0 { --plo-color: #93c5fd; }
+.plo-c1 { --plo-color: #7de3ba; }
+.plo-c2 { --plo-color: #fdba74; }
+.plo-c3 { --plo-color: #c4b5fd; }
+.plo-c4 { --plo-color: #f9a8d4; }
+.plo-c5 { --plo-color: #97f0e3; }
+.plo-c6 { --plo-color: #fff2b4; }
+.plo-c7 { --plo-color: #fca5a5; }
+.plo-cx { --plo-color: #fcd34d; } /* ไม่ระบุ PLO */
 
 .plo-sum-grid {
     display: grid;
@@ -66,7 +66,7 @@
     background: var(--plo-color);
     color: #0f172a;
     font-size: 0.66rem;
-    font-weight: 700;
+    font-weight: 400;
     cursor: default;
 }
 /* ในตาราง: เรียงวงกลมลงมาทีละแถว ไม่เรียงต่อกันด้านข้าง */
@@ -158,38 +158,6 @@
 </div>
 {% endif %}
 
-<!-- Filters -->
-<div class="glass panel mb-3">
-    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
-        <label class="text-muted mb-0" style="white-space:nowrap; font-weight:500;">หลักสูตร</label>
-        {% if programs|length > 1 %}
-        <form method="GET" action="{{ url_for('head_clo_plo_dashboard') }}" style="flex:1; min-width:220px;">
-            <select name="program_id" class="form-control" style="width:100%;" onchange="this.form.submit()">
-                {% for p in programs %}
-                <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
-                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
-                </option>
-                {% endfor %}
-            </select>
-        </form>
-        {% else %}
-        <span class="text-table" style="flex:1; min-width:220px;">{{ programs[0].name }}{% if programs[0].year %} ({{ programs[0].year }}){% endif %}</span>
-        {% endif %}
-        {% if plos %}
-        <label class="text-muted mb-0" style="white-space:nowrap; font-weight:500;">PLO</label>
-        <select id="plo-filter" class="form-control" style="flex:0 1 220px; min-width:160px;"
-            onchange="filterByPlo(this.value)">
-            <option value="">PLO ทั้งหมด</option>
-            {% for plo in plos %}
-            <option value="{{ plo.code }}">{{ plo.code }}</option>
-            {% endfor %}
-        </select>
-        <input type="text" id="course-filter" class="form-control" style="flex:1 1 220px; min-width:180px;"
-            placeholder="ค้นหารหัสหรือชื่อวิชา..." oninput="filterMatrix()">
-        {% endif %}
-    </div>
-</div>
-
 {% if not plos %}
 <div class="glass panel">
     <div class="empty-state text-center text-muted" style="padding:2rem 0;">
@@ -201,12 +169,51 @@
 
 <!-- Matrix -->
 <div class="glass panel mb-3">
+    <div class="mt-3">
+        <h2 style="text-align: center;">แมทริกซ์ความสัมพันธ์ PLO–CLO</h2>
+    </div>
+    <!-- Filters -->
+    <div style="margin-top: 3rem;">
+        <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+            {% if programs|length > 1 %}
+            <form method="GET" action="{{ url_for('head_clo_plo_dashboard') }}" style="flex:1; min-width:220px;">
+                <select name="program_id" class="form-control" style="width:100%;" onchange="this.form.submit()">
+                    {% for p in programs %}
+                    <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+                        {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </form>
+            {% else %}
+            <span class="text-table" style="flex:1; min-width:220px;">{{ programs[0].name }}{% if programs[0].year %} ({{ programs[0].year }}){% endif %}</span>
+            {% endif %}
+            {% if plos %}
+            <span>
+                <select id="plo-filter" class="form-control" style="flex:0 1 220px; min-width:160px;"
+                    onchange="filterByPlo(this.value)">
+                    <option value="">PLO ทั้งหมด</option>
+                    {% for plo in plos %}
+                    <option value="{{ plo.code }}">{{ plo.code }}</option>
+                    {% endfor %}
+                </select>
+            </span>
+            <span>
+
+                <input type="text" id="course-filter" class="form-control" style="flex:1 1 220px; min-width:180px;"
+                    placeholder="ค้นหารหัสหรือชื่อวิชา..." oninput="filterMatrix()">
+                {% endif %}
+            </span>
+        </div>
+    </div>
+
+
     {% if matrix_rows %}
-    <div class="plo-matrix-wrap">
+    <div style="margin-top:2rem;" class="plo-matrix-wrap mt-3">
         <table class="plo-matrix" id="plo-matrix">
             <thead>
                 <tr>
-                    <th style="text-align:left;">รายวิชา</th>
+                    <th style="text-align: center;">รายวิชา</th>
                     {% for plo in plos %}
                     <th title="{{ plo.description }}">{{ plo.code }}</th>
                     {% endfor %}

@@ -202,7 +202,7 @@ def main():
         print(f"WARNING: {DOCX_EXTRA} not found")
 
     if not rows:
-        print("No rows parsed — exiting")
+        print("No rows parsed – exiting")
         return
 
     db = get_client()

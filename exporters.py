@@ -274,7 +274,7 @@ def _set_fixed_col_widths(table, widths_in: List[float]) -> None:
 
     Sets a fixed table layout, a concrete total ``tblW`` (Word ignores per-column
     widths when ``tblW`` is ``auto``), the ``tblGrid`` columns, and every cell's
-    width — merged cells get the sum of the grid columns they span.
+    width – merged cells get the sum of the grid columns they span.
     """
     table.autofit = False
     table.allow_autofit = False
@@ -364,7 +364,7 @@ def _clear_cell_borders(cell) -> None:
 
 
 def _add_teaching_method_table(doc: Document, general: Dict[str, Any]) -> None:
-    """วิธีจัดการเรียนการสอน — two side-by-side blocks (วิธีการสอน | ร้อยละ) per format."""
+    """วิธีจัดการเรียนการสอน – two side-by-side blocks (วิธีการสอน | ร้อยละ) per format."""
     other_detail = _g(general, "other_detail", default="")
     other_label = "อื่นๆ (ระบุ) " + (
         str(other_detail) if other_detail not in (None, "", _DASH) else "..................")
@@ -641,7 +641,7 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
          (_g(general, "last_updated", default=""), False)],
         [("ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (Program Learning Outcomes: PLOs) "
           "(ให้ระบุเฉพาะ PLOs ที่เกี่ยวข้องกับรายวิชา และสอดคล้องกับเล่ม มคอ 2 หลักสูตร)\n", True),
-         (_g(general, "plos", default=""), False)],
+         (str(_g(general, "plos", default="")).replace("—", "–"), False)],
         [("จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)\n", True),
          (_g(general, "course_objective", "objectives", default=""), False)],
         [("จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)\n", True),
@@ -914,7 +914,7 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     # 5) การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้
     _add_section_heading(doc, "5) การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวังของหลักสูตร")
     _add_paragraph_field(doc, "ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้อง",
-                         _g(general, "plos"))
+                         str(_g(general, "plos")).replace("—", "–"))
     _add_paragraph_field(doc, "จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)",
                          _g(general, "course_objective"))
     clo_texts = _arr(general, "clo_text[]", "clo_desc[]")
@@ -1038,7 +1038,7 @@ def build_tqf5_docx(data: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
          (_g(data, "prereq", default=""), False)],
         [("ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (Program Learning Outcomes: PLOs) "
           "(ให้ระบุเฉพาะ PLOs ที่เกี่ยวข้องกับรายวิชา และสอดคล้องกับเล่ม มคอ 2 หลักสูตร)\n", True),
-         (_g(data, "plos", default=""), False)],
+         (str(_g(data, "plos", default="")).replace("—", "–"), False)],
         [("จุดประสงค์การจัดการเรียนรู้ ระดับรายวิชา (Course Learning Outcomes: CLOs) "
           "(รวมทั้งรายวิชาฝึกประสบการณ์ภาคสนาม)\n", True),
          (_g(data, "course_objective", default=""), False)],

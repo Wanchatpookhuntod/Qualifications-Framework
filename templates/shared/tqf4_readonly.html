@@ -133,7 +133,7 @@
     <!-- 5) การพัฒนานักศึกษา -->
     <div class="qtf-card">
         <h3 class="mb-3">5) การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง</h3>
-        <div class="mt-2"><span class="text-muted"><h5>PLOs ที่เกี่ยวข้อง:</h5></span><div class="preserve-text">{{ general.get('plos', '-') }}</div></div>
+        <div class="mt-2"><span class="text-muted"><h5>PLOs ที่เกี่ยวข้อง:</h5></span><div class="preserve-text">{{ (general.get('plos') or '-').replace('—', '–') }}</div></div>
         {% set course_clos = (general.get('course_objective') or '').split('\n') | map('trim') | select | list %}
         <div class="mt-2"><span class="text-muted"><h5>จุดประสงค์การเรียนรู้ระดับรายวิชา (CLOs):</h5></span>
             {% if course_clos|length == 0 %}

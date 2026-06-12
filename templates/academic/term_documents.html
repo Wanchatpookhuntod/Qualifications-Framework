@@ -10,7 +10,7 @@
             <span class="text-muted">รายการ มคอ. ของเทอม {{ term.semester }}/{{ term.year }}</span>
         </nav>
         <h2>รวม มคอ. ตามเทอม</h2>
-        <p class="text-muted mb-0">เทอม {{ term.semester }}/{{ term.year }} — ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</p>
+        <p class="text-muted mb-0">เทอม {{ term.semester }}/{{ term.year }} – ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</p>
     </div>
 </div>
 
@@ -89,7 +89,7 @@
                         {% if section.program %}
                         <div class="text-table">{{ section.program.name | thai_wrap }}{% if section.program.year %} ({{ section.program.year }}){% endif %}</div>
                         {% else %}
-                        <span class="text-muted text-xs">—</span>
+                        <span class="text-muted text-xs">–</span>
                         {% endif %}
                     </td>
                     <td class="table-t">

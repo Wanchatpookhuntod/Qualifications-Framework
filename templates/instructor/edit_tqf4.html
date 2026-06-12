@@ -162,7 +162,7 @@
             <div class="form-group">
                 <label>ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้อง</label>
                 <div id="ploChips" class="qtf-plo-chips" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
-                <p id="ploEmpty" class="text-muted text-center text-xs" style="margin:0.25rem 0 0;">ยังไม่ได้เลือก PLO — กดปุ่ม “เพิ่ม PLO จากหลักสูตร”</p>
+                <p id="ploEmpty" class="text-muted text-center text-xs" style="margin:0.25rem 0 0;">ยังไม่ได้เลือก PLO – กดปุ่ม “เพิ่ม PLO จากหลักสูตร”</p>
                 <textarea name="plos" id="plosTextarea" hidden>{{ general.get('plos', '') }}</textarea>
                 {% if not plos %}
                 <small class="text-muted text-center">ยังไม่มี PLO ในหลักสูตรนี้ หัวหน้าสาขาสามารถกำหนด PLOs ได้ที่เมนู “จัดการ PLOs”</small>
@@ -179,7 +179,7 @@
             <div class="qtf-section-title">4. จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)</div>
             <div class="form-group">
                 <div id="objList" class="qtf-obj-list" style="display:flex; flex-direction:column; gap:0.4rem;"></div>
-                <p id="objEmpty" class="text-muted text-center text-xs" style="margin:0.25rem 0 0;">ยังไม่มีข้อ — กดปุ่ม “เพิ่มข้อ” เพื่อเริ่มกรอกทีละข้อ</p>
+                <p id="objEmpty" class="text-muted text-center text-xs" style="margin:0.25rem 0 0;">ยังไม่มีข้อ – กดปุ่ม “เพิ่มข้อ” เพื่อเริ่มกรอกทีละข้อ</p>
                 <textarea name="course_objective" id="objectiveData" hidden>{{ general.get('course_objective', '') }}</textarea>
                 <div class="qtf-btn-row mt-3">
                     <button type="button" id="objAddBtn" class="btn btn-primary">+ เพิ่มข้อ</button>
@@ -534,8 +534,8 @@
             <div id="ploModalList" style="display:flex; flex-direction:column; gap:0.5rem; max-height:50vh; overflow-y:auto;">
                 {% for p in plos or [] %}
                 <label class="qtf-plo-option" style="display:flex; gap:0.6rem; align-items:flex-start; padding:0.6rem 0.75rem; border:1px solid var(--border-color, #d0d5dd); border-radius:0.5rem; cursor:pointer;">
-                    <input type="checkbox" name="ploPickerCheck" value="{{ p.id }}" data-line="{{ p.code }}{% if p.description %} — {{ p.description }}{% endif %}" style="margin-top:0.2rem;">
-                    <span><strong>{{ p.code }}</strong>{% if p.description %} — {{ p.description }}{% endif %}</span>
+                    <input type="checkbox" name="ploPickerCheck" value="{{ p.id }}" data-line="{{ p.code }}{% if p.description %} – {{ p.description }}{% endif %}" style="margin-top:0.2rem;">
+                    <span><strong>{{ p.code }}</strong>{% if p.description %} – {{ p.description }}{% endif %}</span>
                 </label>
                 {% endfor %}
             </div>
@@ -595,6 +595,7 @@ const QTFRows = (function () {
         },
         weekly: {
             tableId: 'weeklyTable', dataId: 'weeklyData', noun: 'สัปดาห์',
+            defaults: weeklyDefaults,
             fields: [
                 { name: 'week[]', label: 'สัปดาห์', type: 'text', ph: 'เช่น 1' },
                 { name: 'topic[]', label: 'หัวข้อ/รายละเอียด', type: 'textarea', ph: 'กรอกหัวข้อและรายละเอียด' },
@@ -633,6 +634,18 @@ const QTFRows = (function () {
     const fieldsEl = document.getElementById('rowModalFields');
     let current = null;
 
+    // ค่าเริ่มต้นเมื่อ "เพิ่มสัปดาห์": เลขสัปดาห์รันต่อจากแถวที่มีอยู่ (รองรับค่าแบบ
+    // ช่วง เช่น "1-2" โดยใช้เลขมากสุด). ผู้ดูแลกิจกรรมอาจเป็นพี่เลี้ยง จึงไม่เติมอัตโนมัติ.
+    function weeklyDefaults() {
+        let maxWeek = 0;
+        document.querySelectorAll('#weeklyTable tbody input[name="week[]"]').forEach(inp => {
+            (String(inp.value).match(/\d+/g) || []).forEach(n => {
+                maxWeek = Math.max(maxWeek, parseInt(n, 10));
+            });
+        });
+        return { 'week[]': String(maxWeek + 1) };
+    }
+
     let PLO_OPTIONS = [];
     try {
         const el = document.getElementById('ploOptions');
@@ -643,13 +656,13 @@ const QTFRows = (function () {
         const sel = document.createElement('select');
         const blank = document.createElement('option');
         blank.value = '';
-        blank.textContent = PLO_OPTIONS.length ? '— เลือก PLO —' : '— ยังไม่มี PLO ของหลักสูตร —';
+        blank.textContent = PLO_OPTIONS.length ? '– เลือก PLO –' : '– ยังไม่มี PLO ของหลักสูตร –';
         sel.appendChild(blank);
         let matched = false;
         PLO_OPTIONS.forEach(o => {
             const op = document.createElement('option');
             op.value = o.code;
-            op.textContent = o.desc ? (o.code + ' — ' + o.desc) : o.code;
+            op.textContent = o.desc ? (o.code + ' – ' + o.desc) : o.code;
             if (String(value || '') === o.code) { op.selected = true; matched = true; }
             sel.appendChild(op);
         });
@@ -665,7 +678,7 @@ const QTFRows = (function () {
     }
 
     // CLO items {code: 'CLO1', text} derived LIVE from the
-    // "จุดประสงค์การเรียนรู้ระดับรายวิชา (CLOs)" list — read fresh each time a
+    // "จุดประสงค์การเรียนรู้ระดับรายวิชา (CLOs)" list – read fresh each time a
     // row popup opens, so newly added CLOs are usable without a page refresh.
     function getCloItems() {
         const data = document.getElementById('objectiveData');
@@ -680,14 +693,14 @@ const QTFRows = (function () {
         const blank = document.createElement('option');
         blank.value = '';
         blank.textContent = items.length
-            ? '— เลือก CLO —'
-            : '— ยังไม่ได้เพิ่มจุดประสงค์การเรียนรู้ (CLOs) —';
+            ? '– เลือก CLO –'
+            : '– ยังไม่ได้เพิ่มจุดประสงค์การเรียนรู้ (CLOs) –';
         sel.appendChild(blank);
         let matched = false;
         items.forEach(it => {
             const op = document.createElement('option');
             op.value = it.code;
-            op.textContent = it.text ? (it.code + ' — ' + it.text) : it.code;
+            op.textContent = it.text ? (it.code + ' – ' + it.text) : it.code;
             if (String(value || '') === it.code) { op.selected = true; matched = true; }
             sel.appendChild(op);
         });
@@ -712,7 +725,7 @@ const QTFRows = (function () {
         const td = document.createElement('td');
         td.colSpan = cfg.fields.length + 1;
         td.className = 'text-center text-table text-xs text-muted';
-        td.textContent = 'ยังไม่มีข้อมูล — กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
+        td.textContent = 'ยังไม่มีข้อมูล – กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
         tr.appendChild(td);
         return tr;
     }
@@ -726,7 +739,7 @@ const QTFRows = (function () {
             if (v.trim() === '') {
                 const span = document.createElement('span');
                 span.className = 'text-muted';
-                span.textContent = '—';
+                span.textContent = '–';
                 td.appendChild(span);
             } else {
                 td.style.whiteSpace = 'pre-wrap';
@@ -817,7 +830,7 @@ const QTFRows = (function () {
         const cfg = CONFIGS[type];
         current = { type: type, mode: 'add', row: null };
         titleEl.textContent = 'เพิ่ม' + cfg.noun;
-        buildFields(cfg, null);
+        buildFields(cfg, cfg.defaults ? cfg.defaults() : null);
         openModal();
     }
     function openEdit(tr) {
@@ -888,8 +901,9 @@ const QTFRows = (function () {
             row.className = 'qtf-plo-chip';
             row.style.cssText = 'display:flex; gap:0.6rem; align-items:center;';
 
-            // Split "PLO1 — description" into a left badge + the rest.
-            const sep = line.indexOf('—');
+            // Split "PLO1 – description" into a left badge + the rest.
+            // — = legacy em dash in data saved before the en-dash switch.
+            const sep = line.search(/[–—]/);
             const code = sep >= 0 ? line.slice(0, sep).trim() : ('PLO' + (idx + 1));
             const text = sep >= 0 ? line.slice(sep + 1).trim() : line;
 

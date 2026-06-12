@@ -385,7 +385,7 @@ select {
 }
 
 
-/* Stacked (label-over-value) table rows — one record per block, divided by a line */
+/* Stacked (label-over-value) table rows – one record per block, divided by a line */
 .data-table--stacked {
     min-width: 0;
 }
@@ -2945,7 +2945,7 @@ input[type="button"] {
     font-weight: 400;
 }
 
-/* ===== TQF step wizard (ฟอร์ม มคอ. แบบขั้นตอน) — แถบแนวนอนด้านบน ===== */
+/* ===== TQF step wizard (ฟอร์ม มคอ. แบบขั้นตอน) – แถบแนวนอนด้านบน ===== */
 .tqf-steps-nav {
     display: flex;
     align-items: flex-start;
@@ -3092,7 +3092,7 @@ input[type="button"] {
     }
 }
 
-/* ลิงก์เลื่อนขั้นตอน (ก่อนหน้า/ถัดไป) — ข้อความ + ไอคอน ไม่ใช่ปุ่ม */
+/* ลิงก์เลื่อนขั้นตอน (ก่อนหน้า/ถัดไป) – ข้อความ + ไอคอน ไม่ใช่ปุ่ม */
 .tqf-step-nav-btn {
     display: inline-flex;
     align-items: center;

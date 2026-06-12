@@ -68,7 +68,7 @@ def main():
         print(f"  [{p.id}] {p.name} {p.year}")
 
     if len(programs) > 1:
-        print("ใช้ program แรก — แก้ไข script ถ้าต้องการ program อื่น")
+        print("ใช้ program แรก – แก้ไข script ถ้าต้องการ program อื่น")
     program = programs[0]
 
     courses = Course.find_by("program_id", program.id)

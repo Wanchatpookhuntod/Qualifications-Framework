@@ -2,7 +2,7 @@
 CLO–PLO mapping document (เล่มหลักสูตร 2569).
 
 Source: CLO/CLO_PLO_Mapping_วิชาเฉพาะ_หลักสูตรมัลติมีเดีย_2569.docx
-Tables: รหัสวิชา | รายวิชา | CLO | PLO ที่รับผิดชอบ — course code appears only on
+Tables: รหัสวิชา | รายวิชา | CLO | PLO ที่รับผิดชอบ – course code appears only on
 the first CLO row of each course; subsequent rows leave it blank.
 
 Usage:
@@ -92,12 +92,12 @@ def main() -> None:
         hit = courses_by_code.get(code)
         if not hit:
             missing += 1
-            print(f"NOT IN 2569 PROGRAM: {code} ({len(clos)} CLOs) — skipped")
+            print(f"NOT IN 2569 PROGRAM: {code} ({len(clos)} CLOs) – skipped")
             continue
         cid, cdata = hit
         if cid in existing_clo_courses:
             skipped += len(clos)
-            print(f"already has CLOs:    {code} {cdata.get('name_th','')[:35]} — skipped")
+            print(f"already has CLOs:    {code} {cdata.get('name_th','')[:35]} – skipped")
             continue
         print(f"{code} {cdata.get('name_th','')[:40]} -> {len(clos)} CLOs")
         for clo in clos:

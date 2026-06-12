@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}แดชบอร์ด PLO–CLO - หัวหน้าสาขา{% endblock %}
+
+{% block content %}
+<style>
+/* โทนสีประจำ PLO (วนซ้ำทุก 8 ตัว) */
+.plo-c0 { --plo-color: #60a5fa; }
+.plo-c1 { --plo-color: #34d399; }
+.plo-c2 { --plo-color: #fb923c; }
+.plo-c3 { --plo-color: #a78bfa; }
+.plo-c4 { --plo-color: #f472b6; }
+.plo-c5 { --plo-color: #2dd4bf; }
+.plo-c6 { --plo-color: #facc15; }
+.plo-c7 { --plo-color: #f87171; }
+.plo-cx { --plo-color: #fbbf24; } /* ไม่ระบุ PLO */
+
+.plo-sum-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+.plo-sum-card {
+    text-align: center;
+    padding: 1rem 0.75rem 1.1rem;
+    border-radius: var(--radius-md, 0.75rem);
+    border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+    background: var(--bg-card, rgba(255,255,255,0.04));
+}
+.plo-sum-card .plo-sum-code { font-size: 0.85rem; color: var(--text-muted, #94a3b8); margin-bottom: 0.35rem; }
+.plo-sum-card .plo-sum-num { font-size: 2rem; font-weight: 700; color: var(--plo-color); line-height: 1.1; }
+.plo-sum-card .plo-sum-sub { font-size: 0.72rem; color: var(--text-muted, #94a3b8); margin-top: 0.3rem; }
+
+.plo-legend { display: flex; flex-wrap: wrap; gap: 1rem 1.4rem; align-items: center; margin-bottom: 1.25rem; }
+.plo-legend-item { display: inline-flex; align-items: center; gap: 0.45rem; font-size: 0.9rem; }
+.plo-legend-dot { width: 0.85rem; height: 0.85rem; border-radius: 50%; background: var(--plo-color); flex-shrink: 0; }
+
+.plo-matrix-wrap { overflow-x: auto; }
+.plo-matrix { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+.plo-matrix th, .plo-matrix td {
+    border: 1px solid var(--border-color, #d7dfec);
+    padding: 0.55rem 0.65rem;
+    vertical-align: middle;
+    text-align: center;
+}
+.plo-matrix thead th {
+    background: rgba(15,23,42,0.04);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.plo-matrix td.course-cell { text-align: left; min-width: 230px; max-width: 340px; }
+.plo-matrix .course-cell-name { font-weight: 600; font-size: 0.9rem; line-height: 1.4; }
+.plo-matrix .course-cell-name a { color: inherit; text-decoration: none; }
+.plo-matrix .course-cell-name a:hover { text-decoration: underline; }
+.plo-matrix .course-cell-code { font-size: 0.78rem; color: var(--text-muted, #94a3b8); margin-top: 0.15rem; }
+.plo-matrix tfoot td { font-weight: 600; background: rgba(15,23,42,0.04); }
+
+.clo-dot {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.2rem;
+    height: 1.2rem;
+    border-radius: 50%;
+    background: var(--plo-color);
+    color: #0f172a;
+    font-size: 0.66rem;
+    font-weight: 700;
+    cursor: default;
+}
+/* ในตาราง: เรียงวงกลมลงมาทีละแถว ไม่เรียงต่อกันด้านข้าง */
+.plo-matrix td .clo-dot { display: flex; margin: 0.18rem auto; }
+
+.plo-bar-row { display: flex; align-items: center; gap: 0.9rem; padding: 0.4rem 0; }
+.plo-bar-label { flex-shrink: 0; width: 3.6rem; font-size: 0.9rem; font-weight: 600; }
+.plo-bar-track { flex: 1; height: 1.55rem; border-radius: 0.45rem; background: rgba(15,23,42,0.06); overflow: hidden; }
+.plo-bar-fill {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    min-width: fit-content;
+    border-radius: 0.45rem;
+    background: var(--plo-color);
+    color: #0f172a;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0 0.6rem;
+    white-space: nowrap;
+}
+.plo-bar-count { flex-shrink: 0; width: 2.2rem; text-align: right; font-size: 0.95rem; font-weight: 600; }
+
+.clo-chip--warn {
+    display: inline-block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    background: rgba(245,158,11,0.2);
+    color: #fbbf24;
+    border-radius: 0.3rem;
+    padding: 0.12rem 0.42rem;
+    margin: 0.1rem;
+    white-space: nowrap;
+}
+</style>
+
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('head_dashboard') }}">Dashboard</a> /
+            <span class="text-muted">แดชบอร์ด PLO–CLO</span>
+        </nav>
+        <h2>แดชบอร์ดความสัมพันธ์ PLO–CLO</h2>
+        <p class="text-muted mb-0">ภาพรวมความเชื่อมโยงระหว่างผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLO) และระดับรายวิชา (CLO)</p>
+    </div>
+</div>
+
+{% if not programs %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ</div>
+</div>
+{% else %}
+
+{# index ของแต่ละ PLO ใช้เลือกสี (วนทุก 8 ตัว) #}
+{% set plo_color_class = {} %}
+{% for plo in plos %}
+    {% if plo_color_class.update({plo.code: 'plo-c' ~ (loop.index0 % 8)}) %}{% endif %}
+{% endfor %}
+
+<!-- PLO summary cards -->
+{% if plos %}
+<div class="plo-sum-grid">
+    {% for s in plo_stats %}
+    <div class="plo-sum-card {{ plo_color_class[s.plo.code] }}" title="{{ s.plo.description }}">
+        <div class="plo-sum-code">{{ s.plo.code }}</div>
+        <div class="plo-sum-num">{{ s.clo_count }}</div>
+        <div class="plo-sum-sub">CLO · {{ s.course_count }} รายวิชา</div>
+    </div>
+    {% endfor %}
+    {% if summary.unmapped_clos %}
+    <div class="plo-sum-card plo-cx">
+        <div class="plo-sum-code">ไม่ระบุ PLO</div>
+        <div class="plo-sum-num">{{ summary.unmapped_clos }}</div>
+        <div class="plo-sum-sub">CLO ที่ยังไม่เชื่อมโยง</div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Legend -->
+<div class="plo-legend">
+    {% for plo in plos %}
+    <span class="plo-legend-item {{ plo_color_class[plo.code] }}" title="{{ plo.description }}">
+        <span class="plo-legend-dot"></span>{{ plo.code }}
+    </span>
+    {% endfor %}
+    {% if summary.unmapped_clos %}
+    <span class="plo-legend-item plo-cx"><span class="plo-legend-dot"></span>ไม่ระบุ PLO</span>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Filters -->
+<div class="glass panel mb-3">
+    <div style="display:flex; align-items:center; gap:1rem; flex-wrap:wrap;">
+        <label class="text-muted mb-0" style="white-space:nowrap; font-weight:500;">หลักสูตร</label>
+        {% if programs|length > 1 %}
+        <form method="GET" action="{{ url_for('head_clo_plo_dashboard') }}" style="flex:1; min-width:220px;">
+            <select name="program_id" class="form-control" style="width:100%;" onchange="this.form.submit()">
+                {% for p in programs %}
+                <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+        {% else %}
+        <span class="text-table" style="flex:1; min-width:220px;">{{ programs[0].name }}{% if programs[0].year %} ({{ programs[0].year }}){% endif %}</span>
+        {% endif %}
+        {% if plos %}
+        <label class="text-muted mb-0" style="white-space:nowrap; font-weight:500;">PLO</label>
+        <select id="plo-filter" class="form-control" style="flex:0 1 220px; min-width:160px;"
+            onchange="filterByPlo(this.value)">
+            <option value="">PLO ทั้งหมด</option>
+            {% for plo in plos %}
+            <option value="{{ plo.code }}">{{ plo.code }}</option>
+            {% endfor %}
+        </select>
+        <input type="text" id="course-filter" class="form-control" style="flex:1 1 220px; min-width:180px;"
+            placeholder="ค้นหารหัสหรือชื่อวิชา..." oninput="filterMatrix()">
+        {% endif %}
+    </div>
+</div>
+
+{% if not plos %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted" style="padding:2rem 0;">
+        ยังไม่ได้กำหนด PLO ของหลักสูตรนี้ —
+        <a href="{{ url_for('head_manage_plos', program_id=selected_program.id if selected_program else None) }}">ไปที่หน้าจัดการ PLOs</a>
+    </div>
+</div>
+{% else %}
+
+<!-- Matrix -->
+<div class="glass panel mb-3">
+    {% if matrix_rows %}
+    <div class="plo-matrix-wrap">
+        <table class="plo-matrix" id="plo-matrix">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">รายวิชา</th>
+                    {% for plo in plos %}
+                    <th title="{{ plo.description }}">{{ plo.code }}</th>
+                    {% endfor %}
+                    {% if summary.unmapped_clos %}<th>ไม่ระบุ PLO</th>{% endif %}
+                    <th>รวม CLO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in matrix_rows %}
+                {% set row_plos = [] %}
+                {% for plo in plos %}{% if row.cells.get(plo.code) %}{% if row_plos.append(plo.code) %}{% endif %}{% endif %}{% endfor %}
+                <tr data-plos="{{ row_plos | join(' ') }}"
+                    data-search="{{ (row.course.code ~ ' ' ~ (row.course.name_th or '') ~ ' ' ~ (row.course.name_en or '')) | lower }}">
+                    <td class="course-cell">
+                        <div class="course-cell-name">
+                            <a href="{{ url_for('head_manage_course_clos', program_id=selected_program.id if selected_program else None, course_id=row.course.id) }}">
+                                {{ row.course.name_th or row.course.name_en or '' }}
+                            </a>
+                        </div>
+                        <div class="course-cell-code">{{ row.course.code }}</div>
+                    </td>
+                    {% for plo in plos %}
+                    <td>
+                        {% for clo in row.cells.get(plo.code, []) %}
+                        <span class="clo-dot {{ plo_color_class[plo.code] }}"
+                              title="{{ clo.code }}: {{ clo.description }}">{{ clo.order if clo.order is not none else clo.code | replace('CLO', '') }}</span>
+                        {% endfor %}
+                    </td>
+                    {% endfor %}
+                    {% if summary.unmapped_clos %}
+                    <td>
+                        {% for clo in row.unmapped %}
+                        <span class="clo-dot plo-cx" title="{{ clo.code }}: {{ clo.description }}">{{ clo.order if clo.order is not none else clo.code | replace('CLO', '') }}</span>
+                        {% endfor %}
+                    </td>
+                    {% endif %}
+                    <td>{{ row.total }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td class="course-cell">รวม (จำนวน CLO)</td>
+                    {% for s in plo_stats %}
+                    <td>{{ s.clo_count }}</td>
+                    {% endfor %}
+                    {% if summary.unmapped_clos %}<td>{{ summary.unmapped_clos }}</td>{% endif %}
+                    <td>{{ summary.total_clos }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <p class="text-muted" style="margin:0.75rem 0 0; font-size:0.8rem;">
+        ตัวเลขในวงกลมคือหมายเลข CLO ของรายวิชานั้น (ชี้เมาส์เพื่อดูคำอธิบาย) · สีตามคอลัมน์ PLO
+    </p>
+    {% else %}
+    <div class="empty-state text-center text-muted" style="padding:2rem 0;">
+        ยังไม่มีรายวิชาที่กำหนด CLO ในหลักสูตรนี้ —
+        <a href="{{ url_for('head_manage_course_clos', program_id=selected_program.id if selected_program else None) }}">ไปที่หน้า CLOs รายวิชา</a>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Bar chart: CLO per PLO -->
+<div class="glass panel mb-3">
+    <h3 style="margin:0 0 0.9rem; font-size:1.05rem;">จำนวน CLO ที่รับผิดชอบต่อ PLO</h3>
+    {% set max_count = plo_stats | map(attribute='clo_count') | max if plo_stats else 0 %}
+    {% for s in plo_stats %}
+    <div class="plo-bar-row {{ plo_color_class[s.plo.code] }}" title="{{ s.plo.description }}">
+        <div class="plo-bar-label">{{ s.plo.code }}</div>
+        <div class="plo-bar-track">
+            {% if s.clo_count %}
+            <div class="plo-bar-fill" style="width:{{ (s.clo_count * 100 / max_count) | round }}%;">{{ s.clo_count }} CLO</div>
+            {% endif %}
+        </div>
+        <div class="plo-bar-count">{{ s.clo_count }}</div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Follow-up lists -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:1rem; align-items:start;">
+    <div class="glass panel">
+        <h3 style="margin:0 0 0.75rem; font-size:1rem;">CLO ที่ยังไม่เชื่อมโยง PLO ({{ unmapped_clos|length }})</h3>
+        {% if unmapped_clos %}
+        <div style="display:flex; flex-direction:column; gap:0.5rem; max-height:24rem; overflow-y:auto;">
+            {% for clo in unmapped_clos %}
+            {% set course = clo.course %}
+            <div style="font-size:0.85rem; line-height:1.45; padding:0.45rem 0.6rem; border-radius:0.45rem; background:rgba(245,158,11,0.08);">
+                <span class="clo-chip--warn">{{ clo.code }}</span>
+                {% if course %}
+                <a href="{{ url_for('head_manage_course_clos', program_id=selected_program.id if selected_program else None, course_id=course.id) }}">
+                    {{ course.code }} {{ course.name_th or course.name_en or '' }}
+                </a>
+                {% endif %}
+                <div class="text-muted" style="margin-top:0.2rem;">{{ clo.description | thai_wrap }}</div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted" style="font-size:0.88rem;">CLO ทุกข้อเชื่อมโยงกับ PLO เรียบร้อยแล้ว</div>
+        {% endif %}
+    </div>
+
+    <div class="glass panel">
+        <h3 style="margin:0 0 0.75rem; font-size:1rem;">รายวิชาที่ยังไม่มี CLO ({{ courses_without_clos|length }})</h3>
+        {% if courses_without_clos %}
+        <div style="display:flex; flex-direction:column; gap:0.35rem; max-height:24rem; overflow-y:auto;">
+            {% for c in courses_without_clos %}
+            <a href="{{ url_for('head_manage_course_clos', program_id=selected_program.id if selected_program else None, course_id=c.id) }}"
+               style="font-size:0.85rem; padding:0.4rem 0.6rem; border-radius:0.45rem; background:rgba(15,23,42,0.04);">
+                <span class="text-muted">{{ c.code }}</span> {{ c.name_th or c.name_en or '' }}
+            </a>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted" style="font-size:0.88rem;">ทุกรายวิชามี CLO แล้ว</div>
+        {% endif %}
+    </div>
+</div>
+
+{% endif %}{# plos #}
+{% endif %}{# programs #}
+{% endblock %}
+
+{% block scripts %}
+<script>
+var selectedPlo = '';
+
+function filterByPlo(code) {
+    selectedPlo = code || '';
+    filterMatrix();
+    highlightPloColumn();
+}
+
+function filterMatrix() {
+    var search = (document.getElementById('course-filter') || {}).value || '';
+    search = search.trim().toLowerCase();
+    document.querySelectorAll('#plo-matrix tbody tr').forEach(function (tr) {
+        var ploOk = !selectedPlo || (tr.dataset.plos || '').split(' ').indexOf(selectedPlo) !== -1;
+        var searchOk = !search || (tr.dataset.search || '').includes(search);
+        tr.style.display = (ploOk && searchOk) ? '' : 'none';
+    });
+}
+
+// ทำคอลัมน์ PLO อื่นให้จาง เมื่อเลือกกรองเฉพาะ PLO เดียว
+function highlightPloColumn() {
+    var table = document.getElementById('plo-matrix');
+    if (!table) return;
+    var headers = table.querySelectorAll('thead th');
+    var dimCols = [];
+    headers.forEach(function (th, idx) {
+        if (idx === 0) return;
+        var code = th.textContent.trim();
+        if (selectedPlo && code.indexOf('PLO') === 0 && code !== selectedPlo) dimCols.push(idx);
+    });
+    table.querySelectorAll('tr').forEach(function (tr) {
+        Array.from(tr.children).forEach(function (cell, idx) {
+            cell.style.opacity = (dimCols.indexOf(idx) !== -1) ? '0.3' : '';
+        });
+    });
+}
+</script>
+{% endblock %}

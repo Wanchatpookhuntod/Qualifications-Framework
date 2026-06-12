@@ -834,6 +834,8 @@ class User(UserMixin, FirestoreModel):
     username: str = ""
     password_hash: str = ""
     full_name: str = ""
+    phone: str = ""
+    office: str = ""
 
     # Roles: store as list, keep legacy single role compatibility
     roles: List[str] = field(default_factory=list)
@@ -853,6 +855,8 @@ class User(UserMixin, FirestoreModel):
             "username": self.username,
             "password_hash": self.password_hash,
             "full_name": self.full_name,
+            "phone": self.phone,
+            "office": self.office,
             "roles": roles,
             # Backward compatibility: legacy data stored a single role string.
             "role": primary_role,
@@ -887,6 +891,8 @@ class User(UserMixin, FirestoreModel):
             username=(data.get("username") or ""),
             password_hash=(data.get("password_hash") or ""),
             full_name=(data.get("full_name") or ""),
+            phone=(data.get("phone") or ""),
+            office=(data.get("office") or ""),
             roles=roles,
             faculty_id=data.get("faculty_id"),
             department_id=department_id,

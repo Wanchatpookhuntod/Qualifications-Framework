@@ -1,4 +1,4 @@
-{# Read-only view of TQF5 — strictly mirrors the official layout in
+{# Read-only view of TQF5 – strictly mirrors the official layout in
    format_tqf_new/10042569 ปรับปรุงรายงานการจัดการศึกษา (แทน มคอ5-6).docx
    Section order, headings, numbering (1–10) and labels follow that document.
    Note: ห้องพัก/โทรศัพท์/ห้องเรียน/ระบบออนไลน์ are intentionally not carried in
@@ -52,7 +52,8 @@
 
         <div class="mt-2">
             <span class="text-muted"><h5>ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (Program Learning Outcomes: PLOs) ที่เกี่ยวข้องกับรายวิชา:</h5></span>
-            <div class="preserve-text">{{ data.get('plos', '-') }}</div>
+            {# '—' = legacy em dash in data saved before the en-dash switch #}
+            <div class="preserve-text">{{ (data.get('plos') or '-').replace('—', '–') }}</div>
         </div>
 
         <div class="mt-2">

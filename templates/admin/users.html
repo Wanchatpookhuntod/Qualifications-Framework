@@ -176,7 +176,7 @@
 <div id="modal-edit-user" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
     <div class="glass glass-card" style="width:100%; max-width:520px; position:relative;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-            <h3 style="margin:0;">แก้ไขข้อมูล — <span id="edit-user-name"></span></h3>
+            <h3 style="margin:0;">แก้ไขข้อมูล – <span id="edit-user-name"></span></h3>
             <button onclick="document.getElementById('modal-edit-user').style.display='none'"
                 class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
         </div>
@@ -214,7 +214,7 @@
                 <select name="program_id" id="eu-program" class="form-control">
                     <option value="">-- ไม่ระบุ --</option>
                     {% for program in programs %}
-                    <option value="{{ program.id }}">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} — {{ department_name_by_id.get(program.department_id) or '-' }}</option>
+                    <option value="{{ program.id }}">{{ program.name }}{% if program.year %} ({{ program.year }}){% endif %} – {{ department_name_by_id.get(program.department_id) or '-' }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -230,7 +230,7 @@
 <div id="modal-reset-password" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
     <div class="glass glass-card" style="width:100%; max-width:440px; position:relative;">
         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-            <h3 style="margin:0;">รีเซ็ตรหัสผ่าน — <span id="rp-user-name"></span></h3>
+            <h3 style="margin:0;">รีเซ็ตรหัสผ่าน – <span id="rp-user-name"></span></h3>
             <button onclick="document.getElementById('modal-reset-password').style.display='none'"
                 class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
         </div>
@@ -239,7 +239,7 @@
                 <label>รหัสผ่านใหม่</label>
                 <input type="text" name="password" id="rp-password" class="form-control" required
                     minlength="6" autocomplete="new-password" placeholder="อย่างน้อย 6 ตัวอักษร">
-                <small class="text-muted text-xs">ระบบจะเข้ารหัส (hash) ให้อัตโนมัติ — แนะนำให้ผู้ใช้เปลี่ยนรหัสเองภายหลัง</small>
+                <small class="text-muted text-xs">ระบบจะเข้ารหัส (hash) ให้อัตโนมัติ – แนะนำให้ผู้ใช้เปลี่ยนรหัสเองภายหลัง</small>
             </div>
             <div style="display:flex; gap:0.75rem; margin-top:1.25rem;">
                 <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกรหัสผ่านใหม่</button>

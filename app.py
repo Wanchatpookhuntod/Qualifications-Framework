@@ -767,6 +767,87 @@ def _dedupe_ids(values: Iterable[object]) -> list[str]:
     return cleaned
 
 
+def _tqf3_submit_missing(gi: dict) -> list[str]:
+    """Server-side mirror of the wizard's STEP_CHECKS in edit_tqf3.html.
+
+    The wizard blocks submission client-side; this re-checks the merged
+    general_info on the submit POST so a direct request (or disabled JS)
+    cannot submit an incomplete มคอ.3. Returns Thai labels of missing items.
+    """
+    gi = gi or {}
+
+    def _s(key: str) -> str:
+        value = gi.get(key)
+        return str(value).strip() if value is not None else ""
+
+    def _lst(key: str) -> list[str]:
+        value = gi.get(key)
+        if isinstance(value, list):
+            return [str(v).strip() if v is not None else "" for v in value]
+        if value is None:
+            return []
+        return [str(value).strip()]
+
+    def _pct_sum(values) -> float:
+        total = 0.0
+        for v in values:
+            try:
+                total += float(v)
+            except (TypeError, ValueError):
+                continue
+        return round(total, 1)
+
+    missing: list[str] = []
+    if not _s("course_status"):
+        missing.append("ขั้นตอนที่ 1: สถานภาพของวิชา")
+    if not _s("student_type"):
+        missing.append("ขั้นตอนที่ 1: ประเภทนักศึกษา")
+    if not _s("description"):
+        missing.append("ขั้นตอนที่ 1: คำอธิบายรายวิชา")
+    if not (_s("lecture_hours") or _s("lab_hours") or _s("self_hours")):
+        missing.append("ขั้นตอนที่ 1: จำนวนชั่วโมงต่อสัปดาห์")
+    if not any(line.strip() for line in _s("course_objective").split("\n")):
+        missing.append("ขั้นตอนที่ 1: จุดประสงค์การเรียนรู้ (CLOs)")
+
+    clo_texts = _lst("clo_text[]")
+    strategies = _lst("teach_strategy[]")
+    has_clo_row = any(
+        text and (strategies[i] if i < len(strategies) else "")
+        for i, text in enumerate(clo_texts)
+    )
+    if not has_clo_row:
+        missing.append("ขั้นตอนที่ 2: CLO พร้อมกลยุทธ์การสอน อย่างน้อย 1 รายการ")
+
+    if not any(_lst("topic[]")):
+        missing.append("ขั้นตอนที่ 3: แผนการจัดการเรียนรู้อย่างน้อย 1 สัปดาห์")
+
+    if not any(_lst("assess_activity[]")):
+        missing.append("ขั้นตอนที่ 4: รายการประเมินอย่างน้อย 1 รายการ")
+    if _pct_sum(_lst("assess_pct[]")) != 100:
+        missing.append("ขั้นตอนที่ 4: สัดส่วนการประเมินต้องรวมเป็น 100%")
+
+    pct_names = (
+        "pct_lecture", "pct_discussion", "pct_case", "pct_practice", "pct_group", "pct_other"
+    )
+    if _pct_sum(_s(name) for name in pct_names) != 100:
+        missing.append("ขั้นตอนที่ 5: สัดส่วนวิธีจัดการเรียนการสอนต้องรวมเป็น 100%")
+
+    if not any(_lst("rubric_topic[]")):
+        missing.append("ขั้นตอนที่ 6: ประเด็นประเมิน (Rubric) อย่างน้อย 1 ประเด็น")
+
+    if not _s("references"):
+        missing.append("ขั้นตอนที่ 7: ตำราและเอกสารประกอบการเรียนการสอน")
+
+    for key, label in (
+        ("course_eval_strategy", "กลยุทธ์การประเมินการจัดการเรียนการสอน"),
+        ("course_improve", "การปรับปรุงการจัดการเรียนรู้ของรายวิชา"),
+        ("verification", "กระบวนการยืนยันผลสัมฤทธิ์ทางการเรียน"),
+    ):
+        if not _s(key):
+            missing.append(f"ขั้นตอนที่ 8: {label}")
+    return missing
+
+
 def _get_or_create_tqf3(section_id: str) -> TQF3:
     """Return the section's single TQF3, creating it if absent.
 
@@ -841,7 +922,7 @@ def _plos_for_section(section: Section) -> list:
         return []
 
 
-# Keywords that mark a course as a *preparation* course (เตรียมฝึก) — these are
+# Keywords that mark a course as a *preparation* course (เตรียมฝึก) – these are
 # classroom courses and must use มคอ.3 even though their names contain
 # field-experience keywords (e.g. "เตรียมฝึกสหกิจศึกษา...").
 _PREPARATION_KEYWORDS = (
@@ -1291,6 +1372,28 @@ def dashboard():
 @login_required
 def account():
     if request.method == "POST":
+        if request.form.get("action") == "update_profile":
+            username = (request.form.get("username") or "").strip()
+            full_name = (request.form.get("full_name") or "").strip()
+            if not username:
+                flash("กรุณากรอกชื่อผู้ใช้", "danger")
+                return redirect(url_for("account"))
+            if not full_name:
+                flash("กรุณากรอกชื่อ-นามสกุล", "danger")
+                return redirect(url_for("account"))
+            existing = User.get_by_username(username)
+            if existing and existing.id != current_user.id:
+                flash("ชื่อผู้ใช้นี้ถูกใช้งานแล้ว", "danger")
+                return redirect(url_for("account"))
+            user = _get_or_404(User, current_user.id)
+            user.username = username
+            user.full_name = full_name
+            user.phone = (request.form.get("phone") or "").strip()
+            user.office = (request.form.get("office") or "").strip()
+            user.save()
+            flash("บันทึกข้อมูลผู้ใช้เรียบร้อย", "success")
+            return redirect(url_for("account"))
+
         current_password = request.form.get("current_password") or ""
         new_password = request.form.get("new_password") or ""
         confirm_password = request.form.get("confirm_password") or ""
@@ -1362,7 +1465,7 @@ def instructor_dashboard():
 
     all_sections = Section.find_by("instructor_id", current_user.id)
 
-    # All terms the instructor teaches in — always shown in the filter dropdown.
+    # All terms the instructor teaches in – always shown in the filter dropdown.
     all_term_ids = {s.term_id for s in all_sections if s.term_id}
     terms = [t for t in (Term.get(tid) for tid in all_term_ids) if t]
     terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
@@ -1480,6 +1583,50 @@ def instructor_plos():
         programs=programs,
         selected_program=selected_program,
         plos=plos,
+    )
+
+
+@app.route("/instructor/courses")
+@login_required
+@roles_required("instructor")
+def instructor_courses():
+    """Read-only list of courses in the instructor's own affiliation, by program/year."""
+    programs = _instructor_scope_programs(current_user)
+    programs.sort(key=lambda p: (p.name or "", p.year or 0))
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    # Default to the most recent year (closest to the present).
+    default_program = max(programs, key=lambda p: (p.year or 0)) if programs else None
+    selected_program_id = request.args.get("program_id") or (default_program.id if default_program else None)
+    if selected_program_id not in program_by_id:
+        selected_program_id = default_program.id if default_program else None
+    selected_program = program_by_id.get(selected_program_id)
+
+    courses = Course.find_by("program_id", selected_program.id) if selected_program else []
+    courses.sort(key=lambda c: (c.code or "", c.name_th or ""))
+
+    # Mark courses the instructor is assigned to teach.
+    my_sections = Section.find_by("instructor_id", current_user.id)
+    my_course_ids = {s.course_id for s in my_sections if s.course_id}
+    for c in courses:
+        c.is_mine = c.id in my_course_ids
+
+    # CLOs ของทุกวิชาในหลักสูตร (query ครั้งเดียว) พร้อมรหัส PLO ที่รองรับ
+    program_clos = CourseCLO.find_by("program_id", selected_program.id) if selected_program else []
+    clos_by_course: dict[str, list[CourseCLO]] = {}
+    for clo in program_clos:
+        if clo.course_id:
+            clo.plo_list = _split_clo_plo_codes(clo.plo_codes)
+            clos_by_course.setdefault(clo.course_id, []).append(clo)
+    for rows in clos_by_course.values():
+        rows.sort(key=lambda c: (c.order if c.order is not None else 999))
+
+    return render_template(
+        "instructor/courses.html",
+        programs=programs,
+        selected_program=selected_program,
+        courses=courses,
+        clos_by_course=clos_by_course,
     )
 
 
@@ -1608,9 +1755,13 @@ def edit_tqf3(section_id):
             gi.setdefault("semester", str(getattr(current_term, "semester", "") or ""))
             gi.setdefault("academic_year", str(getattr(current_term, "year", "") or ""))
 
-        # Instructor meta defaults
+        # Instructor meta defaults (phone/office มาจากบัญชีผู้ใช้ ถ้ายังไม่กรอกในเอกสาร)
         if getattr(current_user, "full_name", None):
             gi.setdefault("instructor", current_user.full_name)
+        if not gi.get("phone") and getattr(current_user, "phone", None):
+            gi["phone"] = current_user.phone
+        if not gi.get("office") and getattr(current_user, "office", None):
+            gi["office"] = current_user.office
 
         # Legacy -> new key alignment
         if "course_objective" not in gi and "objectives" in gi:
@@ -1673,7 +1824,7 @@ def edit_tqf3(section_id):
             gi["plo[]"] = _as_list(gi.get("clo_plo[]"))
 
         # Auto-populate the top "PLOs ที่เกี่ยวข้องกับรายวิชา" section whenever it
-        # is still empty — even when the CLO table already has saved content.
+        # is still empty – even when the CLO table already has saved content.
         # Codes come from the per-CLO mapping, falling back to head-defined
         # CourseCLOs, and are rendered with the program's PLO descriptions.
         if not str(gi.get("plos") or "").strip():
@@ -1691,7 +1842,7 @@ def edit_tqf3(section_id):
                             all_codes.add(code)
             if all_codes:
                 # Only codes defined in the program's PLO set; CLOs without a
-                # (valid) PLO mapping contribute nothing — the section stays
+                # (valid) PLO mapping contribute nothing – the section stays
                 # blank instead of showing bare codes.
                 plo_map = {p.code: p for p in _plos_for_section(section)}
                 plo_lines = []
@@ -1700,9 +1851,12 @@ def edit_tqf3(section_id):
                     if not p:
                         continue
                     desc = _collapse_ws(p.description)
-                    plo_lines.append(f"{p.code} — {desc}" if desc else p.code)
+                    plo_lines.append(f"{p.code} – {desc}" if desc else p.code)
                 if plo_lines:
                     gi["plos"] = "\n".join(plo_lines)
+        # Lazy-migrate "PLOn — desc" lines saved with the legacy em dash.
+        if isinstance(gi.get("plos"), str) and "—" in gi["plos"]:
+            gi["plos"] = gi["plos"].replace("—", "–")
         clo_n = max(
             len(_as_list(gi.get("clo_text[]"))),
             len(_as_list(gi.get("clo_plo[]"))),
@@ -1936,7 +2090,7 @@ def edit_tqf3(section_id):
 
         existing = tqf3.general_info or {}
         # Table rows (CLO/weekly/assessment/rubric) are managed entirely by the
-        # form. When rows are deleted — or a table is emptied — their name[] keys
+        # form. When rows are deleted – or a table is emptied – their name[] keys
         # are not posted at all, so a plain merge would leave the stale arrays in
         # place and the deleted rows would reappear on reload. Drop every existing
         # list key first so the submitted form is authoritative.
@@ -1953,6 +2107,13 @@ def edit_tqf3(section_id):
             tqf3.save(replace_fields=("general_info",))
             return _autosave_ok(tqf3)
         if action == "submit":
+            missing = _tqf3_submit_missing(tqf3.general_info)
+            if missing:
+                # Content is still saved (as draft) so nothing typed is lost.
+                tqf3.status = "DRAFT" if tqf3.status == "RETURNED" else tqf3.status
+                tqf3.save(replace_fields=("general_info",))
+                flash("ยังส่งไม่ได้ – กรอกข้อมูลไม่ครบ: " + " | ".join(missing), "warning")
+                return redirect(url_for("edit_tqf3", section_id=section.id))
             tqf3.status = "SUBMITTED"
             tqf3.submitted_at = _utcnow()
             flash("ส่ง มคอ.3 ให้หัวหน้าสาขาเรียบร้อยแล้ว", "success")
@@ -2036,6 +2197,11 @@ def edit_tqf4(section_id):
             gi.pop(scalar, None)
         if getattr(current_user, "full_name", None) and not _as_list(gi.get("advisor[]")):
             gi["advisor[]"] = [current_user.full_name]
+            # ห้องพัก/โทรศัพท์ของแถวแรกดึงจากบัญชีผู้ใช้
+            if getattr(current_user, "office", None):
+                gi["office[]"] = [current_user.office]
+            if getattr(current_user, "phone", None):
+                gi["phone[]"] = [current_user.phone]
 
         # Prefill CLO table from head-defined CourseCLOs while it is still empty
         # (same behaviour as มคอ.3).
@@ -2048,7 +2214,7 @@ def edit_tqf4(section_id):
                 if not any(s.strip() for s in (gi.get("course_objective") or "").split("\n")):
                     gi["course_objective"] = "\n".join(c.description for c in course_clos)
 
-        # Auto-populate the top PLO section whenever it is still empty — even when
+        # Auto-populate the top PLO section whenever it is still empty – even when
         # the CLO table already has saved content (same behaviour as มคอ.3).
         if not str(gi.get("plos") or "").strip():
             all_codes: set = set()
@@ -2065,7 +2231,7 @@ def edit_tqf4(section_id):
                             all_codes.add(code)
             if all_codes:
                 # Only codes defined in the program's PLO set; CLOs without a
-                # (valid) PLO mapping contribute nothing — the section stays
+                # (valid) PLO mapping contribute nothing – the section stays
                 # blank instead of showing bare codes.
                 plo_map = {p.code: p for p in _plos_for_section(section)}
                 plo_lines = []
@@ -2074,9 +2240,12 @@ def edit_tqf4(section_id):
                     if not p:
                         continue
                     desc = _collapse_ws(p.description)
-                    plo_lines.append(f"{p.code} — {desc}" if desc else p.code)
+                    plo_lines.append(f"{p.code} – {desc}" if desc else p.code)
                 if plo_lines:
                     gi["plos"] = "\n".join(plo_lines)
+        # Lazy-migrate "PLOn — desc" lines saved with the legacy em dash.
+        if isinstance(gi.get("plos"), str) and "—" in gi["plos"]:
+            gi["plos"] = gi["plos"].replace("—", "–")
 
         # Pad row tables to equal lengths (>=1) so the editor renders cleanly.
         table_groups = [
@@ -3228,6 +3397,121 @@ def head_delete_course_clo(clo_id):
     flash("ลบ CLO เรียบร้อยแล้ว", "success")
     return redirect(url_for("head_manage_course_clos",
                             program_id=program_id, course_id=course_id))
+
+
+def _split_clo_plo_codes(raw: str | None) -> list[str]:
+    """แยก plo_codes ของ CLO (เช่น "PLO1, plo 2") เป็นรหัสมาตรฐาน ["PLO1", "PLO2"]."""
+    return [t.strip().upper().replace(" ", "") for t in (raw or "").split(",") if t.strip()]
+
+
+@app.route("/head/clo-plo-dashboard")
+@login_required
+@roles_required("head")
+def head_clo_plo_dashboard():
+    """แดชบอร์ดภาพรวมความสัมพันธ์ PLO–CLO ของหลักสูตรที่หัวหน้าสาขาดูแล"""
+    programs = _head_programs_for(current_user)
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    if not programs:
+        flash("ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ", "warning")
+        return render_template(
+            "head/clo_plo_dashboard.html",
+            programs=[], selected_program=None, plos=[],
+            matrix_rows=[], plo_stats=[], unmapped_clos=[],
+            courses_without_clos=[], summary={},
+        )
+
+    selected_program_id = request.args.get("program_id") or (programs[0].id if programs else None)
+    if selected_program_id not in program_by_id:
+        selected_program_id = programs[0].id if programs else None
+    selected_program = program_by_id.get(selected_program_id)
+
+    plos = selected_program.plos if selected_program else []
+    plos.sort(key=lambda p: (p.order if p.order is not None else (_parse_plo_number(p.code) or 0)))
+    plo_codes = [p.code for p in plos]
+    known_codes = set(plo_codes)
+
+    courses = Course.find_by("program_id", selected_program_id) if selected_program_id else []
+    courses.sort(key=lambda c: (c.code or "", c.name_th or ""))
+    course_by_id = {c.id: c for c in courses if c.id}
+
+    clos = CourseCLO.find_by("program_id", selected_program_id) if selected_program_id else []
+    clos.sort(key=lambda c: (c.order if c.order is not None else 999, c.code))
+
+    # matrix: course_id -> {plo_code: [CLO, ...]} + CLO ที่ไม่ได้เชื่อม PLO
+    cells_by_course: dict = {}
+    unmapped_by_course: dict = {}
+    plo_clo_counts = {code: 0 for code in plo_codes}
+    plo_course_sets: dict = {code: set() for code in plo_codes}
+    unmapped_clos = []
+    mapped_clo_total = 0
+
+    for clo in clos:
+        if clo.course_id not in course_by_id:
+            continue
+        codes = [c for c in _split_clo_plo_codes(clo.plo_codes) if c in known_codes]
+        if codes:
+            mapped_clo_total += 1
+            row = cells_by_course.setdefault(clo.course_id, {code: [] for code in plo_codes})
+            for code in codes:
+                row[code].append(clo)
+                plo_clo_counts[code] += 1
+                plo_course_sets[code].add(clo.course_id)
+        else:
+            unmapped_by_course.setdefault(clo.course_id, []).append(clo)
+            unmapped_clos.append(clo)
+
+    course_clo_totals: dict = {}
+    for clo in clos:
+        if clo.course_id in course_by_id:
+            course_clo_totals[clo.course_id] = course_clo_totals.get(clo.course_id, 0) + 1
+
+    course_ids_with_clos = set(cells_by_course) | set(unmapped_by_course)
+    matrix_rows = []
+    for course in courses:
+        if course.id not in course_ids_with_clos:
+            continue
+        matrix_rows.append({
+            "course": course,
+            "cells": cells_by_course.get(course.id) or {code: [] for code in plo_codes},
+            "unmapped": unmapped_by_course.get(course.id, []),
+            "total": course_clo_totals.get(course.id, 0),
+        })
+
+    max_plo_count = max(plo_clo_counts.values(), default=0)
+    plo_stats = [
+        {
+            "plo": plo,
+            "clo_count": plo_clo_counts.get(plo.code, 0),
+            "course_count": len(plo_course_sets.get(plo.code) or ()),
+            "percent": round(plo_clo_counts.get(plo.code, 0) * 100 / max_plo_count)
+            if max_plo_count else 0,
+        }
+        for plo in plos
+    ]
+
+    courses_without_clos = [c for c in courses if c.id not in course_ids_with_clos]
+    summary = {
+        "total_plos": len(plos),
+        "plos_without_clos": sum(1 for s in plo_stats if not s["clo_count"]),
+        "total_courses": len(courses),
+        "courses_with_clos": len(course_ids_with_clos),
+        "total_clos": len(clos),
+        "mapped_clos": mapped_clo_total,
+        "unmapped_clos": len(unmapped_clos),
+    }
+
+    return render_template(
+        "head/clo_plo_dashboard.html",
+        programs=programs,
+        selected_program=selected_program,
+        plos=plos,
+        matrix_rows=matrix_rows,
+        plo_stats=plo_stats,
+        unmapped_clos=unmapped_clos,
+        courses_without_clos=courses_without_clos,
+        summary=summary,
+    )
 
 
 def _attach_section_context_to_tqf_doc(tqf: object) -> None:

@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}รายวิชา - อาจารย์ผู้สอน{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('instructor_dashboard') }}">Dashboard</a> /
+            <span class="text-muted">รายวิชา</span>
+        </nav>
+        <h2>รายวิชาในหลักสูตร</h2>
+        <p class="text-muted mb-0">ดูได้อย่างเดียว – รายวิชาทั้งหมดของหลักสูตรในสังกัด เพื่อใช้อ้างอิงในการจัดทำ มคอ.</p>
+    </div>
+</div>
+
+{% if programs %}
+<div class="glass panel mb-3">
+    <form method="GET" action="{{ url_for('instructor_courses') }}" class="filter-form">
+        <label class="text-muted mb-0">หลักสูตร / ปี</label>
+        <select name="program_id" class="form-control select-inline min-220" onchange="this.form.submit()">
+            {% for p in programs %}
+            <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+                {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="glass panel">
+    <h3 class="panel-title">
+        รายวิชาของหลักสูตร{% if selected_program %} : {{ selected_program.name }}{% if selected_program.year %} ({{ selected_program.year }}){% endif %}{% endif %}
+    </h3>
+    <div class="table-wrapper">
+        <table class="data-table" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+                <col style="width: 13%;">
+                <col style="width: 47%;">
+                <col style="width: 12%;">
+                <col style="width: 13%;">
+                <col style="width: 15%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="text-center">รหัสวิชา</th>
+                    <th>ชื่อรายวิชา</th>
+                    <th class="text-center">หน่วยกิต</th>
+                    <th class="text-center">CLO</th>
+                    <th class="text-center">สถานะ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for course in courses %}
+                {% set clos = clos_by_course.get(course.id, []) %}
+                <tr>
+                    <td class="text-center text-table">{{ course.code }}</td>
+                    <td class="text-table">
+                        <div>{{ course.name_th | thai_wrap }}</div>
+                        {% if course.name_en %}
+                        <div class="text-muted text-xs">{{ course.name_en }}</div>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-table">{{ course.credits or '-' }}</td>
+                    <td class="text-center text-table">
+                        {% if clos %}
+                        <button style="border: none;" type="button" class="status-badge status-btn role-instructor clo-toggle"
+                                data-target="clo-detail-{{ course.id }}" aria-expanded="false"
+                                title="ดู CLO และการรองรับ PLO">
+                            {{ clos | length }} CLO
+                        </button>
+                        {% else %}
+                        <span class="text-muted text-xs">ยังไม่กำหนด</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-table">
+                        {% if course.is_mine %}
+                        <span class="status-badge status-approved">วิชาที่ฉันสอน</span>
+                        {% else %}
+                        <span class="text-muted text-xs">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% if clos %}
+                <tr id="clo-detail-{{ course.id }}" class="clo-detail-row" style="display:none;">
+                    <td colspan="5" style="padding: 0.75rem 1rem 1rem;">
+                        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+                            {% for clo in clos %}
+                            <div class="glass" style="border-radius:0.6rem; padding:0.7rem 0.9rem;
+                                         background:rgba(255,255,255,0.06); display:flex; align-items:flex-start; gap:0.9rem;">
+                                <div style="flex-shrink:0; background:rgba(99,102,241,0.25); color:var(--primary,#818cf8);
+                                            border-radius:0.4rem; padding:0.25rem 0.55rem; font-size:0.8rem; font-weight:700;
+                                            min-width:3rem; text-align:center;">
+                                    {{ clo.code }}
+                                </div>
+                                <div style="flex:1; min-width:0;">
+                                    <div style="font-size:0.9rem; line-height:1.5;">{{ clo.description | thai_wrap }}</div>
+                                    <div style="margin-top:0.35rem; display:flex; flex-wrap:wrap; gap:0.3rem; align-items:center;">
+                                        <span class="text-muted text-xs">รองรับ PLO:</span>
+                                        {% for pc in clo.plo_list %}
+                                        <span style="font-size:0.75rem; background:rgba(16,185,129,0.18); color:#34d399;
+                                                     border-radius:0.3rem; padding:0.15rem 0.45rem;">{{ pc }}</span>
+                                        {% else %}
+                                        <span class="text-muted text-xs">ยังไม่ระบุ</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </td>
+                </tr>
+                {% endif %}
+                {% else %}
+                <tr>
+                    <td colspan="5" class="empty-state text-center text-muted">ยังไม่มีรายวิชาในหลักสูตรนี้</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ยังไม่มีหลักสูตรในระบบ</div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.clo-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var row = document.getElementById(btn.dataset.target);
+        if (!row) return;
+        var open = row.style.display !== 'none';
+        row.style.display = open ? 'none' : 'table-row';
+        btn.setAttribute('aria-expanded', String(!open));
+    });
+});
+</script>
+{% endblock %}

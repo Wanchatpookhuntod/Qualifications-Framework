@@ -112,7 +112,8 @@
                 {% set plo_val = data.get('plos', gi.get('plos', '')) %}
                 {% set plo_lines = (plo_val or '').replace('\r\n', '\n').split('\n') | map('trim') | select | list %}
                 <div style="height:auto;">
-                    {% for line in plo_lines %}<div>{{ line.replace(' — ', ' ').replace('—', ' ') }}</div>{% endfor %}
+                    {# '—' = legacy em dash in data saved before the en-dash switch #}
+                    {% for line in plo_lines %}<div>{{ line.replace('—', '–').replace(' – ', ' ').replace('–', ' ') }}</div>{% endfor %}
                     {% if not plo_lines %}<div class="text-muted">-</div>{% endif %}
                 </div>
             </div>
@@ -234,13 +235,14 @@
             {% endfor %}
             <script type="application/json" id="cloData">{{ clo_rows | tojson }}</script>
             {# PLO options for the CLO table come from the PLOs actually selected
-               in มคอ.3/มคอ.4 (gi.plos, one "PLOn — desc" per line); fall back to
+               in มคอ.3/มคอ.4 (gi.plos, one "PLOn – desc" per line); fall back to
                the program's full PLO list when none were selected. #}
             {% set plo_sel_lines = (gi.get('plos') or '').replace('\r\n', '\n').split('\n') | map('trim') | select | list %}
             <script type="application/json" id="ploOptions">[
             {%- if plo_sel_lines -%}
                 {%- for line in plo_sel_lines -%}
-                    {%- set parts = line.split('—', 1) -%}
+                    {#- '—' = legacy em dash in data saved before the en-dash switch -#}
+                    {%- set parts = line.replace('—', '–').split('–', 1) -%}
                     {%- if parts | length == 2 -%}
                         {%- set code = parts[0] | trim -%}{%- set desc = parts[1] | trim -%}
                     {%- else -%}
@@ -321,7 +323,7 @@
                                 </td>
                                 <td><input name="g_count_{{ i }}" class="form-control" type="number" min="0" value="{{ data.get('g_count_' ~ i, '') }}"></td>
                                 <td>
-                                    <span class="grade-percent-display">{% if data.get('g_percent_' ~ i, '') != '' %}{{ data.get('g_percent_' ~ i) }}%{% else %}—{% endif %}</span>
+                                    <span class="grade-percent-display">{% if data.get('g_percent_' ~ i, '') != '' %}{{ data.get('g_percent_' ~ i) }}%{% else %}–{% endif %}</span>
                                     <input name="g_percent_{{ i }}" type="hidden" value="{{ data.get('g_percent_' ~ i, '') }}">
                                 </td>
                                 <td class="text-center">
@@ -537,7 +539,7 @@ const QTFRows = (function () {
         if (!opts.length) {
             const p = document.createElement('div');
             p.className = 'text-muted text-xs';
-            p.textContent = '— ยังไม่ได้เลือก PLO ใน มคอ.3/4 —';
+            p.textContent = '– ยังไม่ได้เลือก PLO ใน มคอ.3/4 –';
             wrap.appendChild(p);
             return wrap;
         }
@@ -559,7 +561,7 @@ const QTFRows = (function () {
             const strong = document.createElement('strong');
             strong.textContent = o.code;
             span.appendChild(strong);
-            if (o.desc) span.appendChild(document.createTextNode(' — ' + o.desc));
+            if (o.desc) span.appendChild(document.createTextNode(' – ' + o.desc));
             lab.appendChild(cb);
             lab.appendChild(span);
             wrap.appendChild(lab);
@@ -578,7 +580,7 @@ const QTFRows = (function () {
         const td = document.createElement('td');
         td.colSpan = cfg.fields.length + 1;
         td.className = 'text-center text-muted text-xs text-table';
-        td.textContent = 'ยังไม่มีข้อมูล — กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
+        td.textContent = 'ยังไม่มีข้อมูล – กดปุ่ม “เพิ่ม” เพื่อเริ่มกรอก';
         tr.appendChild(td);
         return tr;
     }
@@ -593,7 +595,7 @@ const QTFRows = (function () {
             if (v.trim() === '') {
                 const span = document.createElement('span');
                 span.className = 'text-muted';
-                span.textContent = '—';
+                span.textContent = '–';
                 td.appendChild(span);
             } else {
                 td.style.whiteSpace = 'pre-wrap';
@@ -813,7 +815,7 @@ const QTFRows = (function () {
             </td>
             <td><input name="g_count_${idx}" class="form-control" type="number" min="0" /></td>
             <td>
-                <span class="grade-percent-display">—</span>
+                <span class="grade-percent-display">–</span>
                 <input name="g_percent_${idx}" type="hidden" />
             </td>
             <td class="text-center"><button name="g_delete_${idx}" type="button" class="btn btn-outline-danger" onclick="removeIndexedRow(this)">ลบ</button></td>
@@ -837,7 +839,7 @@ const QTFRows = (function () {
                 const pEl = r.querySelector('input[name^="g_percent_"]');
                 const dEl = r.querySelector('.grade-percent-display');
                 if (pEl) pEl.value = '';
-                if (dEl) dEl.textContent = '—';
+                if (dEl) dEl.textContent = '–';
             });
             if (!silent) alert('กรุณากรอกจำนวนนักศึกษาในตารางเกรดก่อน');
             renderGradeChart();
@@ -851,7 +853,7 @@ const QTFRows = (function () {
             const c = parseFloat((cEl && cEl.value) || 0);
             const val = (Math.round((isNaN(c) ? 0 : c) * 100 / total * 100) / 100).toFixed(2);
             if (pEl) pEl.value = hasCount ? val : '';
-            if (dEl) dEl.textContent = hasCount ? val + '%' : '—';
+            if (dEl) dEl.textContent = hasCount ? val + '%' : '–';
         });
         renderGradeChart();
     }

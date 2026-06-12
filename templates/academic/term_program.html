@@ -167,7 +167,7 @@
         <div class="modal-header">
             <div>
                 <div class="fw-bold">เพิ่มรายวิชา (หลายวิชา)</div>
-                <div class="text-muted text-xs">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+                <div class="text-muted text-xs">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %} – {{ term.semester }}/{{ term.year }}</div>
             </div>
             <button type="button" class="modal-close-btn" onclick="closeBulkModal()"><span class="material-symbols-rounded">close</span></button>
         </div>
@@ -232,7 +232,7 @@
         <div class="modal-header">
             <div>
                 <div class="fw-bold">เปิดรายวิชาสอน (ทีละวิชา)</div>
-                <div class="text-muted text-xs">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %} — {{ term.semester }}/{{ term.year }}</div>
+                <div class="text-muted text-xs">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %} – {{ term.semester }}/{{ term.year }}</div>
             </div>
             <button type="button" class="modal-close-btn" onclick="closeSingleModal()"><span class="material-symbols-rounded">close</span></button>
         </div>
@@ -245,7 +245,7 @@
                     <select name="course_id" class="form-control" required>
                         <option value="" disabled selected>-- เลือกรายวิชา --</option>
                         {% for c in courses %}
-                        <option value="{{ c.id }}">{{ c.code }} — {{ c.name_th }}</option>
+                        <option value="{{ c.id }}">{{ c.code }} – {{ c.name_th }}</option>
                         {% endfor %}
                     </select>
                 </div>

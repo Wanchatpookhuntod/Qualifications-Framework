@@ -7,7 +7,7 @@
  *
  * The server keeps the document status unchanged for action=autosave (no
  * DRAFT/SUBMITTED transition, no flash, no redirect) and replies with JSON.
- * No build step / framework — vanilla JS only.
+ * No build step / framework – vanilla JS only.
  */
 (function () {
     "use strict";
@@ -103,7 +103,7 @@
                 }
             })
             .catch(function () {
-                setStatus("บันทึกอัตโนมัติไม่สำเร็จ — โปรดกดบันทึกฉบับร่างเอง", "is-error");
+                setStatus("บันทึกอัตโนมัติไม่สำเร็จ – โปรดกดบันทึกฉบับร่างเอง", "is-error");
             })
             .finally(function () {
                 saving = false;

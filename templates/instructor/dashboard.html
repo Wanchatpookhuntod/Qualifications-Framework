@@ -16,7 +16,7 @@
     </div>
     <div class="inline-actions">
         <form method="GET" action="{{ url_for('instructor_dashboard') }}" class="filter-form">
-            <label class="text-muted mb-0">ปีการศึกษา</label>
+            <label class="text-muted mb-0">ภาคเรียน/ปีการศึกษา</label>
             <select name="term_id" class="form-control select-inline min-220" onchange="this.form.submit()">
                 <option value="" {% if not selected_term_id %}selected{% endif %}>ทั้งหมด</option>
                 {% for t in terms %}
@@ -96,7 +96,7 @@
                                    class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if spec_doc else 'role-instructor' }}{% if not group.tqf3_open %} is-disabled{% endif %}"
                                    title="แก้ไข {{ spec_label }}"
                                    {% if not group.tqf3_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
-                                    {{ status_label_map.get(s, s) if spec_doc else 'เริ่มกรอก' }}
+                                    {% if not group.tqf3_open %}{{ 'ปิดรับแล้ว' if group.tqf3_ever_opened else 'ยังไม่เปิด' }}{% else %}{{ status_label_map.get(s, s) if spec_doc else 'เริ่ม' }}{% endif %}
                                 </a>
                                 {% if spec_doc and spec_doc.submitted_at %}
                                 <div class="text-muted text-xs">ส่งเมื่อ {{ spec_doc.submitted_at.strftime('%d/%m/%Y') }}</div>
@@ -110,7 +110,7 @@
                                    class="status-badge status-btn {{ status_badge_map.get(s, 'role-instructor') if section.tqf5 else 'role-instructor' }}{% if not group.tqf5_open %} is-disabled{% endif %}"
                                    title="แก้ไข มคอ.5"
                                    {% if not group.tqf5_open %}tabindex="-1" aria-disabled="true" onclick="return false;"{% endif %}>
-                                    {{ status_label_map.get(s, s) if section.tqf5 else 'เริ่มกรอก' }}
+                                    {% if not group.tqf5_open %}{{ 'ปิดรับแล้ว' if group.tqf5_ever_opened else 'ยังไม่เปิด' }}{% else %}{{ status_label_map.get(s, s) if section.tqf5 else 'เริ่ม' }}{% endif %}
                                 </a>
                                 {% if section.tqf5 and section.tqf5.submitted_at %}
                                 <div class="text-muted text-xs">ส่งเมื่อ {{ section.tqf5.submitted_at.strftime('%d/%m/%Y') }}</div>

@@ -4,22 +4,23 @@
 
 {% block content %}
 <style>
-/* โทนสีประจำ PLO (วนซ้ำทุก 8 ตัว) */
-.plo-c0 { --plo-color: #93c5fd; }
-.plo-c1 { --plo-color: #7de3ba; }
-.plo-c2 { --plo-color: #fdba74; }
-.plo-c3 { --plo-color: #c4b5fd; }
-.plo-c4 { --plo-color: #f9a8d4; }
-.plo-c5 { --plo-color: #97f0e3; }
-.plo-c6 { --plo-color: #fff2b4; }
-.plo-c7 { --plo-color: #fca5a5; }
+/* โทนสีประจำ PLO กำหนดแบบ dynamic (.plo-dyn-N) ในเนื้อหา ดูบล็อก <style> ใต้หัวข้อ */
 .plo-cx { --plo-color: #fcd34d; } /* ไม่ระบุ PLO */
+
+/* ลิงก์รายวิชาในรายการ CLO ที่ยังไม่เชื่อมโยง: สีตามธีม ไม่มีเส้นใต้ เปลี่ยนเมื่อ hover */
+.clo-course-link { color: var(--text-main); text-decoration: none; font-weight: 600; }
+.clo-course-link:hover { color: var(--primary-color); text-decoration: underline; }
 
 .plo-sum-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    /* จำนวนคอลัมน์มาจาก --plo-cols (คำนวณให้สมดุล 2 แถวเมื่อเกิน 5 ใบ) */
+    grid-template-columns: repeat(var(--plo-cols, 5), minmax(0, 1fr));
     gap: 1rem;
     margin-bottom: 1.25rem;
+}
+@media (max-width: 640px) {
+    /* จอแคบ: ปล่อยให้ไหลตามพื้นที่ */
+    .plo-sum-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
 }
 .plo-sum-card {
     text-align: center;
@@ -29,7 +30,7 @@
     background: var(--bg-card, rgba(255,255,255,0.04));
 }
 .plo-sum-card .plo-sum-code { font-size: 0.85rem; color: var(--text-muted, #94a3b8); margin-bottom: 0.35rem; }
-.plo-sum-card .plo-sum-num { font-size: 2rem; font-weight: 700; color: var(--plo-color); line-height: 1.1; }
+.plo-sum-card .plo-sum-num { font-size: 2rem; font-weight: 700; color: var(--primary-color); line-height: 1.1; }
 .plo-sum-card .plo-sum-sub { font-size: 0.72rem; color: var(--text-muted, #94a3b8); margin-top: 0.3rem; }
 
 .plo-legend { display: flex; flex-wrap: wrap; gap: 1rem 1.4rem; align-items: center; margin-bottom: 1.25rem; }
@@ -120,15 +121,26 @@
 </div>
 {% else %}
 
-{# index ของแต่ละ PLO ใช้เลือกสี (วนทุก 8 ตัว) #}
+{# กำหนดสีให้แต่ละ PLO: ≤8 ตัวใช้พาเลตที่ออกแบบไว้ (.plo-c0..c7);
+   ถ้าเกินจำนวนสีในพาเลต จะสร้างสีอัตโนมัติด้วย HSL กระจายเฉดเท่าๆ กัน ไม่ให้ซ้ำ #}
+{% set plo_palette_size = 8 %}
 {% set plo_color_class = {} %}
 {% for plo in plos %}
-    {% if plo_color_class.update({plo.code: 'plo-c' ~ (loop.index0 % 8)}) %}{% endif %}
+    {% if plo_color_class.update({plo.code: 'plo-dyn-' ~ loop.index0}) %}{% endif %}
 {% endfor %}
+<style>
+{% for plo in plos %}
+.plo-dyn-{{ loop.index0 }} { --plo-color:
+    {%- if plos|length <= plo_palette_size %} {{ ['#93c5fd','#7de3ba','#fdba74','#c4b5fd','#f9a8d4','#97f0e3','#fff2b4','#fca5a5'][loop.index0] }}
+    {%- else %} hsl({{ loop.index0 * 360 // plos|length }}, 70%, 73%){% endif %}; }
+{% endfor %}
+</style>
 
 <!-- PLO summary cards -->
 {% if plos %}
-<div class="plo-sum-grid">
+{% set card_count = plo_stats|length + (1 if summary.unmapped_clos else 0) %}
+{% set sum_cols = card_count if card_count <= 5 else ((card_count + 1) // 2) %}
+<div class="plo-sum-grid" style="--plo-cols: {{ sum_cols }};">
     {% for s in plo_stats %}
     <div class="plo-sum-card {{ plo_color_class[s.plo.code] }}" title="{{ s.plo.description }}">
         <div class="plo-sum-code">{{ s.plo.code }}</div>
@@ -145,17 +157,6 @@
     {% endif %}
 </div>
 
-<!-- Legend -->
-<div class="plo-legend">
-    {% for plo in plos %}
-    <span class="plo-legend-item {{ plo_color_class[plo.code] }}" title="{{ plo.description }}">
-        <span class="plo-legend-dot"></span>{{ plo.code }}
-    </span>
-    {% endfor %}
-    {% if summary.unmapped_clos %}
-    <span class="plo-legend-item plo-cx"><span class="plo-legend-dot"></span>ไม่ระบุ PLO</span>
-    {% endif %}
-</div>
 {% endif %}
 
 {% if not plos %}
@@ -207,6 +208,17 @@
         </div>
     </div>
 
+    <!-- Legend -->
+    <div class="plo-legend" style="margin-top:1.75rem; margin-bottom:0;">
+        {% for plo in plos %}
+        <span class="plo-legend-item {{ plo_color_class[plo.code] }}" title="{{ plo.description }}">
+            <span class="plo-legend-dot"></span>{{ plo.code }}
+        </span>
+        {% endfor %}
+        {% if summary.unmapped_clos %}
+        <span class="plo-legend-item plo-cx"><span class="plo-legend-dot"></span>ไม่ระบุ PLO</span>
+        {% endif %}
+    </div>
 
     {% if matrix_rows %}
     <div style="margin-top:2rem;" class="plo-matrix-wrap mt-3">
@@ -302,10 +314,10 @@
         <div style="display:flex; flex-direction:column; gap:0.5rem; max-height:24rem; overflow-y:auto;">
             {% for clo in unmapped_clos %}
             {% set course = clo.course %}
-            <div style="font-size:0.85rem; line-height:1.45; padding:0.45rem 0.6rem; border-radius:0.45rem; background:rgba(245,158,11,0.08);">
+            <div style="font-size:0.85rem; line-height:1.45; padding:0.45rem 0.6rem; border-radius:0.45rem; background:var(--bg-card); border:1px solid var(--border-color);">
                 <span class="clo-chip--warn">{{ clo.code }}</span>
                 {% if course %}
-                <a href="{{ url_for('head_manage_course_clos', program_id=selected_program.id if selected_program else None, course_id=course.id) }}">
+                <a class="clo-course-link" href="{{ url_for('head_manage_course_clos', program_id=selected_program.id if selected_program else None, course_id=course.id) }}">
                     {{ course.code }} {{ course.name_th or course.name_en or '' }}
                 </a>
                 {% endif %}

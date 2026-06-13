@@ -913,14 +913,15 @@ const QTFRows = (function () {
             badge.textContent = code;
 
             const box = document.createElement('div');
-            box.style.cssText = 'flex:1; padding:0.5rem 0.75rem; border:1px solid var(--border-color, #d0d5dd); border-radius:0.5rem; background:rgba(255,255,255,0.5);';
+            box.style.cssText = 'flex:1; padding:0.5rem 0.75rem; border:1px solid var(--border-color, #d0d5dd); border-radius:0.5rem; background:rgba(255,255,255,0.5); font-size:0.9rem;';
             box.textContent = text;
 
             const rm = document.createElement('button');
             rm.type = 'button';
-            rm.className = 'btn btn-outline-danger btn-compact';
-            rm.textContent = 'ลบ';
-            rm.style.cssText = 'flex-shrink:0; white-space:nowrap;';
+            rm.className = 'qtf-plo-remove';
+            rm.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">close_small</span>';
+            rm.title = 'ลบ';
+            rm.setAttribute('aria-label', 'ลบ ' + code);
             rm.addEventListener('click', () => {
                 const next = getItems();
                 next.splice(idx, 1);
@@ -1013,9 +1014,10 @@ const QTFRows = (function () {
         inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addRow('', true); } });
         const rm = document.createElement('button');
         rm.type = 'button';
-        rm.className = 'btn btn-outline-danger btn-compact';
-        rm.textContent = 'ลบ';
-        rm.style.cssText = 'flex-shrink:0; white-space:nowrap;';
+        rm.className = 'qtf-plo-remove';
+        rm.innerHTML = '<span class="material-symbols-rounded" aria-hidden="true">close_small</span>';
+        rm.title = 'ลบ';
+        rm.setAttribute('aria-label', 'ลบ CLO');
         rm.addEventListener('click', () => { row.remove(); sync(); });
         row.appendChild(badge); row.appendChild(inp); row.appendChild(rm);
         list.appendChild(row);

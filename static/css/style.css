@@ -151,17 +151,24 @@ select {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 7rem;
     padding: 0.5rem 1rem;
-    border-radius: var(--radius-sm);
-    border: 1px solid rgba(15, 131, 166, 0.12);
+    border-radius: var(--radius-lg);
+    border: 1px solid rgba(15, 131, 166, 0.34);
+
     font-size: 0.8rem;
     font-weight: 600;
     text-transform: none;
     text-decoration: none;
     cursor: pointer;
-    box-shadow: var(--shadow-soft);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
+}
+
+/* สถานะปกติ: ไม่มีสีพื้น/ไม่มีกรอบ เหลือแค่ตัวอักษรสี (พื้นจาก .status-badge ถูกล้าง) */
+.status-action-stack .status-btn.role-instructor,
+.status-action-stack .status-btn.status-submitted,
+.status-action-stack .status-btn.status-approved,
+.status-action-stack .status-btn.status-returned{
 }
 
 .status-action-stack .status-btn:hover{
@@ -175,6 +182,11 @@ select {
 }
 
 /* เปลี่ยนสีพื้นหลังตอน hover ให้ครบทุกสถานะ (เหมือน "รอตรวจสอบ") */
+.status-action-stack .status-btn.status-submitted:hover{
+    background: rgba(59, 130, 246, 0.2);
+    color: #2563eb;
+}
+
 .status-action-stack .status-btn.status-approved:hover{
     background: rgba(16, 185, 129, 0.35);
     color: #059669;
@@ -854,6 +866,62 @@ select {
     color: var(--accent-danger);
     border: 1px solid rgba(216, 73, 73, 0.25);
 }
+
+/* Subtle icon remove button for repeated list items (PLO/CLO chips) */
+.qtf-plo-remove {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.qtf-plo-remove:hover {
+    background: rgba(216, 73, 73, 0.1);
+    color: var(--accent-danger);
+}
+
+.qtf-plo-remove:focus-visible {
+    outline: 2px solid var(--accent-danger);
+    outline-offset: 1px;
+}
+
+.qtf-plo-remove .material-symbols-rounded {
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+/* Ghost icon buttons for row actions (e.g. CLO list: edit/delete) */
+.row-action-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 0.5rem;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.row-action-btn .material-symbols-rounded { font-size: 1.2rem; line-height: 1; }
+.row-action-btn:hover { background: rgba(15, 131, 166, 0.1); color: var(--primary-color); }
+.row-action-btn.row-action-danger:hover { background: rgba(216, 73, 73, 0.1); color: var(--accent-danger); }
+.row-action-btn:focus-visible { outline: 2px solid var(--primary-color); outline-offset: 1px; }
+.row-action-btn.row-action-danger:focus-visible { outline-color: var(--accent-danger); }
 
 .btn-success {
     background: var(--accent-success);
@@ -1690,7 +1758,7 @@ select {
 .form-control {
     width: 100%;
     padding: 0.75rem 1rem;
-    background-color: #ffffff;
+    background-color: hsl(216, 45%, 98%);
     border: 1px solid var(--border-color);
     border-radius: 0.75rem;
     color: var(--text-main);
@@ -1702,8 +1770,16 @@ select {
 
 .form-control:focus {
     outline: none;
+    background-color: #ffffff;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(15, 131, 166, 0.2);
+}
+
+.form-control::placeholder {
+    color: #aab4c4;
+    font-size: 0.8rem;
+    font-weight: 300;
+    opacity: 1;
 }
 
 /* hide original select when wrapped */

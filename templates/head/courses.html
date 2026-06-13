@@ -12,10 +12,6 @@
         <h2>จัดการรายวิชาในหลักสูตร</h2>
         <p class="text-muted mb-0">รายวิชาทั้งหมดของหลักสูตรที่คุณดูแล พร้อม CLO และการรองรับ PLO ของแต่ละวิชา</p>
     </div>
-    <button class="btn btn-primary" onclick="document.getElementById('modal-add-course').style.display='flex'"
-        {% if not programs %}disabled title="ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ"{% endif %}>
-        + เพิ่มวิชาใหม่
-    </button>
 </div>
 
 {% if programs %}
@@ -51,21 +47,17 @@
     <div class="table-wrapper">
         <table class="data-table" style="table-layout: fixed; width: 100%;">
             <colgroup>
-                <col style="width: 12%;">
-                <col style="width: 34%;">
-                <col style="width: 9%;">
-                <col style="width: 17%;">
-                <col style="width: 13%;">
                 <col style="width: 15%;">
+                <col style="width: 50%;">
+                <col style="width: 14%;">
+                <col style="width: 21%;">
             </colgroup>
             <thead>
                 <tr>
                     <th class="text-center">รหัสวิชา</th>
                     <th>ชื่อรายวิชา</th>
                     <th class="text-center">หน่วยกิต</th>
-                    <th>ผู้สอน</th>
                     <th class="text-center">รายละเอียด</th>
-                    <th class="text-center">จัดการ</th>
                 </tr>
             </thead>
             <tbody>
@@ -80,14 +72,6 @@
                         {% endif %}
                     </td>
                     <td class="text-center text-table">{{ course.credits or '-' }}</td>
-                    <td class="text-table">
-                        {% set names = instructor_names_by_course.get(course.id, []) %}
-                        {% if names %}
-                        {% for n in names %}<div>{{ n }}</div>{% endfor %}
-                        {% else %}
-                        <span class="text-muted text-xs">ยังไม่มอบหมาย</span>
-                        {% endif %}
-                    </td>
                     <td class="text-center text-table">
                         {% if clos or course.description %}
                         <button type="button" class="status-badge status-btn role-instructor clo-toggle"
@@ -101,17 +85,10 @@
                            title="ไปกำหนด CLO ของวิชานี้">ยังไม่กำหนด</a>
                         {% endif %}
                     </td>
-                    <td class="text-center text-table">
-                        <form action="{{ url_for('head_delete_course', course_id=course.id) }}" method="POST"
-                            onsubmit="return confirm('ยืนยันการลบรายวิชานี้จากฐานข้อมูล?')">
-                            <input type="hidden" name="next" value="{{ request.full_path }}">
-                            <button type="submit" class="btn btn-outline-danger">ลบ</button>
-                        </form>
-                    </td>
                 </tr>
                 {% if clos or course.description %}
                 <tr id="clo-detail-{{ course.id }}" class="clo-detail-row" style="display:none;">
-                    <td colspan="6" style="padding: 0.75rem 1rem 1rem;">
+                    <td colspan="4" style="padding: 0.75rem 1rem 1rem;">
                         <div style="display:flex; flex-direction:column; gap:0.5rem;">
                             {% if course.description %}
                             <div class="glass" style="border-radius:0.6rem; padding:0.7rem 0.9rem;
@@ -161,64 +138,10 @@
     <div class="empty-state text-center text-muted">ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ</div>
 </div>
 {% endif %}
-
-<!-- Modal: เพิ่มวิชาใหม่ -->
-<div id="modal-add-course" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; padding:1rem;">
-    <div class="glass glass-card" style="width:100%; max-width:480px; position:relative;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
-            <h3 style="margin:0;">เพิ่มวิชาใหม่</h3>
-            <button onclick="document.getElementById('modal-add-course').style.display='none'"
-                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
-        </div>
-        <form method="POST">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0 1.5rem;">
-                <div class="form-group">
-                    <label>รหัสวิชา</label>
-                    <input type="text" name="code" class="form-control" placeholder="เช่น CS101" required>
-                </div>
-                <div class="form-group">
-                    <label>หน่วยกิต</label>
-                    <input type="text" name="credits" class="form-control" placeholder="เช่น 3(2-2-5)" required>
-                </div>
-                <div class="form-group" style="grid-column:1/-1;">
-                    <label>ชื่อวิชา (ภาษาไทย)</label>
-                    <input type="text" name="name_th" class="form-control" required>
-                </div>
-                <div class="form-group" style="grid-column:1/-1;">
-                    <label>ชื่อวิชา (ภาษาอังกฤษ)</label>
-                    <input type="text" name="name_en" class="form-control" required>
-                </div>
-                <div class="form-group" style="grid-column:1/-1;">
-                    <label>คำอธิบายรายวิชา</label>
-                    <textarea name="description" class="form-control" rows="3"
-                        placeholder="คำอธิบายรายวิชาตามเล่มหลักสูตร (มคอ.2) — ใช้เติมอัตโนมัติใน มคอ.3/4/5"></textarea>
-                </div>
-                <div class="form-group" style="grid-column:1/-1;">
-                    <label>หลักสูตรที่รับผิดชอบ</label>
-                    <select name="program_id" class="form-control" required>
-                        <option value="">-- เลือกหลักสูตร --</option>
-                        {% for program in programs %}
-                        <option value="{{ program.id }}">
-                            {{ program.name }} {{ '(' ~ program.year ~ ')' if program.year else '' }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-            </div>
-            <div style="display:flex; gap:0.75rem; margin-top:1rem;">
-                <button type="submit" class="btn btn-primary" style="flex:1;">บันทึกข้อมูลวิชา</button>
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('modal-add-course').style.display='none'">ยกเลิก</button>
-            </div>
-        </form>
-    </div>
-</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
-document.getElementById('modal-add-course').addEventListener('click', function(e) {
-    if (e.target === this) this.style.display = 'none';
-});
 document.querySelectorAll('.clo-toggle').forEach(function (btn) {
     btn.addEventListener('click', function () {
         var row = document.getElementById(btn.dataset.target);

@@ -1522,6 +1522,8 @@ def instructor_dashboard():
             "term": t,
             "tqf3_open": bool(getattr(t, "is_open_tqf3", False)),
             "tqf5_open": bool(getattr(t, "is_open_tqf5", False)),
+            "tqf3_ever_opened": bool(getattr(t, "tqf3_ever_opened", False)),
+            "tqf5_ever_opened": bool(getattr(t, "tqf5_ever_opened", False)),
             "sections": t_sections,
         })
 
@@ -3172,37 +3174,17 @@ def _head_programs_for(user: User) -> list[Program]:
     return programs
 
 
-@app.route("/head/courses", methods=["GET", "POST"])
+@app.route("/head/courses")
 @login_required
 @roles_required("head")
 def head_manage_courses():
-    """จัดการรายวิชาในหลักสูตรที่หัวหน้าสาขาดูแล (ผู้สอนดูได้ที่ /instructor/courses)"""
+    """ดูรายวิชาในหลักสูตรที่หัวหน้าสาขาดูแล (เพิ่ม/ลบวิชาเป็นสิทธิ์ของ admin/วิชาการ;
+    ผู้สอนดูได้ที่ /instructor/courses)"""
     programs = _head_programs_for(current_user)
     program_by_id = {p.id: p for p in programs if p.id}
 
     if not programs:
         flash("ยังไม่มีหลักสูตรในความรับผิดชอบของคุณ", "warning")
-
-    if request.method == "POST":
-        code = (request.form.get("code") or "").strip()
-        name_th = (request.form.get("name_th") or "").strip()
-        name_en = (request.form.get("name_en") or "").strip()
-        credits = (request.form.get("credits") or "").strip() or None
-        description = (request.form.get("description") or "").strip() or None
-        program_id = request.form.get("program_id") or None
-
-        if program_id not in program_by_id:
-            flash("ไม่พบหลักสูตร หรือคุณไม่มีสิทธิ์จัดการหลักสูตรนี้", "danger")
-        elif code and name_th:
-            Course(
-                code=code,
-                name_th=name_th,
-                name_en=name_en or name_th,
-                credits=credits,
-                description=description,
-                program_id=program_id,
-            ).save()
-            flash("เพิ่มรายวิชาเรียบร้อย", "success")
 
     selected_program_id = request.args.get("program_id")
     if selected_program_id not in program_by_id:
@@ -3232,24 +3214,12 @@ def head_manage_courses():
         rows.sort(key=lambda c: (c.order if c.order is not None else 999))
 
     # sections ของวิชาในหลักสูตรที่ดูแล (Section ไม่มี program_id จึงกรองด้วย course_id)
-    # → รายชื่อผู้สอนต่อวิชา และวิชาที่เปิดสอนจริงในเทอมที่เลือก
+    # → ใช้คัดเฉพาะวิชาที่เปิดสอนจริงในเทอมที่เลือก
     all_course_ids = {c.id for cs in courses_by_program.values() for c in cs}
-    instructor_names_by_course: dict[str, list[str]] = {}
-    instructor_by_id = {u.id: u for u in users_with_role("instructor") if u.id}
     sections = (
         Section.find_by("term_id", selected_term_id) if selected_term_id else Section.find_all()
     )
-    term_course_ids = set()
-    for sec in sections:
-        if sec.course_id not in all_course_ids:
-            continue
-        term_course_ids.add(sec.course_id)
-        instructor = instructor_by_id.get(sec.instructor_id)
-        if not instructor:
-            continue
-        names = instructor_names_by_course.setdefault(sec.course_id, [])
-        if instructor.full_name not in names:
-            names.append(instructor.full_name)
+    term_course_ids = {sec.course_id for sec in sections if sec.course_id in all_course_ids}
 
     grouped_courses = {}
     for program in programs:
@@ -3270,22 +3240,9 @@ def head_manage_courses():
         programs=programs,
         selected_program_id=selected_program_id,
         clos_by_course=clos_by_course,
-        instructor_names_by_course=instructor_names_by_course,
         terms=all_terms,
         selected_term_id=selected_term_id,
     )
-
-
-@app.route("/head/delete-course/<course_id>", methods=["POST"])
-@login_required
-@roles_required("head")
-def head_delete_course(course_id):
-    course = _get_or_404(Course, course_id)
-    head_program_ids = {p.id for p in _head_programs_for(current_user)}
-    if course.program_id not in head_program_ids:
-        flash("คุณไม่มีสิทธิ์จัดการรายวิชานี้", "danger")
-        return _safe_redirect_next("head_manage_courses")
-    return _delete_course(course_id, "head_manage_courses")
 
 
 @app.route("/head/plos", methods=["GET", "POST"])
@@ -5380,6 +5337,8 @@ def toggle_open_term_tqf3(term_id):
         return redirect(url_for("dashboard"))
 
     term.is_open_tqf3 = not bool(term.is_open_tqf3)
+    if term.is_open_tqf3:
+        term.tqf3_ever_opened = True
     term.save()
     flash(
         f"สถานะการเปิดกรอก มคอ.3 (ทั้งเทอม {term.semester}/{term.year}): "
@@ -5400,6 +5359,8 @@ def toggle_open_term_tqf5(term_id):
         return redirect(url_for("dashboard"))
 
     term.is_open_tqf5 = not bool(term.is_open_tqf5)
+    if term.is_open_tqf5:
+        term.tqf5_ever_opened = True
     term.save()
     flash(
         f"สถานะการเปิดกรอก มคอ.5 (ทั้งเทอม {term.semester}/{term.year}): "

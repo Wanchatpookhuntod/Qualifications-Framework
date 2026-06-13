@@ -413,6 +413,8 @@ class Term(FirestoreModel):
     semester: int = 0
     is_open_tqf3: bool = False
     is_open_tqf5: bool = False
+    tqf3_ever_opened: bool = False
+    tqf5_ever_opened: bool = False
     start_month: Optional[int] = None
     start_year: Optional[int] = None
     end_month: Optional[int] = None
@@ -424,6 +426,8 @@ class Term(FirestoreModel):
             "semester": int(self.semester),
             "is_open_tqf3": bool(self.is_open_tqf3),
             "is_open_tqf5": bool(self.is_open_tqf5),
+            "tqf3_ever_opened": bool(self.tqf3_ever_opened),
+            "tqf5_ever_opened": bool(self.tqf5_ever_opened),
             "start_month": self.start_month,
             "start_year": self.start_year,
             "end_month": self.end_month,
@@ -436,6 +440,10 @@ class Term(FirestoreModel):
         semester = data.get("semester") or 0
         is_open_tqf3 = bool(data.get("is_open_tqf3", False))
         is_open_tqf5 = bool(data.get("is_open_tqf5", False))
+        # Backfill for terms saved before these fields existed: a currently-open
+        # round must have been opened at least once.
+        tqf3_ever_opened = bool(data.get("tqf3_ever_opened", False)) or is_open_tqf3
+        tqf5_ever_opened = bool(data.get("tqf5_ever_opened", False)) or is_open_tqf5
         try:
             year = int(year)
         except Exception:
@@ -457,6 +465,8 @@ class Term(FirestoreModel):
             semester=semester,
             is_open_tqf3=is_open_tqf3,
             is_open_tqf5=is_open_tqf5,
+            tqf3_ever_opened=tqf3_ever_opened,
+            tqf5_ever_opened=tqf5_ever_opened,
             start_month=_opt_int(data.get("start_month")),
             start_year=_opt_int(data.get("start_year")),
             end_month=_opt_int(data.get("end_month")),

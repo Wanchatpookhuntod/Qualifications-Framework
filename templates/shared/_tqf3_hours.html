@@ -1,0 +1,24 @@
+{# Shared "จำนวนชั่วโมงที่ใช้ต่อสัปดาห์" (hours/week) section for TQF3.
+   Included by instructor/edit_tqf3.html (editable) and shared/tqf3_readonly.html
+   (wrapped in a disabled <fieldset>). Expects `general` in scope. #}
+<div class="qtf-card">
+    <div class="qtf-section-title">จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)</div>
+    <div class="qtf-grid four mt-2">
+        <div class="form-group">
+            <label>ชั่วโมงบรรยาย/ภาค</label>
+            <input type="number" name="lecture_hours" class="form-control" min="0" step="1" value="{{ general.get('lecture_hours', '') }}">
+        </div>
+        <div class="form-group">
+            <label>ชั่วโมงปฏิบัติ/ภาคสนาม/ฝึกงาน</label>
+            <input type="number" name="lab_hours" class="form-control" min="0" step="1" value="{{ general.get('lab_hours', '') }}">
+        </div>
+        <div class="form-group">
+            <label>ชั่วโมงศึกษาด้วยตนเอง</label>
+            <input type="number" name="self_hours" class="form-control" min="0" step="1" value="{{ general.get('self_hours', '') }}">
+        </div>
+        <div class="form-group">
+            <label>ชั่วโมงให้คำปรึกษาต่อสัปดาห์</label>
+            <input type="number" name="consult_hours" class="form-control" min="0" step="0.5" value="{{ general.get('consult_hours', '') }}">
+        </div>
+    </div>
+</div>

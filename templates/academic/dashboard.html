@@ -9,7 +9,7 @@
         <p class="text-muted mb-0">จัดการรายวิชาเปิดสอนและติดตามความคืบหน้าการส่ง มคอ.</p>
     </div>
     <div class="action-bar">
-        <a href="{{ url_for('manage_terms') }}" class="btn btn-secondary">จัดการปีการศึกษา</a>
+        <button type="button" class="btn btn-primary" onclick="document.getElementById('addTermModal').style.display='flex'">+ เพิ่มปีการศึกษาใหม่</button>
     </div>
 </div>
 
@@ -49,34 +49,35 @@
 
 <div class="dashboard-hierarchy">
     {% for term_label, term_data in grouped_data.items() %}
-    <details class="glass accordion-card" {% if loop.first %}open{% endif %}>
-        <summary>
-            <h3 class="mb-0">ปีการศึกษา {{ term_label }}</h3>
-            <span class="accordion-divider"></span>
+    <details class="glass accordion-card term-card" {% if loop.first %}open{% endif %}>
+        <summary class="term-card-summary">
+            <span class="feature-card-icon material-symbols-rounded">calendar_month</span>
+            <div class="term-card-body">
+                <h3 class="mb-0">ปีการศึกษา {{ term_label }}</h3>
+                <span class="text-muted text-xs">จัดการสถานะ มคอ. และหลักสูตรในเทอมนี้</span>
+            </div>
 
-            <form method="POST" action="{{ url_for('toggle_open_term_tqf3', term_id=term_data.term_id) }}">
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <button type="submit"
-                    class="btn {{ 'status-approved' if term_data.is_open_tqf3 else 'status-returned' }}">
-                    {% if term_data.is_open_tqf3 %}เปิดส่ง มคอ.3{% else %}ปิดส่ง มคอ.3{% endif %}
-                </button>
-            </form>
-            <form method="POST" action="{{ url_for('toggle_open_term_tqf5', term_id=term_data.term_id) }}">
-                <input type="hidden" name="next" value="{{ request.path }}">
-                <button type="submit"
-                    class="btn {{ 'status-approved' if term_data.is_open_tqf5 else 'status-returned' }}">
-                    {% if term_data.is_open_tqf5 %}เปิดส่ง มคอ.5{% else %}ปิดส่ง มคอ.5{% endif %}
-                </button>
-            </form>
+            <div class="term-card-actions">
+                <form method="POST" action="{{ url_for('toggle_open_term_tqf3', term_id=term_data.term_id) }}">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit"
+                        class="btn {{ 'status-approved' if term_data.is_open_tqf3 else 'status-returned' }}">
+                        {% if term_data.is_open_tqf3 %}เปิด มคอ.3{% else %}ปิด มคอ.3{% endif %}
+                    </button>
+                </form>
+                <form method="POST" action="{{ url_for('toggle_open_term_tqf5', term_id=term_data.term_id) }}">
+                    <input type="hidden" name="next" value="{{ request.path }}">
+                    <button type="submit"
+                        class="btn {{ 'status-approved' if term_data.is_open_tqf5 else 'status-returned' }}">
+                        {% if term_data.is_open_tqf5 %}เปิด มคอ.5{% else %}ปิด มคอ.5{% endif %}
+                    </button>
+                </form>
 
-            <span>
-                <a style="height: 2.75rem; display: flex;align-items: center;justify-content: center;"
-                    class="btn btn-secondary btn-link"
-                    href="{{ url_for('academic_term_documents', term_id=term_data.term_id) }}">รวม มคอ.</a>
-            </span>
+                <a class="btn btn-secondary btn-compact"
+                    href="{{ url_for('academic_term_documents', term_id=term_data.term_id) }}">เอกสาร มคอ.</a>
+            </div>
 
-            <span class="material-symbols-rounded"
-                style="font-size: 1.25rem; color: var(--text-muted, #888); user-select: none;">stat_minus_1</span>
+            <span class="material-symbols-rounded accordion-chevron">expand_more</span>
         </summary>
 
         <div class="glass term-banner">
@@ -85,7 +86,7 @@
                 <form method="POST" action="{{ url_for('academic_add_program_to_term') }}" class="form-inline-grid"
                     style="grid-template-columns: auto minmax(260px, 340px);">
                     <input type="hidden" name="term_id" value="{{ term_data.term_id }}">
-                    <button type="submit" class="btn btn-primary">เพิ่มหลักสูตร</button>
+                    <button type="submit" class="btn btn-primary">เพิ่มหลักสูตรในเทอม</button>
                     <select name="program_id" class="form-control min-320" required>
                         <option value="" disabled selected>-- เลือกหลักสูตร --</option>
                         {% set already = term_program_ids.get(term_data.term_id, []) %}
@@ -134,8 +135,9 @@
                                         <input type="hidden" name="term_id" value="{{ term_data.term_id }}">
                                         <input type="hidden" name="program_id" value="{{ program_id }}">
                                         <input type="hidden" name="next" value="{{ request.path }}">
-                                        <button type="submit" class="btn btn-outline-danger btn-compact" style="min-width: 32px;">
-                                            ลบ</button>
+                                        <button type="submit" class="row-action-btn row-action-danger" title="ลบ" aria-label="ลบหลักสูตรออกจากเทอม">
+                                            <span class="material-symbols-rounded">close</span>
+                                        </button>
                                     </form>
                                 </div>
                             </td>
@@ -143,8 +145,6 @@
                         {% endfor %}
                     </tbody>
                 </table>
-        
-            
             </div>
             {% else %}
             <div class="text-muted">ยังไม่มีหลักสูตรในเทอมนี้</div>
@@ -163,6 +163,52 @@
     {% endfor %}
 </div>
 
+<!-- Add Term Modal -->
+<div id="addTermModal" class="modal" style="display:none;">
+    <div class="modal-card" style="max-width:480px; width:100%; margin:0;">
+        <div class="modal-header">
+            <h3 class="mb-0">+ เพิ่มปีการศึกษาใหม่</h3>
+            <button type="button" onclick="document.getElementById('addTermModal').style.display='none'"
+                class="modal-close-btn"><span class="material-symbols-rounded">close</span></button>
+        </div>
+        <form method="POST" action="{{ url_for('manage_terms') }}" class="modal-body">
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group mb-0">
+                    <label>ปีการศึกษา (พ.ศ.)</label>
+                    <input type="number" name="year" class="form-control" placeholder="เช่น 2567" required min="2500" max="2600" value="2567">
+                </div>
+                <div class="form-group mb-0">
+                    <label>ภาคเรียน</label>
+                    <select name="semester" class="form-control" required>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3 (ฤดูร้อน)</option>
+                    </select>
+                </div>
+            </div>
+
+            <hr style="margin:1.25rem 0; border-color:var(--border-color);">
+
+            <div class="text-muted text-xs mb-2" style="font-weight:600;">ช่วงเวลาภาคเรียน <span style="font-weight:400;">(ปี พ.ศ. จะแสดงเป็น ค.ศ. ในช่องเลือก)</span></div>
+            <div class="form-row" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div class="form-group mb-0">
+                    <label>ตั้งแต่</label>
+                    <input type="month" name="start_date" class="form-control">
+                </div>
+                <div class="form-group mb-0">
+                    <label>ถึง</label>
+                    <input type="month" name="end_date" class="form-control">
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('addTermModal').style.display='none'">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">บันทึกข้อมูล</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('form[data-confirm]').forEach(function (form) {
@@ -173,6 +219,12 @@
                 }
             });
         });
+        var addTermModal = document.getElementById('addTermModal');
+        if (addTermModal) {
+            addTermModal.addEventListener('click', function (e) {
+                if (e.target === this) this.style.display = 'none';
+            });
+        }
     });
 </script>
 {% endblock %}

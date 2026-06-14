@@ -79,55 +79,7 @@
 
 <div class="glass panel">
     <h3 class="panel-title text-primary">ข้อมูลที่ส่ง (Preview)</h3>
-    <div class="panel-dashed">
-        {% if tqf_type == 'tqf3' %}
-        <div class="preview-block">
-            <h4 class="preview-label">จุดมุ่งหมายและวัตถุประสงค์</h4>
-            <p class="preserve-text">{{ tqf.general_info.get('objectives', 'ไม่ได้ระบุ') }}</p>
-        </div>
-        <div class="preview-block">
-            <h4 class="preview-label">คำอธิบายรายวิชา</h4>
-            <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
-        </div>
-        <div class="preview-block">
-            <h4 class="preview-label">จำนวน CLO ที่ระบุ</h4>
-            <p>{{ tqf.general_info.get('clo_text[]', tqf.general_info.get('clo_code[]', []))|length }} รายการ</p>
-        </div>
-        {% elif tqf_type == 'tqf4' %}
-        <div class="preview-block">
-            <h4 class="preview-label">จุดประสงค์การจัดการเรียนรู้ของการฝึก</h4>
-            <p class="preserve-text">{{ tqf.general_info.get('field_objective', tqf.general_info.get('objectives', 'ไม่ได้ระบุ')) }}</p>
-        </div>
-        <div class="preview-block">
-            <h4 class="preview-label">คำอธิบายรายวิชา</h4>
-            <p class="preserve-text">{{ tqf.general_info.get('description', 'ไม่ได้ระบุ') }}</p>
-        </div>
-        <div class="preview-block">
-            <h4 class="preview-label">จำนวน CLO ที่ระบุ</h4>
-            <p>{{ tqf.general_info.get('clo_text[]', [])|length }} รายการ</p>
-        </div>
-        {% else %}
-        <div class="preview-block">
-            <h4 class="preview-label">สรุปจำนวนผู้เรียน</h4>
-            <p>ลงทะเบียน: {{ tqf.actual_teaching.get('students_enrolled', '0') }} | จบ: {{
-                tqf.actual_teaching.get('students_finished', '0') }} | ถอน: {{
-                tqf.actual_teaching.get('students_withdrawn', '0') }}</p>
-        </div>
-        <div class="preview-block">
-            <h4 class="preview-label">ปัญหาที่พบและการแก้ไข</h4>
-            <p class="preserve-text">{{ tqf.actual_teaching.get('problems_fixed', 'ไม่มีระบุ') }}</p>
-        </div>
-        <div class="preview-block">
-            <h4 class="preview-label">ผลการทวนสอบ</h4>
-            <p class="preserve-text">{{ tqf.actual_teaching.get('verification_method', 'ไม่มีระบุ') }}</p>
-        </div>
-        {% endif %}
-
-        <div class="form-footnote text-xs">
-            * ดูข้อมูลฉบับเต็ม (ตามฟอร์ม) ด้านล่าง
-        </div>
-    </div>
-
+   
     <div class="mt-5">
         {% if tqf_type == 'tqf3' %}
             {% set section = tqf.section if tqf.section else None %}

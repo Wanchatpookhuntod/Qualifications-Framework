@@ -86,7 +86,9 @@
                         {% if current_user.has_role('admin') or (active_role or current_user.best_role()) == 'admin' %}
                         <form action="{{ url_for('admin_delete_program', program_id=program.id) }}" method="POST"
                             onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้?')">
-                            <button type="submit" class="btn btn-outline-danger" formnovalidate>ลบ</button>
+                            <button type="submit" class="row-action-btn row-action-danger" formnovalidate title="ลบ" aria-label="ลบหลักสูตร">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
                         </form>
                         {% endif %}
                     </td>

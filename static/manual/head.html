@@ -11,6 +11,10 @@
   <link rel="stylesheet" href="/static/manual/_base.css" />
   <style>
     :root { --role-color: #12a150; --role-bg: #dcfce7; }
+    body{
+      font-family: 'Sarabun', 'Kanit', 'Prompt', 'Inter', sans-serif;
+      font-size: 15px; line-height: 1.7; color: var(--text-color);
+    }
     .site-header {
       background: linear-gradient(135deg, #14532d 0%, #15803d 100%);
       color: white; padding: 28px 32px 28px;
@@ -24,20 +28,14 @@
     .site-header .role-tag .material-symbols-rounded { font-size: 18px; }
     .site-header h1 { font-family: 'Kanit','Sarabun',sans-serif; font-size: 1.9rem; font-weight: 600; margin-bottom: 6px; }
     .site-header p { font-size: 14px; opacity: 0.85; }
+    .text-center { text-align: center; }
   </style>
 </head>
 <body>
 
 <header class="site-header">
-  <div class="header-topbar">
-    <div class="breadcrumb">
-      <a href="/manual">คู่มือการใช้งาน</a> <span class="material-symbols-rounded">chevron_right</span> หัวหน้าสาขา
-    </div>
-    <a href="/head/dashboard" class="btn-back-dashboard"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
-  </div>
-  <div class="role-tag"><span class="material-symbols-rounded">school</span> Head</div>
-  <h1>คู่มือหัวหน้าสาขา</h1>
-  <p>มอบหมายอาจารย์ผู้สอน ตรวจสอบ และอนุมัติเอกสาร มคอ.3 / มคอ.5</p>
+  <h1 class="text-center">คู่มือหัวหน้าสาขา</h1>
+  <p class="text-center">กำหนด PLO/CLO, มอบหมายอาจารย์ผู้สอน, ตรวจสอบและอนุมัติเอกสาร มคอ.3 / มคอ.5</p>
 </header>
 
 <div class="container">
@@ -47,12 +45,20 @@
     <aside class="toc">
       <div class="toc-nav-actions">
         <a href="/head/dashboard" class="back-link"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
-        <a href="/manual" class="alt-link"><span class="material-symbols-rounded">swap_horiz</span> เลือกบทบาทอื่น</a>
       </div>
       <h3>สารบัญ</h3>
       <ul>
         <li><a href="#overview"   class="toc-link">ภาพรวม Head</a></li>
         <li><a href="#dashboard"  class="toc-link">Dashboard</a></li>
+        <li>
+          <a href="#outcomes"     class="toc-link">PLO / CLO</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#plos"       class="toc-link">จัดการ PLOs หลักสูตร</a></li>
+            <li><a href="#clos"       class="toc-link">จัดการ CLOs รายวิชา</a></li>
+            <li><a href="#plo-clo"    class="toc-link">ความสัมพันธ์ PLO–CLO</a></li>
+            <li><a href="#courses"    class="toc-link">ดูรายวิชา</a></li>
+          </ul></div>
+        </li>
         <li>
           <a href="#assign"       class="toc-link">มอบหมายอาจารย์</a>
         </li>
@@ -77,15 +83,22 @@
       <!-- OVERVIEW -->
       <section id="overview">
         <h2 class="section-title"><span class="material-symbols-rounded">school</span> ภาพรวม Head</h2>
-        <p>หัวหน้าสาขาเป็นผู้ควบคุมคุณภาพเอกสาร มคอ. ในสาขาวิชาที่รับผิดชอบ มีหน้าที่หลัก 3 อย่าง</p>
+        <p>หัวหน้าสาขาเป็นผู้ควบคุมคุณภาพหลักสูตรและเอกสาร มคอ. ในสาขาวิชาที่รับผิดชอบ</p>
         <table>
           <thead><tr><th>หน้าที่</th><th>รายละเอียด</th></tr></thead>
           <tbody>
+            <tr><td>กำหนด PLOs</td><td>สร้าง/แก้ไขผลการเรียนรู้ระดับหลักสูตร (Program Learning Outcomes)</td></tr>
+            <tr><td>กำหนด CLOs</td><td>สร้าง/แก้ไขผลการเรียนรู้ระดับรายวิชา และเชื่อมโยงกับ PLO</td></tr>
+            <tr><td>ดูความสัมพันธ์ PLO–CLO</td><td>ตรวจ Matrix ว่าทุก PLO ถูกครอบคลุมด้วย CLO ของรายวิชา</td></tr>
             <tr><td>มอบหมายอาจารย์</td><td>กำหนดอาจารย์ผู้สอนให้กับแต่ละ Section</td></tr>
-            <tr><td>ตรวจสอบและอนุมัติ</td><td>รีวิว มคอ.3 และ มคอ.5 แล้วอนุมัติหรือตีกลับ</td></tr>
+            <tr><td>ตรวจสอบและอนุมัติ</td><td>รีวิว มคอ.3 / มคอ.4 และ มคอ.5 แล้วอนุมัติหรือตีกลับ</td></tr>
             <tr><td>จัดทำรายงานสรุป</td><td>สรุปภาพรวม มคอ.5 ของทั้งสาขาในแต่ละภาคการศึกษา</td></tr>
           </tbody>
         </table>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>เมนูฝั่งซ้าย: <strong>แดชบอร์ด · รายวิชา · PLOs หลักสูตร · CLOs รายวิชา · มอบหมายผู้สอน · เอกสาร มคอ. · ความสัมพันธ์ PLO–CLO</strong></span>
+        </div>
       </section>
 
       <!-- DASHBOARD -->
@@ -104,12 +117,70 @@
         </div>
       </section>
 
+      <!-- OUTCOMES (PLO/CLO) -->
+      <section id="outcomes">
+        <h2 class="section-title"><span class="material-symbols-rounded">flag</span> ผลการเรียนรู้ PLO / CLO</h2>
+        <p>หัวหน้าสาขากำหนดผลการเรียนรู้ 2 ระดับ ซึ่งเป็นฐานให้อาจารย์เชื่อมโยงใน มคอ.3</p>
+        <table>
+          <thead><tr><th>ระดับ</th><th>ความหมาย</th><th>กำหนดที่ไหน</th></tr></thead>
+          <tbody>
+            <tr><td><strong>PLO</strong></td><td>Program Learning Outcomes – ผลการเรียนรู้ของ<strong>หลักสูตร</strong></td><td>เมนู PLOs หลักสูตร</td></tr>
+            <tr><td><strong>CLO</strong></td><td>Course Learning Outcomes – ผลการเรียนรู้ของ<strong>รายวิชา</strong> (เชื่อมไปยัง PLO)</td><td>เมนู CLOs รายวิชา</td></tr>
+          </tbody>
+        </table>
+
+        <hr id="plos" />
+        <h3 class="sub-title"><span class="material-symbols-rounded">flag</span> จัดการ PLOs หลักสูตร</h3>
+        <p>เข้าเมนู <strong>PLOs หลักสูตร</strong></p>
+        <ol class="steps">
+          <li>เลือก <strong>หลักสูตร</strong> ที่ต้องการจาก dropdown (เห็นเฉพาะหลักสูตรในความรับผิดชอบของคุณ)</li>
+          <li>กรอก <strong>หมายเลข PLO</strong> (ตัวเลข เช่น 1, 2, 3 – ระบบจะตั้งรหัสเป็น <code>PLO1</code>, <code>PLO2</code>…) และ <strong>คำอธิบาย</strong></li>
+          <li>กดปุ่ม <strong>"เพิ่ม PLO"</strong></li>
+          <li>แก้ไขหรือลบ PLO แต่ละข้อได้จากแถวในตาราง</li>
+        </ol>
+
+        <hr id="clos" />
+        <h3 class="sub-title"><span class="material-symbols-rounded">checklist</span> จัดการ CLOs รายวิชา</h3>
+        <p>เข้าเมนู <strong>CLOs รายวิชา</strong></p>
+        <ol class="steps">
+          <li>เลือก <strong>หลักสูตร</strong> และ <strong>รายวิชา</strong> ที่ต้องการ</li>
+          <li>กรอก <strong>รหัส/คำอธิบาย CLO</strong> ของรายวิชานั้น</li>
+          <li>ติ๊กเลือก <strong>PLO</strong> ที่ CLO ข้อนั้นเชื่อมโยงถึง</li>
+          <li>กดบันทึก – แก้ไข/ลบ CLO ได้จากแถวในตาราง</li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>CLO ที่กำหนดไว้จะถูกดึงไปแสดงเป็นค่าตั้งต้นให้อาจารย์เมื่อกรอก มคอ.3 ของรายวิชานั้น</span>
+        </div>
+
+        <hr id="plo-clo" />
+        <h3 class="sub-title"><span class="material-symbols-rounded">hub</span> ความสัมพันธ์ PLO–CLO</h3>
+        <p>เข้าเมนู <strong>ความสัมพันธ์ PLO–CLO</strong> เพื่อดู Matrix ภาพรวมของหลักสูตร</p>
+        <ul>
+          <li>แสดงว่าแต่ละ <strong>PLO</strong> ถูกครอบคลุมด้วย <strong>CLO</strong> ของรายวิชาใดบ้าง</li>
+          <li>ช่วยตรวจหา PLO ที่ <strong>ยังไม่มี CLO รองรับ</strong> (ช่องว่างของหลักสูตร)</li>
+        </ul>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>หาก PLO ใดไม่ถูกเชื่อมโยงเลย ควรเพิ่ม/ปรับ CLO ของรายวิชาให้ครอบคลุม เพื่อให้หลักสูตรสมบูรณ์</span>
+        </div>
+
+        <hr id="courses" />
+        <h3 class="sub-title"><span class="material-symbols-rounded">book_2</span> ดูรายวิชา</h3>
+        <p>เข้าเมนู <strong>รายวิชา</strong> เพื่อดูรายวิชาทั้งหมดในหลักสูตรที่ดูแล พร้อม CLO ของแต่ละวิชา
+           กรองตามหลักสูตรหรือภาคการศึกษาได้</p>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>หน้านี้สำหรับ <strong>ดู</strong> เป็นหลัก การเพิ่ม/ลบรายวิชาเป็นสิทธิ์ของ Admin และฝ่ายวิชาการ</span>
+        </div>
+      </section>
+
       <!-- ASSIGN -->
       <section id="assign">
         <h2 class="section-title"><span class="material-symbols-rounded">assignment_ind</span> มอบหมายอาจารย์ผู้สอน</h2>
-        <p>ทำหลังจาก Academic เปิดรายวิชา (สร้าง Section) แล้ว</p>
+        <p>ทำหลังจาก Academic เปิดรายวิชา (สร้าง Section) แล้ว – ใช้เมนู <strong>มอบหมายผู้สอน</strong> หรือทำจาก Dashboard ก็ได้</p>
         <ol class="steps">
-          <li>บน Dashboard เลือก <strong>ภาคการศึกษา</strong> จาก dropdown</li>
+          <li>เข้าเมนู <strong>มอบหมายผู้สอน</strong> แล้วเลือก <strong>ภาคการศึกษา</strong> จาก dropdown</li>
           <li>ในตารางรายวิชา ดูคอลัมน์ <strong>"อาจารย์"</strong></li>
           <li>เลือก <strong>ชื่ออาจารย์</strong> จาก dropdown ในแถวที่ต้องการ</li>
           <li>กดปุ่ม <strong>"บันทึก"</strong> – อาจารย์จะเห็น Section นี้บน Dashboard ของตน</li>
@@ -241,12 +312,42 @@
       <!-- ACCOUNT -->
       <section id="account">
         <h2 class="section-title"><span class="material-symbols-rounded">settings</span> ตั้งค่าบัญชี</h2>
+        <p>เข้าหน้านี้โดยคลิกรูปโปรไฟล์มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong> หน้าจัดการบัญชีมี 3 ส่วน</p>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">badge</span> ข้อมูลบัญชี</h3>
+        <p>กดปุ่ม <strong>"แก้ไข"</strong> ที่การ์ด <strong>ข้อมูลบัญชี</strong> เพื่อปรับ <strong>ชื่อผู้ใช้</strong>,
+           <strong>ชื่อ-นามสกุล</strong>, <strong>โทรศัพท์</strong> และ <strong>ห้องพัก</strong></p>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">draw</span> ลายเซ็น</h3>
+        <p>ที่การ์ด <strong>ลายเซ็น</strong> กดปุ่ม <strong>"เพิ่มลายเซ็น"</strong> (หรือ <strong>"แก้ไขลายเซ็น"</strong> ถ้ามีอยู่แล้ว)
+           จะเปิดหน้าต่างที่มี 2 วิธีให้เลือก:</p>
+        <table>
+          <thead><tr><th>วิธี</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td><strong>วาดลายเซ็น</strong></td><td>วาดด้วยเมาส์หรือนิ้วในกรอบที่กำหนด – กด <strong>"ล้าง"</strong> เพื่อเริ่มใหม่</td></tr>
+            <tr><td><strong>อัปโหลดไฟล์</strong></td><td>เลือกไฟล์ภาพ <code>PNG</code>, <code>JPG</code> หรือ <code>WEBP</code> ขนาด<strong>ไม่เกิน 750 KB</strong></td></tr>
+          </tbody>
+        </table>
         <ol class="steps">
-          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
-          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
-          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>เลือกแท็บที่ต้องการ แล้ววาดหรือเลือกไฟล์</li>
+          <li>กดปุ่ม <strong>"บันทึกลายเซ็น"</strong> – ระบบจะแสดงตัวอย่างลายเซ็นบนการ์ด</li>
+          <li>ต้องการลบ ให้กดปุ่ม <strong>"ลบ"</strong> ที่การ์ดลายเซ็น (มีการยืนยันก่อน)</li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>ลายเซ็นจะปรากฏในช่องลงนามของเอกสาร มคอ. ที่<strong>พิมพ์/ส่งออกเป็น Word หรือ PDF</strong> (เช่น ช่อง "ประธานบริหารหลักสูตร" หากท่านเป็นผู้ลงนาม)</span>
+        </div>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">lock</span> เปลี่ยนรหัสผ่าน</h3>
+        <ol class="steps">
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong> ที่การ์ด <strong>ความปลอดภัย</strong></li>
+          <li>กรอก <strong>รหัสผ่านปัจจุบัน</strong>, <strong>รหัสผ่านใหม่</strong>, และ <strong>ยืนยันรหัสผ่านใหม่</strong></li>
           <li>กดปุ่ม <strong>"บันทึก"</strong></li>
         </ol>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>รหัสผ่านใหม่ต้องมี<strong>อย่างน้อย 6 ตัวอักษร</strong> และทั้งสองช่องต้องตรงกัน</span>
+        </div>
       </section>
 
       <!-- FAQ -->

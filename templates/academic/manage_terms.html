@@ -24,8 +24,9 @@
             <colgroup>
                 <col style="width: 20%;">
                 <col style="width: 30%;">
-                <col style="width: 25%;">
-                <col style="width: 25%;">
+                <col style="width: 27%;">
+                <col style="width: 15%;">
+                <col style="width: 8%;">
             </colgroup>
             <thead>
                 <tr>
@@ -33,6 +34,7 @@
                     <th class="text-center">ช่วงเวลา</th>
                     <th class="text-center">สถานะ</th>
                     <th class="text-center">จัดการ</th>
+                    <th class="text-center">ลบ</th>
                 </tr>
             </thead>
             <tbody>
@@ -54,11 +56,16 @@
                         <div style="display:flex; gap:0.5rem; align-items:center; justify-content:center;">
                             <button type="button" class="btn btn-secondary btn-compact"
                                 onclick="openEditModal('{{ term.id }}','{{ term.year }}','{{ term.semester }}','{{ term.start_month or '' }}','{{ term.start_year or '' }}','{{ term.end_month or '' }}','{{ term.end_year or '' }}')">แก้ไข</button>
-                            <form action="{{ url_for('delete_term', term_id=term.id) }}" method="POST"
-                                onsubmit="return confirm('ยืนยันการลบปีการศึกษานี้?')">
-                                <button type="submit" class="btn btn-outline-danger btn-compact">ลบ</button>
-                            </form>
+                            
                         </div>
+                    </td>
+                    <td class="text-center">
+                        <form action="{{ url_for('delete_term', term_id=term.id) }}" method="POST"
+                                onsubmit="return confirm('ยืนยันการลบปีการศึกษานี้?')">
+                            <button type="submit" class="row-action-btn row-action-danger" title="ลบ" aria-label="ลบปีการศึกษา">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
+                        </form>
                     </td>
                 </tr>
                 {% else %}

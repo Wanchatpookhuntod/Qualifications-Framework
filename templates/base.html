@@ -142,6 +142,7 @@
                 {{ side_nav_item('academic_manage_programs', 'menu_book', 'หลักสูตร') }}
                 {{ side_nav_item('academic_manage_courses', 'book_2', 'รายวิชา') }}
                 {{ side_nav_item('academic_view_plos', 'flag', 'PLOs หลักสูตร') }}
+                {{ side_nav_item('academic_all_documents', 'description', 'เอกสาร มคอ.') }}
             {% elif _side_role == 'head' %}
                 {{ side_nav_item('head_dashboard', 'dashboard', 'แดชบอร์ด') }}
                 {{ side_nav_item('head_manage_courses', 'book_2', 'รายวิชา') }}
@@ -158,7 +159,7 @@
         </nav>
         <div class="side-nav-footer">
             {{ side_nav_item('account', 'person', 'บัญชีของฉัน') }}
-            <a href="/manual/{{ _side_role }}" class="side-nav-item" target="_blank" rel="noopener">
+            <a href="/manual/{{ _side_role }}" class="side-nav-item" rel="noopener">
                 <span class="material-symbols-rounded" aria-hidden="true">menu_book</span>
                 <span class="side-nav-label">คู่มือการใช้งาน</span>
             </a>
@@ -235,11 +236,21 @@
                 var drop = document.createElement('div');
                 drop.className = 'cs-dropdown';
 
-                function buildOptions() {
-                    drop.innerHTML = '';
+                // Auto-enable search for long lists; opt-out with .no-search, opt-in with .select-search
+                var searchable = !sel.classList.contains('no-search') &&
+                    (sel.classList.contains('select-search') || sel.options.length > 8);
+
+                function renderItems(q) {
+                    var list = drop._list;
+                    if (!list) return;
+                    list.innerHTML = '';
+                    q = (q || '').trim().toLowerCase();
+                    var shown = 0;
                     Array.from(sel.options).forEach(function(opt) {
+                        if (q && opt.text.toLowerCase().indexOf(q) === -1) return;
+                        shown++;
                         var item = document.createElement('div');
-                        item.className = 'cs-option' + (opt.selected ? ' cs-selected' : '');
+                        item.className = 'cs-option' + (opt.value === sel.value ? ' cs-selected' : '');
                         item.textContent = opt.text;
                         item.dataset.val = opt.value;
                         item.addEventListener('mousedown', function(e) {
@@ -249,8 +260,38 @@
                             syncTrigger();
                             closeAll();
                         });
-                        drop.appendChild(item);
+                        list.appendChild(item);
                     });
+                    if (!shown) {
+                        var empty = document.createElement('div');
+                        empty.className = 'cs-empty';
+                        empty.textContent = 'ไม่พบรายการ';
+                        list.appendChild(empty);
+                    }
+                }
+
+                function buildOptions() {
+                    drop.innerHTML = '';
+                    drop._searchInput = null;
+                    if (searchable) {
+                        var sbox = document.createElement('div');
+                        sbox.className = 'cs-search';
+                        var sinput = document.createElement('input');
+                        sinput.type = 'text';
+                        sinput.className = 'cs-search-input';
+                        sinput.placeholder = 'ค้นหา...';
+                        sinput.addEventListener('mousedown', function(e) { e.stopPropagation(); });
+                        sinput.addEventListener('click', function(e) { e.stopPropagation(); });
+                        sinput.addEventListener('input', function() { renderItems(this.value); });
+                        sbox.appendChild(sinput);
+                        drop.appendChild(sbox);
+                        drop._searchInput = sinput;
+                    }
+                    var list = document.createElement('div');
+                    list.className = 'cs-options';
+                    drop.appendChild(list);
+                    drop._list = list;
+                    renderItems('');
                 }
 
                 function syncTrigger() {
@@ -293,6 +334,9 @@
                         drop.style.display = 'block';
                         positionDrop();
                         wrap.classList.add('open');
+                        if (drop._searchInput) {
+                            requestAnimationFrame(function() { drop._searchInput.focus(); });
+                        }
                     }
                 });
 

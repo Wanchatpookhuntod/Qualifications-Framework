@@ -11,125 +11,58 @@
     {% set _prog = course.program if course else None %}
     {% set _fac = _prog.faculty if _prog else None %}
 
-    <!-- ข้อมูลรายวิชา -->
+    <!-- ข้อมูลรายวิชา (เหมือนฟอร์มผู้สอน) -->
+    <fieldset class="tqf-readonly-fieldset" disabled style="border:0; padding:0; margin:0; min-inline-size:auto;">
+        {% include 'shared/_tqf3_course_info.html' %}
+    </fieldset>
+
+    <!-- PLOs (เหมือนฟอร์มผู้สอน) -->
     <div class="qtf-card">
-        <h3>ข้อมูลรายวิชา</h3>
-
-        <div class="mt-3">
-            <span class="text-muted"><h5>รหัสวิชา:</h5></span>
-            <span>{{ general.get('course_code', course.code if course else '-') }}</span>
-            <span class="text-muted"><h5>ชื่อวิชา:</h5></span>
-            <span>{{ general.get('course_name', course.name_th if course else '-') | thai_wrap }}</span>
-            <span class="text-muted"><h5>จำนวนหน่วยกิต:</h5></span>
-            <span>{{ general.get('credits', course.credits if course else '-') }}</span>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted"><h5>สถานภาพของวิชา:</h5></span>
-            <span>{{ general.get('course_status', '-') }}</span>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted"><h5>รายวิชาสังกัดคณะ:</h5></span>
-            <span>{{ (general.get('faculty') or (_fac.name if _fac else '-')) | thai_wrap }}</span>
-            <span class="text-muted"><h5>หลักสูตร:</h5></span>
-            <span>{{ (general.get('program') or (_prog.name if _prog else '-')) | thai_wrap }}</span>
-            <span class="text-muted"><h5>วิชาเอก:</h5></span>
-            <span>{{ general.get('major', '-') }}</span>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted"><h5>คำอธิบายรายวิชา:</h5></span>
-            <div class="preserve-text">{{ general.get('description', course.description if course else '-') }}</div>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted"><h5>รายวิชาที่บังคับเรียนก่อน (Pre-requisite) (ถ้ามี):</h5></span>
-            <span>{{ general.get('prereq', '-') }}</span>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted"><h5>ภาคการศึกษา / ปีการศึกษา:</h5></span>
-            <span>{{ general.get('semester', term.semester if term else '-') }} / {{ general.get('academic_year', term.year if term else '-') }}</span>
-            <span class="text-muted"><h5>ประเภทนักศึกษา:</h5></span>
-            <span>{{ general.get('student_type', '-') }}</span>
-            <span class="text-muted"><h5>ชั้นปีที่:</h5></span>
-            <span>{{ general.get('year_level', '-') }}</span>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 40% 30% 30%; gap: 16px; align-items: start;" class="mt-2">
-            <div>
-                <span class="text-muted"><h5>อาจารย์ผู้สอน:</h5></span>
-                <span>{{ general.get('instructor', section.instructor.full_name if section and section.instructor else '-') }}</span>
+        <div class="qtf-section-title">ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้องกับรายวิชา</div>
+        {# '—' = legacy em dash in data saved before the en-dash switch #}
+        {% set plo_raw = (general.get('plos') or '').replace('—', '–') %}
+        {% set plo_lines = plo_raw.split('\n') | map('trim') | select | list %}
+        {% if plo_lines %}
+        <div style="display:flex; flex-direction:column; gap:0.4rem;">
+            {% for line in plo_lines %}
+            {% set sep = line.find('–') %}
+            {% set code = line[:sep] | trim if sep >= 0 else 'PLO' ~ loop.index %}
+            {% set text = line[sep+1:] | trim if sep >= 0 else line %}
+            <div style="display:flex; gap:0.6rem; align-items:flex-start;">
+                <span class="text-muted" style="min-width:3rem; text-align:left; white-space:nowrap; flex-shrink:0;">{{ code }}</span>
+                <span style="font-size: 0.9rem;" class="preserve-text" style="flex:1;">{{ text }}</span>
             </div>
-            <div>
-                <span class="text-muted"><h5>ห้องพัก:</h5></span>
-                <span>{{ general.get('office', '-') }}</span>
-            </div>
-            <div>
-                <span class="text-muted"><h5>โทรศัพท์:</h5></span>
-                <span>{{ general.get('phone', '-') }}</span>
-            </div>
+            {% endfor %}
         </div>
-
-        <div style="display: grid; grid-template-columns: 33% 33% 34%; gap: 16px; align-items: start;" class="mt-2">
-            <div>
-                <span class="text-muted"><h5>ห้องเรียน:</h5></span>
-                <span>{{ general.get('location', general.get('location_type', '-')) }}</span>
-            </div>
-            <div>
-                <span class="text-muted"><h5>ระบบออนไลน์:</h5></span>
-                <span>{{ general.get('online_system', '-') }}</span>
-            </div>
-            <div>
-                <span class="text-muted"><h5>กรณีเรียนภายนอกมหาวิทยาลัย:</h5></span>
-                <span>{{ general.get('external_location', '-') }}</span>
-            </div>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted"><h5>วันที่จัดทำหรือปรับปรุงประมวลการสอนหรือแผนการจัดการเรียนรู้ครั้งล่าสุด:</h5></span>
-            <span>{{ general.get('last_updated', '-') }}</span>
-        </div>
-
-        <div class="mt-3">
-            <span class="text-muted"><h5>ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (Program Learning Outcomes: PLOs) ที่เกี่ยวข้องกับรายวิชา:</h5></span>
-            {# '—' = legacy em dash in data saved before the en-dash switch #}
-            <div class="preserve-text">{{ (general.get('plos') or '-').replace('—', '–') }}</div>
-        </div>
-
-        <div class="mt-2">
-            <span class="text-muted"><h5>จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs):</h5></span>
-            <div class="preserve-text">{{ general.get('course_objective', general.get('objectives', '-')) }}</div>
-        </div>
-
-        <div class="qtf-section-subtitle mt-3">จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)</div>
-        <div style="display: grid; grid-template-columns: 33% 33% 34%; gap: 16px; align-items: start;" class="mt-2">
-            <div>
-                <span class="text-muted"><h5>จำนวนชั่วโมงบรรยาย:</h5></span>
-                <span>{{ general.get('lecture_hours', '-') }}</span>
-            </div>
-            <div>
-                <span class="text-muted"><h5>ชั่วโมงฝึกปฏิบัติ/ภาคสนาม/การฝึกงาน:</h5></span>
-                <span>{{ general.get('lab_hours', '-') }}</span>
-            </div>
-            <div>
-                <span class="text-muted"><h5>ชั่วโมงการศึกษาด้วยตนเอง:</h5></span>
-                <span>{{ general.get('self_hours', '-') }}</span>
-            </div>
-        </div>
-
-        <div class="mt-3">
-            <span class="text-muted"><h5>จำนวนชั่วโมงต่อสัปดาห์ที่จะให้คำปรึกษาและแนะนำทางวิชาการแก่นักศึกษา / ช่องทางการติดต่ออาจารย์ผู้สอน:</h5></span>
-            <span>{{ general.get('consult_hours', '-') }}</span>
-            <div class="preserve-text">{{ general.get('hours_note', '-') }}</div>
-        </div>
-
-        <div class="mt-3">
-            <span class="text-muted"><h5>วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน (กรณีอุทธรณ์ผลคะแนนระหว่างภาคและคะแนนสอบกลางภาค):</h5></span>
-            <div class="preserve-text">{{ general.get('appeal_channel', '-') }}</div>
-        </div>
+        {% else %}
+        <div class="text-muted">-</div>
+        {% endif %}
     </div>
+
+    <!-- CLOs (เหมือนฟอร์มผู้สอน) -->
+    <div class="qtf-card">
+        <div class="qtf-section-title">จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)</div>
+        {% set clo_raw = general.get('course_objective', general.get('objectives', '')) or '' %}
+        {% set clo_lines = clo_raw.split('\n') | map('trim') | select | list %}
+        {% if clo_lines %}
+        <div style="display:flex; flex-direction:column; gap:0.4rem;">
+            {% for line in clo_lines %}
+            <div style="display:flex; gap:0.6rem; align-items:flex-start;">
+                <span class="text-muted" style="min-width:3rem; text-align:left; white-space:nowrap; flex-shrink:0;">CLO{{ loop.index }}</span>
+                <span style="font-size: 0.9rem;" class="preserve-text" style="flex:1;">{{ line }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted">-</div>
+        {% endif %}
+    </div>
+
+    <!-- ชั่วโมง + การอุทธรณ์ (เหมือนฟอร์มผู้สอน) -->
+    <fieldset class="tqf-readonly-fieldset" disabled style="border:0; padding:0; margin:0; min-inline-size:auto;">
+        {% include 'shared/_tqf3_hours.html' %}
+        {% include 'shared/_tqf3_appeal.html' %}
+    </fieldset>
 
     <!-- การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง -->
     <div class="qtf-card">
@@ -147,21 +80,27 @@
         {% else %}
             <div class="qtf-table-wrapper">
                 <table class="qtf-table min-900">
+                    <colgroup>
+                        <col style="width:7%;">
+                        <col style="width:31%;">
+                        <col style="width:31%;">
+                        <col style="width:31%;">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th class="col-28p">ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)</th>
-                            <th class="col-24p">กลยุทธ์การสอนตาม CLOs</th>
-                            <th class="col-24p">เกณฑ์การวัดและการประเมินผล</th>
-                            <th class="col-24p">วิธีการวัดและประเมินผลตาม CLOs</th>
+                            <th style="text-align: center;">CLOs</th>
+                            <th style="text-align: center;">กลยุทธ์การสอนตาม CLOs</th>
+                            <th style="text-align: center;">เกณฑ์การวัดและการประเมินผล</th>
+                            <th style="text-align: center;">วิธีการวัดและประเมินผลตาม CLOs</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for i in range(clo_texts|length) %}
-                        <tr>
-                            <td class="preserve-text">{{ clo_texts[i] or '-' }}</td>
-                            <td class="preserve-text">{{ teachs[i] if i < teachs|length else '-' }}</td>
-                            <td class="preserve-text">{{ criterias[i] if i < criterias|length else '-' }}</td>
-                            <td class="preserve-text">{{ assesses[i] if i < assesses|length else '-' }}</td>
+                        <tr >
+                            <td style="text-align: center;">CLO{{ i + 1 }}</td>
+                            <td class="preserve-text" style="font-size: 0.8rem;">{{ teachs[i] if i < teachs|length else '-' }}</td>
+                            <td class="preserve-text" style="font-size: 0.8rem;">{{ criterias[i] if i < criterias|length else '-' }}</td>
+                            <td class="preserve-text" style="font-size: 0.8rem;">{{ assesses[i] if i < assesses|length else '-' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -193,14 +132,22 @@
         {% else %}
             <div class="qtf-table-wrapper">
                 <table class="qtf-table min-900">
+                    <colgroup>
+                        <col style="width:8%;">
+                        <col style="width:25%;">
+                        <col style="width:25%;">
+                        <col style="width:7%;">
+                        <col style="width:25%;">
+                        <col style="width:19%;">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th class="col-90">สัปดาห์ที่</th>
-                            <th class="min-260">หัวข้อ / รายละเอียด</th>
-                            <th class="col-140">Lesson Learning Outcome : LLOs</th>
-                            <th class="col-110">จำนวนชั่วโมง</th>
-                            <th class="min-260">กิจกรรมการเรียนการสอน สื่อที่ใช้ (ถ้ามี)</th>
-                            <th class="col-140">ผู้สอน</th>
+                            <th style="text-align: center;">สัปดาห์ที่</th>
+                            <th style="text-align: center;">หัวข้อ / รายละเอียด</th>
+                            <th style="text-align: center;">Lesson Learning Outcome : LLOs</th>
+                            <th style="text-align: center;">จำนวนชั่วโมง</th>
+                            <th style="text-align: center;">กิจกรรมการเรียนการสอน สื่อที่ใช้</th>
+                            <th style="text-align: center;">ผู้สอน</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -219,13 +166,13 @@
                         {% set act = activities[i] if i < activities|length and (activities[i]|string)|trim else '' %}
                         {% set med = medias[i] if i < medias|length and (medias[i]|string)|trim else '' %}
                         <tr>
-                            <td>{{ wk }}</td>
-                            <td class="preserve-text">{{ topics[i] or '-' }}</td>
-                            <td class="preserve-text">{{ week_clos[i] if i < week_clos|length else '-' }}</td>
-                            <td>{{ hr if (hr|string)|trim else '-' }}</td>
-                            <td class="preserve-text">{% if act %}{{ act }}{% endif %}{% if med %}{% if act %}
+                            <td style="text-align: center;">{{ wk }}</td>
+                            <td class="preserve-text" style="font-size: 0.8rem">{{ topics[i] or '-' }}</td>
+                            <td class="preserve-text" style="font-size: 0.8rem">{{ week_clos[i] if i < week_clos|length else '-' }}</td>
+                            <td style="font-size: 0.8rem; text-align: center;">{{ hr if (hr|string)|trim else '-' }}</td>
+                            <td class="preserve-text" style="font-size: 0.8rem">{% if act %}{{ act }}{% endif %}{% if med %}{% if act %}
 {% endif %}สื่อที่ใช้: {{ med }}{% endif %}{% if not act and not med %}-{% endif %}</td>
-                            <td class="preserve-text">{{ teachers[i] if i < teachers|length and (teachers[i]|string)|trim else '-' }}</td>
+                            <td class="preserve-text" style="font-size: 0.8rem">{{ teachers[i] if i < teachers|length and (teachers[i]|string)|trim else '-' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -283,21 +230,27 @@
         {% else %}
             <div class="qtf-table-wrapper">
                 <table class="qtf-table min-900">
+                    <colgroup>
+                        <col style="width:10%;">
+                        <col style="width:38%;">
+                        <col style="width:38%;">
+                        <col style="width:14%;">
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th class="min-240">ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)</th>
-                            <th class="min-240">กิจกรรมการจัดการเรียนรู้ของผู้เรียน</th>
-                            <th class="min-240">เกณฑ์การประเมินผลลัพธ์การเรียนรู้ระดับรายวิชา</th>
-                            <th class="col-140">สัดส่วนของการประเมินผล</th>
+                            <th style="text-align: center;">CLOs</th>
+                            <th style="text-align: center;">กิจกรรมการจัดการเรียนรู้</th>
+                            <th style="text-align: center;">เกณฑ์การประเมิน</th>
+                            <th style="text-align: center;">สัดส่วนการประเมิน</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for i in range(a_clo|length) %}
                         <tr>
-                            <td class="preserve-text">{{ a_clo[i] or '-' }}</td>
-                            <td class="preserve-text">{{ a_act[i] if i < a_act|length else '-' }}</td>
-                            <td class="preserve-text">{{ a_crit[i] if i < a_crit|length else '-' }}</td>
-                            <td>{{ a_pct[i] if i < a_pct|length else '-' }}</td>
+                            <td style="text-align: center; font-size: 0.8rem;" class="preserve-text">{{ a_clo[i] or '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ a_act[i] if i < a_act|length else '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ a_crit[i] if i < a_crit|length else '-' }}</td>
+                            <td style="text-align: center; font-size: 0.8rem;">{{ a_pct[i] if i < a_pct|length else '-' }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -325,26 +278,35 @@
         {% else %}
             <div class="qtf-table-wrapper">
                 <table class="qtf-table min-900">
+                    <colgroup>
+                        <col style="width:16.67%;">
+                        <col style="width:16.67%;">
+                        <col style="width:16.67%;">
+                        <col style="width:16.67%;">
+                        <col style="width:16.67%;">
+                        <col style="width:16.67%;">
+ 
+                    </colgroup>
                     <thead>
                         <tr>
-                            <th class="col-22p">ประเด็นการประเมิน</th>
-                            <th>ระดับ 5</th>
-                            <th>ระดับ 4</th>
-                            <th>ระดับ 3</th>
-                            <th>ระดับ 2</th>
-                            <th>ระดับ 1</th>
+                            <th style="text-align: center;">ประเด็น</th>
+                            <th style="text-align: center;">ระดับ 5</th>
+                            <th style="text-align: center;">ระดับ 4</th>
+                            <th style="text-align: center;">ระดับ 3</th>
+                            <th style="text-align: center;">ระดับ 2</th>
+                            <th style="text-align: center;">ระดับ 1</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for i in range(r_topic|length) %}
                         {% if (r_topic[i]|string)|trim %}
                         <tr>
-                            <td class="preserve-text">{{ r_topic[i] or '-' }}</td>
-                            <td class="preserve-text">{{ r_l5[i] if i < r_l5|length else '-' }}</td>
-                            <td class="preserve-text">{{ r_l4[i] if i < r_l4|length else '-' }}</td>
-                            <td class="preserve-text">{{ r_l3[i] if i < r_l3|length else '-' }}</td>
-                            <td class="preserve-text">{{ r_l2[i] if i < r_l2|length else '-' }}</td>
-                            <td class="preserve-text">{{ r_l1[i] if i < r_l1|length else '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ r_topic[i] or '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ r_l5[i] if i < r_l5|length else '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ r_l4[i] if i < r_l4|length else '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ r_l3[i] if i < r_l3|length else '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ r_l2[i] if i < r_l2|length else '-' }}</td>
+                            <td style="font-size: 0.8rem;" class="preserve-text">{{ r_l1[i] if i < r_l1|length else '-' }}</td>
                         </tr>
                         {% endif %}
                         {% endfor %}

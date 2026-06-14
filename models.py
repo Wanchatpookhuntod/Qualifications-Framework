@@ -846,6 +846,8 @@ class User(UserMixin, FirestoreModel):
     full_name: str = ""
     phone: str = ""
     office: str = ""
+    # Signature image stored inline as a data URL (e.g. "data:image/png;base64,...")
+    signature: str = ""
 
     # Roles: store as list, keep legacy single role compatibility
     roles: List[str] = field(default_factory=list)
@@ -867,6 +869,7 @@ class User(UserMixin, FirestoreModel):
             "full_name": self.full_name,
             "phone": self.phone,
             "office": self.office,
+            "signature": self.signature,
             "roles": roles,
             # Backward compatibility: legacy data stored a single role string.
             "role": primary_role,
@@ -903,6 +906,7 @@ class User(UserMixin, FirestoreModel):
             full_name=(data.get("full_name") or ""),
             phone=(data.get("phone") or ""),
             office=(data.get("office") or ""),
+            signature=(data.get("signature") or ""),
             roles=roles,
             faculty_id=data.get("faculty_id"),
             department_id=department_id,

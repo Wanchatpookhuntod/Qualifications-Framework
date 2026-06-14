@@ -1,8 +1,14 @@
+import base64
+import binascii
 import json
 import os
 import csv
 import io
+import math
 import re
+import shutil
+import subprocess
+import tempfile
 from collections import Counter
 from datetime import datetime
 from functools import wraps
@@ -748,6 +754,31 @@ def _get_or_404(model_cls, doc_id: str):
 
 
 
+# Allowed signature image types and max decoded size (Firestore doc limit is 1MB).
+_SIGNATURE_ALLOWED_TYPES = {"image/png", "image/jpeg", "image/webp"}
+_SIGNATURE_MAX_BYTES = 750 * 1024
+_SIGNATURE_DATA_URL_RE = re.compile(r"^data:(image/[a-zA-Z0-9.+-]+);base64,(.+)$", re.DOTALL)
+
+
+def _normalize_signature_data_url(value: str):
+    """Validate a signature data URL. Returns (ok, normalized_value, message)."""
+    match = _SIGNATURE_DATA_URL_RE.match(value.strip())
+    if not match:
+        return False, "", "รูปแบบลายเซ็นไม่ถูกต้อง (ต้องเป็นไฟล์ภาพ)"
+    mime, b64 = match.group(1).lower(), match.group(2).strip()
+    if mime not in _SIGNATURE_ALLOWED_TYPES:
+        return False, "", "รองรับเฉพาะไฟล์ภาพ PNG, JPG หรือ WEBP"
+    try:
+        raw = base64.b64decode(b64, validate=True)
+    except (binascii.Error, ValueError):
+        return False, "", "ไม่สามารถอ่านข้อมูลลายเซ็นได้"
+    if not raw:
+        return False, "", "ไม่พบข้อมูลลายเซ็น"
+    if len(raw) > _SIGNATURE_MAX_BYTES:
+        return False, "", "ไฟล์ลายเซ็นมีขนาดใหญ่เกินไป (สูงสุด 750 KB)"
+    return True, f"data:{mime};base64,{b64}", ""
+
+
 def users_with_role(role_name: str):
     users = User.find_all()
     return [u for u in users if u.has_role(role_name)]
@@ -1392,6 +1423,28 @@ def account():
             user.office = (request.form.get("office") or "").strip()
             user.save()
             flash("บันทึกข้อมูลผู้ใช้เรียบร้อย", "success")
+            return redirect(url_for("account"))
+
+        if request.form.get("action") == "update_signature":
+            signature = (request.form.get("signature") or "").strip()
+            if not signature:
+                flash("ไม่พบข้อมูลลายเซ็น", "danger")
+                return redirect(url_for("account"))
+            ok, value, message = _normalize_signature_data_url(signature)
+            if not ok:
+                flash(message, "danger")
+                return redirect(url_for("account"))
+            user = _get_or_404(User, current_user.id)
+            user.signature = value
+            user.save()
+            flash("บันทึกลายเซ็นเรียบร้อย", "success")
+            return redirect(url_for("account"))
+
+        if request.form.get("action") == "clear_signature":
+            user = _get_or_404(User, current_user.id)
+            user.signature = ""
+            user.save()
+            flash("ลบลายเซ็นเรียบร้อย", "success")
             return redirect(url_for("account"))
 
         current_password = request.form.get("current_password") or ""
@@ -2846,6 +2899,10 @@ def _section_export_context(section: Section) -> dict:
     faculty = program.faculty if program else None
     term = section.term if section else None
     instructor = User.get(section.instructor_id) if section and section.instructor_id else None
+    instructor_signature = (instructor.signature or "") if instructor else ""
+    signatures = {}
+    if instructor and instructor.full_name and instructor_signature:
+        signatures[instructor.full_name.strip()] = instructor_signature
     return {
         "faculty": faculty.name if faculty else "-",
         "program": program.name if program else "-",
@@ -2857,7 +2914,22 @@ def _section_export_context(section: Section) -> dict:
         "semester": term.semester if term else "-",
         "year": term.year if term else "-",
         "instructor": instructor.full_name if instructor else "-",
+        "instructor_signature": instructor_signature,
+        "signatures": signatures,
     }
+
+
+def _attach_named_signatures(ctx: dict, *names: str) -> None:
+    """Resolve each name to a user and add their saved signature (data URL) to
+    ``ctx['signatures']`` so the exporter can draw it over the signature line."""
+    sigs = ctx.setdefault("signatures", {})
+    for name in names:
+        name = (name or "").strip()
+        if not name or name in sigs:
+            continue
+        user = User.first_by("full_name", name)
+        if user and getattr(user, "signature", ""):
+            sigs[name] = user.signature
 
 
 def _export_filename(prefix: str, section: Section, ext: str) -> str:
@@ -2874,14 +2946,103 @@ def _load_section_for_export(section_id: str) -> Section:
     return section
 
 
+# --- Word document builders (shared by the Word and PDF routes) ---
+
+
+def _tqf3_export_buffer(section: Section) -> io.BytesIO:
+    tqf3 = _get_or_create_tqf3(section.id)
+    ctx = _section_export_context(section)
+    # The program chair (ประธานบริหารหลักสูตร) signs only after the มคอ. is approved.
+    if tqf3.status == "APPROVED":
+        _attach_named_signatures(ctx, tqf3.general_info.get("course_owner", ""))
+    return build_tqf3_docx(tqf3.general_info, ctx)
+
+
+def _tqf4_export_buffer(section: Section) -> io.BytesIO:
+    tqf4 = _get_or_create_tqf4(section.id)
+    ctx = _section_export_context(section)
+    # The program chair (ประธานบริหารหลักสูตร) signs only after the มคอ. is approved.
+    if tqf4.status == "APPROVED":
+        _attach_named_signatures(ctx, tqf4.general_info.get("course_owner", ""))
+    return build_tqf4_docx(tqf4.general_info, ctx)
+
+
+def _tqf5_export_buffer(section: Section) -> io.BytesIO:
+    tqf5 = _get_or_create_tqf5(section.id, "")
+    ctx = _section_export_context(section)
+    # The program chair (ประธานบริหารหลักสูตร) signs only after the มคอ. is approved.
+    if tqf5.status == "APPROVED":
+        _attach_named_signatures(ctx, tqf5.actual_teaching.get("course_owner", ""))
+    return build_tqf5_docx(tqf5.actual_teaching, ctx)
+
+
+def _soffice_bin():
+    """Locate the LibreOffice/soffice binary used to convert .docx → .pdf."""
+    env = os.environ.get("SOFFICE_BIN")
+    if env and os.path.exists(env):
+        return env
+    for name in ("soffice", "libreoffice"):
+        found = shutil.which(name)
+        if found:
+            return found
+    for path in (
+        "/usr/bin/soffice",
+        "/usr/bin/libreoffice",
+        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+    ):
+        if os.path.exists(path):
+            return path
+    return None
+
+
+def _docx_to_pdf(buffer: io.BytesIO):
+    """Convert a .docx buffer to a PDF buffer via LibreOffice headless.
+
+    Returns ``None`` when LibreOffice is unavailable or the conversion fails, so
+    callers can fall back to the HTML print view.
+    """
+    soffice = _soffice_bin()
+    if not soffice:
+        return None
+    with tempfile.TemporaryDirectory() as tmp:
+        docx_path = os.path.join(tmp, "doc.docx")
+        with open(docx_path, "wb") as fh:
+            fh.write(buffer.getbuffer())
+        try:
+            subprocess.run(
+                [soffice, "--headless", "--convert-to", "pdf", "--outdir", tmp, docx_path],
+                check=True, capture_output=True, timeout=120,
+                env={**os.environ, "HOME": tmp},  # LibreOffice needs a writable HOME
+            )
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError):
+            return None
+        pdf_path = os.path.join(tmp, "doc.pdf")
+        if not os.path.exists(pdf_path):
+            return None
+        with open(pdf_path, "rb") as fh:
+            return io.BytesIO(fh.read())
+
+
+def _send_pdf_or_print(section, buffer, prefix, print_kwargs):
+    """Send the LibreOffice-rendered PDF (same format as Word); if LibreOffice is
+    unavailable, fall back to the browser print view."""
+    pdf = _docx_to_pdf(buffer)
+    if pdf is None:
+        return render_template("shared/tqf_print.html", section=section, **print_kwargs)
+    return send_file(
+        pdf,
+        mimetype="application/pdf",
+        as_attachment=False,
+        download_name=_export_filename(prefix, section, "pdf"),
+    )
+
+
 @app.route("/tqf3/<section_id>/export/word")
 @login_required
 def export_tqf3_word(section_id):
     section = _load_section_for_export(section_id)
-    tqf3 = _get_or_create_tqf3(section_id)
-    buffer = build_tqf3_docx(tqf3.general_info, _section_export_context(section))
     return send_file(
-        buffer,
+        _tqf3_export_buffer(section),
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         as_attachment=True,
         download_name=_export_filename("TQF3", section, "docx"),
@@ -2892,27 +3053,11 @@ def export_tqf3_word(section_id):
 @login_required
 def export_tqf4_word(section_id):
     section = _load_section_for_export(section_id)
-    tqf4 = _get_or_create_tqf4(section_id)
-    buffer = build_tqf4_docx(tqf4.general_info, _section_export_context(section))
     return send_file(
-        buffer,
+        _tqf4_export_buffer(section),
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         as_attachment=True,
         download_name=_export_filename("TQF4", section, "docx"),
-    )
-
-
-@app.route("/tqf4/<section_id>/export/pdf")
-@login_required
-def export_tqf4_pdf(section_id):
-    section = _load_section_for_export(section_id)
-    tqf4 = _get_or_create_tqf4(section_id)
-    return render_template(
-        "shared/tqf_print.html",
-        tqf_type="tqf4",
-        section=section,
-        tqf4=tqf4,
-        doc_title="มคอ.4",
     )
 
 
@@ -2920,10 +3065,8 @@ def export_tqf4_pdf(section_id):
 @login_required
 def export_tqf5_word(section_id):
     section = _load_section_for_export(section_id)
-    tqf5 = _get_or_create_tqf5(section_id, "")
-    buffer = build_tqf5_docx(tqf5.actual_teaching, _section_export_context(section))
     return send_file(
-        buffer,
+        _tqf5_export_buffer(section),
         mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         as_attachment=True,
         download_name=_export_filename("TQF5", section, "docx"),
@@ -2935,12 +3078,20 @@ def export_tqf5_word(section_id):
 def export_tqf3_pdf(section_id):
     section = _load_section_for_export(section_id)
     tqf3 = _get_or_create_tqf3(section_id)
-    return render_template(
-        "shared/tqf_print.html",
-        tqf_type="tqf3",
-        section=section,
-        tqf3=tqf3,
-        doc_title="มคอ.3",
+    return _send_pdf_or_print(
+        section, _tqf3_export_buffer(section), "TQF3",
+        {"tqf_type": "tqf3", "tqf3": tqf3, "doc_title": "มคอ.3"},
+    )
+
+
+@app.route("/tqf4/<section_id>/export/pdf")
+@login_required
+def export_tqf4_pdf(section_id):
+    section = _load_section_for_export(section_id)
+    tqf4 = _get_or_create_tqf4(section_id)
+    return _send_pdf_or_print(
+        section, _tqf4_export_buffer(section), "TQF4",
+        {"tqf_type": "tqf4", "tqf4": tqf4, "doc_title": "มคอ.4"},
     )
 
 
@@ -2949,12 +3100,10 @@ def export_tqf3_pdf(section_id):
 def export_tqf5_pdf(section_id):
     section = _load_section_for_export(section_id)
     tqf5 = _get_or_create_tqf5(section_id, "")
-    return render_template(
-        "shared/tqf_print.html",
-        tqf_type="tqf5",
-        section=section,
-        tqf5=tqf5,
-        doc_title="รายงานผลการจัดการเรียนรู้ระดับรายวิชา (มคอ.5/6)",
+    return _send_pdf_or_print(
+        section, _tqf5_export_buffer(section), "TQF5",
+        {"tqf_type": "tqf5", "tqf5": tqf5,
+         "doc_title": "รายงานผลการจัดการเรียนรู้ระดับรายวิชา (มคอ.5/6)"},
     )
 
 
@@ -3898,7 +4047,78 @@ def review_tqf(tqf_type, tqf_id):
 @login_required
 @roles_required("admin")
 def admin_dashboard():
-    return render_template("admin/dashboard.html")
+    faculties = Faculty.find_all()
+    departments = Department.find_all()
+    programs = Program.find_all()
+    courses = Course.find_all()
+    users = User.find_all()
+    terms = Term.find_all()
+
+    role_counts = {"admin": 0, "academic": 0, "head": 0, "instructor": 0}
+    for u in users:
+        for role in (u.roles or []):
+            if role in role_counts:
+                role_counts[role] += 1
+
+    stats = {
+        "faculties": len(faculties),
+        "departments": len(departments),
+        "programs": len(programs),
+        "courses": len(courses),
+        "users": len(users),
+        "terms": len(terms),
+        "roles": role_counts,
+    }
+
+    # --- Donut chart segments for "users by role" (inline SVG, no JS deps) ---
+    role_meta = [
+        ("admin", "ผู้ดูแลระบบ", "#6366f1"),
+        ("academic", "ฝ่ายวิชาการ", "#0ea5e9"),
+        ("head", "หัวหน้าสาขา", "#10b981"),
+        ("instructor", "อาจารย์ผู้สอน", "#f59e0b"),
+    ]
+    radius = 80
+    circumference = 2 * math.pi * radius
+    role_total = sum(role_counts.values())
+    role_segments = []
+    cumulative = 0.0
+    for key, label, color in role_meta:
+        value = role_counts.get(key, 0)
+        frac = (value / role_total) if role_total else 0.0
+        role_segments.append({
+            "label": label,
+            "value": value,
+            "color": color,
+            "pct": round(frac * 100),
+            "dash": frac * circumference,
+            "offset": -cumulative * circumference,
+        })
+        cumulative += frac
+
+    role_chart = {
+        "segments": role_segments,
+        "circumference": circumference,
+        "radius": radius,
+        "total": role_total,
+    }
+
+    # --- Bar chart data for entity counts (scaled in template) ---
+    entity_bars = [
+        {"label": "คณะ", "value": stats["faculties"], "color": "#6366f1"},
+        {"label": "สาขาวิชา", "value": stats["departments"], "color": "#0ea5e9"},
+        {"label": "หลักสูตร", "value": stats["programs"], "color": "#10b981"},
+        {"label": "รายวิชา", "value": stats["courses"], "color": "#f59e0b"},
+        {"label": "ปีการศึกษา", "value": stats["terms"], "color": "#ef4444"},
+    ]
+    entity_max = max((b["value"] for b in entity_bars), default=0)
+
+    return render_template(
+        "admin/dashboard.html",
+        stats=stats,
+        role_chart=role_chart,
+        entity_bars=entity_bars,
+        entity_max=entity_max,
+    )
 
 
 @app.route("/admin/faculties", methods=["GET", "POST"])
@@ -4316,7 +4536,62 @@ def manage_courses():
 @login_required
 @roles_required("academic", "admin")
 def academic_manage_courses():
-    return _handle_courses_request()
+    if request.method == "POST":
+        code = (request.form.get("code") or "").strip()
+        name_th = (request.form.get("name_th") or "").strip()
+        name_en = (request.form.get("name_en") or "").strip()
+        credits = (request.form.get("credits") or "").strip() or None
+        description = (request.form.get("description") or "").strip() or None
+        program_id = request.form.get("program_id") or None
+        if code and name_th:
+            Course(
+                code=code,
+                name_th=name_th,
+                name_en=name_en or name_th,
+                credits=credits,
+                description=description,
+                program_id=program_id,
+            ).save()
+            flash("เพิ่มรายวิชาเรียบร้อย", "success")
+        return redirect(url_for("academic_manage_courses", **request.args.to_dict()))
+
+    programs = Program.find_all()
+    programs.sort(key=lambda p: (p.name, p.year or 0))
+    programs_by_id = {p.id: p for p in programs if p and p.id}
+
+    selected_program_id = request.args.get("program_id")
+    if selected_program_id:
+        courses = Course.find_by("program_id", selected_program_id)
+    else:
+        courses = Course.find_all()
+
+    # CLOs ของทุกวิชาที่แสดง (query เป็นชุด) พร้อมรหัส PLO ที่รองรับ
+    course_ids = [c.id for c in courses if c.id]
+    clos_by_course: dict[str, list[CourseCLO]] = {}
+    for clo in CourseCLO.find_in("course_id", course_ids):
+        if clo.course_id:
+            clo.plo_list = _split_clo_plo_codes(clo.plo_codes)
+            clos_by_course.setdefault(clo.course_id, []).append(clo)
+    for rows in clos_by_course.values():
+        rows.sort(key=lambda c: (c.order if c.order is not None else 999))
+
+    grouped_courses = {}
+    for course in courses:
+        prog = programs_by_id.get(course.program_id) if course.program_id else None
+        prog_name = prog.name if prog else "Other"
+        if prog and prog.year:
+            prog_name += f" ({prog.year})"
+        grouped_courses.setdefault(prog_name, []).append(course)
+    for k in grouped_courses:
+        grouped_courses[k].sort(key=lambda c: c.code)
+
+    return render_template(
+        "academic/courses.html",
+        grouped_courses=grouped_courses,
+        programs=programs,
+        selected_program_id=selected_program_id,
+        clos_by_course=clos_by_course,
+    )
 
 
 @app.route("/academic/plos")
@@ -4681,6 +4956,12 @@ def academic_dashboard():
             "programs": {},
             "is_open_tqf3": bool(term.is_open_tqf3),
             "is_open_tqf5": bool(term.is_open_tqf5),
+            "year": term.year,
+            "semester": term.semester,
+            "start_month": term.start_month,
+            "start_year": term.start_year,
+            "end_month": term.end_month,
+            "end_year": term.end_year,
         }
         for prog_id in sorted(set(term_program_ids.get(term.id, []))):
             prog = programs_by_id.get(prog_id)
@@ -4723,6 +5004,42 @@ def academic_dashboard():
         terms=all_terms,
         selected_term_id=selected_term_id,
         selected_term_label=selected_term_label,
+    )
+
+
+@app.route("/academic/term/<term_id>")
+@login_required
+@roles_required("academic")
+def academic_term(term_id):
+    """หน้าเทอมเฉพาะ: จัดการหลักสูตร/เปิดรายวิชา และเปิด-ปิด มคอ. ของเทอมนั้น"""
+    term = _get_or_404(Term, term_id)
+
+    all_programs = Program.find_all()
+    all_programs.sort(key=lambda p: (-(p.year or 0), p.name))
+    programs_by_id = {p.id: p for p in all_programs if p.id}
+
+    added_ids = sorted({tp.program_id for tp in TermProgram.find_by("term_id", term_id)})
+    term_programs = [programs_by_id[pid] for pid in added_ids if pid in programs_by_id]
+    term_programs.sort(key=lambda p: (-(p.year or 0), p.name))
+
+    # นับจำนวนรายวิชาที่เปิดสอน (section) ต่อหลักสูตรในเทอมนี้
+    sections = Section.find_by("term_id", term_id)
+    course_ids = {s.course_id for s in sections if s.course_id}
+    courses = [c for c in (Course.get(cid) for cid in course_ids) if c]
+    prog_by_course = {c.id: c.program_id for c in courses if c.id}
+    section_count_by_program: dict[str, int] = {}
+    for s in sections:
+        pid = prog_by_course.get(s.course_id)
+        if pid:
+            section_count_by_program[pid] = section_count_by_program.get(pid, 0) + 1
+
+    return render_template(
+        "academic/term.html",
+        term=term,
+        programs=all_programs,
+        term_programs=term_programs,
+        added_ids=added_ids,
+        section_count_by_program=section_count_by_program,
     )
 
 
@@ -4801,13 +5118,35 @@ def academic_term_program(term_id, program_id):
     )
 
 
+@app.route("/academic/documents")
+@login_required
+@roles_required("academic")
+def academic_documents():
+    """ทางเข้าหน้า มคอ. ทั้งหมด: ใช้เทอมจาก ?term_id หรือเทอมปัจจุบันถ้าไม่ระบุ"""
+    term_id = request.args.get("term_id")
+    if not term_id:
+        terms = Term.find_all()
+        current = _find_current_term(terms) if terms else None
+        if not current and terms:
+            terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+            current = terms[0]
+        if not current:
+            flash("ยังไม่มีภาคการศึกษาในระบบ", "warning")
+            return redirect(url_for("academic_dashboard"))
+        term_id = current.id
+    return redirect(url_for("academic_term_documents", term_id=term_id))
+
+
 @app.route("/academic/term/<term_id>/documents")
 @login_required
 @roles_required("academic")
 def academic_term_documents(term_id):
     term = _get_or_404(Term, term_id)
 
-    selected_program_id = (request.args.get("program_id") or "").strip()
+    all_terms = Term.find_all()
+    all_terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+
+    selected_department_id = (request.args.get("department_id") or "").strip()
 
     sections = Section.find_by("term_id", term_id)
     course_ids = {s.course_id for s in sections if s.course_id}
@@ -4819,11 +5158,16 @@ def academic_term_documents(term_id):
     programs.sort(key=lambda p: (-(p.year or 0), p.name))
     program_by_id = {p.id: p for p in programs if p.id}
 
+    department_ids = {p.department_id for p in programs if p.department_id}
+    departments = [d for d in (Department.get(did) for did in department_ids) if d]
+    departments.sort(key=lambda d: d.name)
+
     instructors = users_with_role("instructor")
     instructor_by_id = {u.id: u for u in instructors if u.id}
 
     section_ids = [s.id for s in sections if s.id]
     tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf4_by_section = _tqf4_by_section_ids(section_ids)
     tqf5_by_section = _tqf5_by_section_ids(section_ids)
 
     rows = []
@@ -4831,11 +5175,14 @@ def academic_term_documents(term_id):
         s.course = course_by_id.get(s.course_id)
         s.term = term
         s.instructor = instructor_by_id.get(s.instructor_id)
+        s.is_field = is_field_experience_course(s.course) if s.course else False
         s.tqf3 = tqf3_by_section.get(s.id)
+        s.tqf4 = tqf4_by_section.get(s.id)
         s.tqf5 = tqf5_by_section.get(s.id)
         prog = program_by_id.get(s.course.program_id) if (s.course and s.course.program_id) else None
         setattr(s, "program", prog)
-        if selected_program_id and (not prog or prog.id != selected_program_id):
+        prog_dept_id = prog.department_id if prog else None
+        if selected_department_id and prog_dept_id != selected_department_id:
             continue
         rows.append(s)
 
@@ -4847,9 +5194,12 @@ def academic_term_documents(term_id):
 
     rows.sort(key=_row_key)
 
+    def _spec(sec):
+        return sec.tqf4 if getattr(sec, "is_field", False) else sec.tqf3
+
     total = len(rows)
-    tqf3_submitted = sum(1 for s in rows if s.tqf3 and s.tqf3.status in ["SUBMITTED", "APPROVED"])
-    tqf3_approved = sum(1 for s in rows if s.tqf3 and s.tqf3.status == "APPROVED")
+    tqf3_submitted = sum(1 for s in rows if _spec(s) and _spec(s).status in ["SUBMITTED", "APPROVED"])
+    tqf3_approved = sum(1 for s in rows if _spec(s) and _spec(s).status == "APPROVED")
     tqf5_submitted = sum(1 for s in rows if s.tqf5 and s.tqf5.status in ["SUBMITTED", "APPROVED"])
     tqf5_approved = sum(1 for s in rows if s.tqf5 and s.tqf5.status == "APPROVED")
 
@@ -4860,9 +5210,10 @@ def academic_term_documents(term_id):
     return render_template(
         "academic/term_documents.html",
         term=term,
+        terms=all_terms,
         sections=rows,
-        programs=programs,
-        selected_program_id=selected_program_id,
+        departments=departments,
+        selected_department_id=selected_department_id,
         stats={
             "total": total,
             "tqf3_submitted": tqf3_submitted,
@@ -4871,6 +5222,96 @@ def academic_term_documents(term_id):
             "tqf5_approved": tqf5_approved,
         },
         submitted_head_summaries=submitted_head_summaries,
+    )
+
+
+@app.route("/academic/all-documents")
+@login_required
+@roles_required("academic")
+def academic_all_documents():
+    """รวม มคอ. ทุกปีการศึกษาในหน้าเดียว (กรองตามเทอม/สาขาวิชาได้)"""
+    all_terms = Term.find_all()
+    all_terms.sort(key=lambda t: (t.year or 0, t.semester or 0), reverse=True)
+    term_by_id = {t.id: t for t in all_terms if t.id}
+
+    selected_term_id = (request.args.get("term_id") or "").strip()
+    selected_department_id = (request.args.get("department_id") or "").strip()
+
+    if selected_term_id:
+        sections = Section.find_by("term_id", selected_term_id)
+    else:
+        sections = Section.find_all()
+
+    course_ids = {s.course_id for s in sections if s.course_id}
+    courses = [c for c in (Course.get(cid) for cid in course_ids) if c]
+    course_by_id = {c.id: c for c in courses if c.id}
+
+    program_ids = {c.program_id for c in courses if c.program_id}
+    programs = [p for p in (Program.get(pid) for pid in program_ids) if p]
+    program_by_id = {p.id: p for p in programs if p.id}
+
+    department_ids = {p.department_id for p in programs if p.department_id}
+    departments = [d for d in (Department.get(did) for did in department_ids) if d]
+    departments.sort(key=lambda d: d.name)
+
+    instructors = users_with_role("instructor")
+    instructor_by_id = {u.id: u for u in instructors if u.id}
+
+    section_ids = [s.id for s in sections if s.id]
+    tqf3_by_section = _tqf3_by_section_ids(section_ids)
+    tqf4_by_section = _tqf4_by_section_ids(section_ids)
+    tqf5_by_section = _tqf5_by_section_ids(section_ids)
+
+    rows = []
+    for s in sections:
+        s.course = course_by_id.get(s.course_id)
+        s.term = term_by_id.get(s.term_id)
+        s.instructor = instructor_by_id.get(s.instructor_id)
+        s.is_field = is_field_experience_course(s.course) if s.course else False
+        s.tqf3 = tqf3_by_section.get(s.id)
+        s.tqf4 = tqf4_by_section.get(s.id)
+        s.tqf5 = tqf5_by_section.get(s.id)
+        prog = program_by_id.get(s.course.program_id) if (s.course and s.course.program_id) else None
+        setattr(s, "program", prog)
+        prog_dept_id = prog.department_id if prog else None
+        if selected_department_id and prog_dept_id != selected_department_id:
+            continue
+        rows.append(s)
+
+    def _row_key(sec: Section):
+        t = getattr(sec, "term", None)
+        year = -(t.year or 0) if t else 0
+        sem = -(t.semester or 0) if t else 0
+        prog = getattr(sec, "program", None)
+        prog_name = prog.name if prog else ""
+        course_code = sec.course.code if sec.course else ""
+        return (year, sem, prog_name, course_code, sec.section_number or "")
+
+    rows.sort(key=_row_key)
+
+    def _spec(sec):
+        return sec.tqf4 if getattr(sec, "is_field", False) else sec.tqf3
+
+    total = len(rows)
+    tqf3_submitted = sum(1 for s in rows if _spec(s) and _spec(s).status in ["SUBMITTED", "APPROVED"])
+    tqf3_approved = sum(1 for s in rows if _spec(s) and _spec(s).status == "APPROVED")
+    tqf5_submitted = sum(1 for s in rows if s.tqf5 and s.tqf5.status in ["SUBMITTED", "APPROVED"])
+    tqf5_approved = sum(1 for s in rows if s.tqf5 and s.tqf5.status == "APPROVED")
+
+    return render_template(
+        "academic/all_documents.html",
+        terms=all_terms,
+        sections=rows,
+        departments=departments,
+        selected_term_id=selected_term_id,
+        selected_department_id=selected_department_id,
+        stats={
+            "total": total,
+            "tqf3_submitted": tqf3_submitted,
+            "tqf3_approved": tqf3_approved,
+            "tqf5_submitted": tqf5_submitted,
+            "tqf5_approved": tqf5_approved,
+        },
     )
 
 
@@ -5001,11 +5442,11 @@ def academic_add_program_to_term():
     exists = any(tp.program_id == program_id for tp in TermProgram.find_by("term_id", term_id))
     if exists:
         flash("หลักสูตรนี้ถูกเพิ่มในเทอมนี้แล้ว", "info")
-        return redirect(url_for("academic_dashboard"))
+        return _safe_redirect_next("academic_dashboard")
 
     TermProgram(term_id=term_id, program_id=program_id, created_at=_utcnow()).save()
     flash(f"เพิ่มหลักสูตร {program.name} ({program.year}) ในปีการศึกษา {term.semester}/{term.year} แล้ว", "success")
-    return redirect(url_for("academic_dashboard"))
+    return _safe_redirect_next("academic_dashboard")
 
 
 @app.route("/academic/bulk-open-courses", methods=["POST"])
@@ -5157,7 +5598,7 @@ def edit_term(term_id):
             flash("ข้อมูลปีการศึกษา/ภาคเรียนไม่ถูกต้อง", "danger")
     else:
         flash("กรุณากรอกข้อมูลให้ครบ", "danger")
-    return redirect(url_for("manage_terms"))
+    return _safe_redirect_next("manage_terms")
 
 
 @app.route("/academic/delete-term/<term_id>", methods=["POST"])
@@ -5171,7 +5612,7 @@ def delete_term(term_id):
     else:
         term.delete()
         flash("ลบปีการศึกษาเรียบร้อยแล้ว", "success")
-    return redirect(url_for("manage_terms"))
+    return _safe_redirect_next("manage_terms")
 
 
 

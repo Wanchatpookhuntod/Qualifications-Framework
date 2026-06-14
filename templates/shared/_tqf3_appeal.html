@@ -1,0 +1,17 @@
+{# Shared "การอุทธรณ์" (appeal) section for TQF3.
+   Included by instructor/edit_tqf3.html (editable) and shared/tqf3_readonly.html
+   (wrapped in a disabled <fieldset>). Expects `general` in scope. #}
+<div class="qtf-card">
+    <div class="qtf-section-title">การอุทธรณ์</div>
+        <div class="qtf-grid two mt-2">
+            <div class="form-group">
+            <label>วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน (คะแนนระหว่างภาค/สอบกลางภาค)</label>
+            <textarea name="appeal_channel" class="form-control" rows="3" placeholder="ระบุช่องทางสำหรับการติดต่ออาจารย์ผู้สอน ตามประกาศมหาวิทยาลัยฯ">{{ general.get('appeal_channel', '') }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>หมายเหตุ / ช่องทางติดต่ออาจารย์</label>
+            <input type="text" name="hours_note" class="form-control" value="{{ general.get('hours_note', '') }}" placeholder="เช่น ช่องทางติดต่อ">
+        </div>
+
+    </div>
+</div>

@@ -12,8 +12,10 @@ course / term context and pass plain dictionaries in.
 
 from __future__ import annotations
 
+import base64
 import io
 import re
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 from docx import Document
@@ -30,6 +32,10 @@ _BLACK = RGBColor(0x00, 0x00, 0x00)
 _HEADING_COLOR = _BLACK
 _MUTED_COLOR = RGBColor(0x55, 0x55, 0x55)
 _DASH = "-"
+
+# Printable width on A4 (210mm) with 0.5" left + 0.5" right margins. A small
+# slack is kept so rounding can't push a fixed table past the right margin.
+_CONTENT_WIDTH_IN = (210 / 25.4) - 1.0 - 0.02
 
 # Thai word-wrap support (see format_tqf_new/word_export_format_thai/). Word breaks
 # Thai lines at word boundaries only when (1) runs are tagged th-TH and (2) a
@@ -74,10 +80,16 @@ def _segment_thai(text: str) -> str:
     return re.sub(r"​(?=\s|$)", "", result)
 
 
-def _apply_thai_font(run, size: Optional[int] = None) -> None:
-    """Force a Thai-capable font + th-TH language on a run (and complex-script size)."""
+def _apply_thai_font(run, size: Optional[int] = None, bold: bool = False) -> None:
+    """Force a Thai-capable font + th-TH language on a run (and complex-script size).
+
+    Thai is complex-script text, so bold must also be set via ``w:bCs`` – plain
+    ``w:b`` alone is ignored by Word/LibreOffice for Thai glyphs.
+    """
     run.font.name = THAI_FONT
     rpr = run._element.get_or_add_rPr()
+    if bold and rpr.find(qn("w:bCs")) is None:
+        rpr.append(rpr.makeelement(qn("w:bCs"), {}))
     rfonts = rpr.find(qn("w:rFonts"))
     if rfonts is None:
         rfonts = rpr.makeelement(qn("w:rFonts"), {})
@@ -121,13 +133,17 @@ def _configure_thai_doc(doc: Document) -> None:
 
 
 def _set_base_style(doc: Document) -> None:
-    # A4 paper with narrow left/right margins so the content area (and every
-    # auto-fit table column built afterwards) is ~30% wider than the default.
+    # A4 paper. Margins: top/bottom 1", left/right 0.5", no gutter. Every fixed
+    # table is scaled (in ``_set_fixed_col_widths``) to never exceed the content
+    # width these margins leave.
     for section in doc.sections:
         section.page_width = Mm(210)
         section.page_height = Mm(297)
-        section.left_margin = Inches(0.35)
-        section.right_margin = Inches(0.35)
+        section.top_margin = Inches(1)
+        section.bottom_margin = Inches(1)
+        section.left_margin = Inches(0.5)
+        section.right_margin = Inches(0.5)
+        section.gutter = Inches(0)
     style = doc.styles["Normal"]
     style.font.name = THAI_FONT
     style.font.size = Pt(14)
@@ -157,27 +173,33 @@ def _add_run(paragraph, text: str, *, bold: bool = False, size: int = 14,
     Thai text is segmented with U+200B so Word wraps it at word boundaries.
     """
     text = "" if text is None else _xml_safe(str(text))
+    # Normalise line endings first (textarea input is often \r\n), then collapse
+    # blank lines so multi-item content (PLOs/CLOs, etc.) renders as consecutive
+    # lines with no empty gap between entries. Single line breaks – used
+    # intentionally for layout (e.g. "\nวิชาเอก") – are preserved.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"\n[ \t]*(?:\n[ \t]*)+", "\n", text)
     parts = text.split("\n")
     run = None
     for idx, part in enumerate(parts):
         if idx > 0:
             if run is None:
                 run = paragraph.add_run("")
-                _apply_thai_font(run, size)
+                _apply_thai_font(run, size, bold)
             run.add_break()
         run = paragraph.add_run(_segment_thai(part))
         run.bold = bold
         run.font.size = Pt(size)
         if color is not None:
             run.font.color.rgb = color
-        _apply_thai_font(run, size)
+        _apply_thai_font(run, size, bold)
     if run is None:
         run = paragraph.add_run("")
         run.bold = bold
         run.font.size = Pt(size)
         if color is not None:
             run.font.color.rgb = color
-        _apply_thai_font(run, size)
+        _apply_thai_font(run, size, bold)
     return run
 
 
@@ -193,8 +215,8 @@ def _add_title(doc: Document, text: str, subtitle: str = "") -> None:
 
 def _add_section_heading(doc: Document, text: str) -> None:
     p = doc.add_paragraph()
-    # Black heading: 10pt above, none below.
-    p.paragraph_format.space_before = Pt(10)
+    # Black heading: 8pt above, none below.
+    p.paragraph_format.space_before = Pt(8)
     p.paragraph_format.space_after = Pt(0)
     # Keep the heading on the same page as the table/content that follows it.
     p.paragraph_format.keep_with_next = True
@@ -202,9 +224,9 @@ def _add_section_heading(doc: Document, text: str) -> None:
 
 
 def _add_black_heading(doc: Document, text: str):
-    """Inline bold black sub-heading: 10pt above, none below."""
+    """Inline bold black sub-heading: 8pt above, none below."""
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(10)
+    p.paragraph_format.space_before = Pt(8)
     p.paragraph_format.space_after = Pt(0)
     p.paragraph_format.keep_with_next = True
     _add_run(p, text, bold=True, color=_BLACK)
@@ -217,10 +239,14 @@ def _add_field(doc: Document, label: str, value: Any) -> None:
     _add_run(p, _DASH if value in (None, "") else str(value))
 
 
-def _add_paragraph_field(doc: Document, label: str, value: Any) -> None:
+def _add_paragraph_field(doc: Document, label: str, value: Any,
+                         *, indent: float = 0) -> None:
     lp = doc.add_paragraph()
     _add_run(lp, label, bold=True)
     bp = doc.add_paragraph()
+    if indent:
+        # Indent the body so sub-items sit beneath (เยื้อง) the numbered heading.
+        bp.paragraph_format.left_indent = Inches(indent)
     text = _DASH if value in (None, "") else str(value)
     _add_run(bp, text)
 
@@ -254,6 +280,31 @@ def _repeat_header_rows(table, header_rows: int = 1) -> None:
             tr_pr.append(el)
 
 
+def _bind_header_to_body(table, header_rows: int = 1) -> None:
+    """Keep the header row(s) with the first body row so a header is never left
+    stranded at the foot of a page. Combined with the section heading's own
+    keep-with-next, this means heading + header + first content row move to the
+    next page together when they don't fit – i.e. the table's heading starts on a
+    new page rather than printing a header with no content beneath it."""
+    if len(table.rows) <= header_rows:
+        return
+    for row in table.rows[:header_rows]:
+        for cell in row.cells:
+            for para in cell.paragraphs:
+                para.paragraph_format.keep_with_next = True
+
+
+def _set_table_indent(table, inches: float) -> None:
+    """Indent a whole table from the left margin by ``inches`` (via ``w:tblInd``)."""
+    tbl_pr = table._tbl.tblPr
+    ind = tbl_pr.find(qn("w:tblInd"))
+    if ind is None:
+        ind = tbl_pr.makeelement(qn("w:tblInd"), {})
+        tbl_pr.append(ind)
+    ind.set(qn("w:w"), str(int(inches * 1440)))  # 1 inch = 1440 twips
+    ind.set(qn("w:type"), "dxa")
+
+
 def _keep_table_together(table) -> None:
     """Keep a whole (short) table on one page. If it doesn't fit, the heading +
     table move to the next page together (the heading uses keep-with-next)."""
@@ -285,6 +336,13 @@ def _set_fixed_col_widths(table, widths_in: List[float]) -> None:
         tbl_pr.append(layout)
     layout.set(qn("w:type"), "fixed")
 
+    # Scale down proportionally if the total exceeds the printable content width
+    # (A4 minus 0.5" left/right margins) so no table ever runs past the margin.
+    total_in = sum(widths_in)
+    if total_in > _CONTENT_WIDTH_IN:
+        scale = _CONTENT_WIDTH_IN / total_in
+        widths_in = [w * scale for w in widths_in]
+
     emus = [int(Inches(w)) for w in widths_in]
     total_twips = sum(emus) // 635  # 1 twip = 635 EMU
     tbl_w = tbl_pr.find(qn("w:tblW"))
@@ -310,6 +368,7 @@ def _add_table(doc: Document, headers: List[str], rows: List[List[Any]],
                *, min_rows: int = 0, total_row: Optional[List[Any]] = None,
                blank_empty: bool = False,
                col_widths: Optional[List[float]] = None,
+               center_cols: Optional[List[int]] = None,
                long_table: bool = False) -> None:
     """Render a bordered table.
 
@@ -317,8 +376,12 @@ def _add_table(doc: Document, headers: List[str], rows: List[List[Any]],
     ``min_rows`` pads the body with empty rows so the form structure is preserved
     when there is little/no data. ``total_row`` appends one final summary row.
     ``col_widths`` (inches) pins fixed column widths instead of auto-fitting.
-    ``long_table`` repeats the header on each page (for tables that span pages);
-    otherwise the whole table is kept together on one page.
+    ``center_cols`` (0-based column indices) centre-aligns those body cells.
+    Content flows continuously down the page: the header row is always repeated on
+    each page and kept with the first body row, so a header never prints alone at
+    the foot of a page (the heading + header + first row move to the next page
+    together). ``long_table`` is accepted for backward compatibility and no longer
+    changes behaviour.
     """
     if not rows and not min_rows and not blank_empty:
         p = doc.add_paragraph()
@@ -338,18 +401,21 @@ def _add_table(doc: Document, headers: List[str], rows: List[List[Any]],
     if total_row is not None:
         body.append(total_row)
     empty_text = "" if blank_empty else _DASH
+    centered = set(center_cols or [])
     for row in body:
         cells = table.add_row().cells
-        for cell, value in zip(cells, row):
+        for idx, (cell, value) in enumerate(zip(cells, row)):
             cell.paragraphs[0].clear()
+            if idx in centered:
+                cell.paragraphs[0].alignment = WD_ALIGN_PARAGRAPH.CENTER
             text = empty_text if value in (None, "") else str(value)
             _add_run(cell.paragraphs[0], text, size=13)
     if col_widths:
         _set_fixed_col_widths(table, col_widths)
-    if long_table:
-        _repeat_header_rows(table, header_rows=1)
-    else:
-        _keep_table_together(table)
+    # Flow continuously down the page: repeat the header on every page and keep it
+    # with the first body row so the heading never strands a lone header.
+    _repeat_header_rows(table, header_rows=1)
+    _bind_header_to_body(table)
 
 
 def _clear_cell_borders(cell) -> None:
@@ -404,7 +470,8 @@ def _add_teaching_method_table(doc: Document, general: Dict[str, Any]) -> None:
     for row in range(2):  # borderless spacer column between the two blocks
         _clear_cell_borders(table.cell(row, 2))
     _set_fixed_col_widths(table, [2.45, 1.05, 0.25, 2.45, 1.05])
-    _keep_table_together(table)
+    _repeat_header_rows(table, header_rows=1)
+    _bind_header_to_body(table, header_rows=1)
 
 
 def _add_rubric_table(doc: Document, rows: List[List[Any]], *, min_rows: int = 2,
@@ -446,21 +513,43 @@ def _add_rubric_table(doc: Document, rows: List[List[Any]], *, min_rows: int = 2
             _add_run(cell.paragraphs[0], text, size=13)
     if col_widths:
         _set_fixed_col_widths(table, col_widths)
-    _keep_table_together(table)
+    # Repeat the 2-row header on each page and keep it with the first body row so
+    # the header is never stranded above a page break (heading + header + first row
+    # move to the next page together when they don't fit).
+    _repeat_header_rows(table, header_rows=2)
+    _bind_header_to_body(table, header_rows=2)
 
 
 def _checkbox(options: List[tuple], selected: Any) -> str:
     """Render ``■/□`` choice text (plain geometric squares, not emoji boxes).
 
-    ``options`` items are (label, *match-keywords).
+    ``options`` items are (label, *match-keywords). Single-select: at most one box
+    is ticked. An exact match wins first so a value like ``"วิชาเลือกเสรี"`` does
+    not also tick ``"วิชาเลือก"`` (whose Thai text is a substring of it).
     """
     sel = str(selected or "").strip().lower()
-    parts = []
+    # Match keys per option: the label's Thai prefix (before " ("), the full
+    # label, and any aliases.
+    keysets = []
     for label, *aliases in options:
-        keys = [label, *aliases]
-        checked = bool(sel) and any(k and k.lower() in sel for k in keys)
-        parts.append(("■ " if checked else "□ ") + label)
-    return "    ".join(parts)
+        prefix = label.split(" (")[0].strip()
+        keysets.append([k.lower() for k in (prefix, label, *aliases) if k])
+
+    checked = -1
+    if sel:
+        for i, keys in enumerate(keysets):
+            if any(k == sel for k in keys):
+                checked = i
+                break
+        else:  # legacy fuzzy: longest key that is a substring of the value
+            best = 0
+            for i, keys in enumerate(keysets):
+                for k in keys:
+                    if k in sel and len(k) > best:
+                        checked, best = i, len(k)
+
+    return "    ".join(("■ " if i == checked else "□ ") + options[i][0]
+                       for i in range(len(options)))
 
 
 def _fill_cell(cell, segments: List[tuple], *, size: int = 13) -> None:
@@ -510,6 +599,53 @@ def _at(seq: List[Any], idx: int, default: Any = _DASH) -> Any:
     return default
 
 
+def _fmt_date(value: Any) -> str:
+    """Render a date as ``วัน/เดือน/ปี`` (dd/mm/yyyy).
+
+    Accepts ISO ``yyyy-mm-dd`` (optionally with a time part); anything that does
+    not parse is returned unchanged.
+    """
+    s = "" if value in (None, "", _DASH) else str(value).strip()
+    m = re.match(r"^(\d{4})-(\d{1,2})-(\d{1,2})", s)
+    if not m:
+        return s
+    year, month, day = m.group(1), m.group(2), m.group(3)
+    return f"{int(day):02d}/{int(month):02d}/{year}"
+
+
+def _clo_no(text: Any, num: int) -> str:
+    """Prefix a single CLO entry with its item number (``1.``, ``2.`` …).
+
+    Empty/placeholder values are returned unchanged so padded rows stay blank.
+    A value that already starts with that number (e.g. ``1.``/``1)``) is left
+    as-is to avoid double numbering.
+    """
+    s = "" if text in (None, "", _DASH) else str(text).strip()
+    if not s:
+        return s
+    if re.match(rf"^{num}\s*[.)]", s):
+        return s
+    return f"{num}. {s}"
+
+
+def _clo_lines(text: Any) -> str:
+    """Number each non-empty line of a CLO block as ``1.``, ``2.`` … (used for the
+    free-text CLO cells that list several CLOs in one field)."""
+    s = "" if text in (None, "", _DASH) else str(text)
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
+    out, n = [], 0
+    for line in s.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        n += 1
+        if re.match(rf"^{n}\s*[.)]", stripped):
+            out.append(stripped)
+        else:
+            out.append(f"{n}. {stripped}")
+    return "\n".join(out)
+
+
 def _max_indexed(data: Dict[str, Any], prefix: str,
                  exclude_prefix: Optional[str] = None) -> int:
     biggest = 0
@@ -524,49 +660,86 @@ def _max_indexed(data: Dict[str, Any], prefix: str,
     return biggest
 
 
+def _signature_image(value: Any) -> Optional[bytes]:
+    """Decode a ``data:image/...;base64,...`` signature URL to raw bytes."""
+    if not value or not isinstance(value, str):
+        return None
+    m = re.match(r"^data:image/[a-zA-Z0-9.+-]+;base64,(.+)$", value.strip(), re.DOTALL)
+    if not m:
+        return None
+    try:
+        return base64.b64decode(m.group(1))
+    except (ValueError, base64.binascii.Error):
+        return None
+
+
 def _add_signatures(doc: Document, roles: List[Any]) -> None:
     """Append signature lines (name + date) for the given roles.
 
-    Each item may be a plain role string or a ``(role, name)`` tuple; when a name
-    is given it is printed inside the parentheses below the line.
+    Each item may be a plain role string, a ``(role, name)`` tuple, or a
+    ``(role, name, signature)`` tuple. ``signature`` is a base64 image data URL;
+    when present it is drawn over the line in place of the dotted placeholder.
+    The name is printed inside the parentheses below the line.
 
-    Laid out as a borderless 3-column table per role (label | signature line |
-    date) so the parenthesised name centres directly under the dotted signature
-    line rather than under the whole page.
+    Laid out as a borderless 2-row, 3-column table per role: the top row holds
+    (label | signature line/image | date) vertically centred together, and the
+    parenthesised name sits on the row below, centred under the signature.
     """
     doc.add_paragraph()
     for role in roles:
         if isinstance(role, (list, tuple)):
-            role_label, name = role[0], (role[1] if len(role) > 1 else "")
+            role_label = role[0]
+            name = role[1] if len(role) > 1 else ""
+            signature = role[2] if len(role) > 2 else ""
         else:
-            role_label, name = role, ""
+            role_label, name, signature = role, "", ""
         inner = str(name).strip() if name not in (None, "", _DASH) else ""
 
-        table = doc.add_table(rows=1, cols=3)
+        table = doc.add_table(rows=2, cols=3)
         table.alignment = WD_TABLE_ALIGNMENT.LEFT
-        _set_fixed_col_widths(table, [2.9, 2.7, 1.9])
+        # Indent the whole block 0.5" from the left; columns shrunk so the block
+        # (indent + columns) still stays within the right margin.
+        _set_fixed_col_widths(table, [2.5, 2.5, 1.7])
+        _set_table_indent(table, 0.5)
+        # Borderless: clear every cell's borders.
+        for row in table.rows:
+            for cell in row.cells:
+                _clear_cell_borders(cell)
+        # Top row: label / signature / date, vertically centred as one line.
         label_cell, sign_cell, date_cell = table.rows[0].cells
         for cell in (label_cell, sign_cell, date_cell):
-            _clear_cell_borders(cell)
-            cell.vertical_alignment = WD_ALIGN_VERTICAL.BOTTOM
+            cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
 
         lp = label_cell.paragraphs[0]
         lp.clear()
         _add_run(lp, f"ลงชื่อ {role_label}")
 
-        # Signature line, with the name centred directly beneath it.
+        # Signature: saved image if available, otherwise the dotted line.
         sp = sign_cell.paragraphs[0]
         sp.clear()
         sp.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _add_run(sp, "..............................................")
-        nm = sign_cell.add_paragraph()
-        nm.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        _add_run(nm, f"( {inner} )" if inner else "(                              )")
+        img = _signature_image(signature)
+        if img is not None:
+            try:
+                sp.add_run().add_picture(io.BytesIO(img), width=Inches(1.6))
+            except Exception:  # corrupt/unsupported image → fall back to the line
+                _add_run(sp, "..............................................")
+        else:
+            _add_run(sp, "..............................................")
 
         dp = date_cell.paragraphs[0]
         dp.clear()
-        _add_run(dp, "วันที่ ........./........./.........")
+        today = date.today()
+        _add_run(dp, f"วันที่ {today.day:02d}/{today.month:02d}/{today.year + 543}")
 
+        # Bottom row: the parenthesised name centred under the signature.
+        nm = table.cell(1, 1).paragraphs[0]
+        nm.clear()
+        nm.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        _add_run(nm, f"( {inner} )" if inner else "(                              )")
+
+        # Keep each signature block intact so it never tears across a page break.
+        _keep_table_together(table)
         doc.add_paragraph()
 
 
@@ -613,6 +786,17 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     stu_line = _checkbox(
         [("ภาคปกติ", "ปกติ"), ("ภาคพิเศษ", "พิเศษ"), ("บัณฑิตศึกษา", "บัณฑิต")],
         _g(general, "student_type", default=""))
+    # ชั่วโมงให้คำปรึกษา + ช่องทางติดต่อ → "1 ชั่วโมง/สัปดาห์    ติดต่อ 062xxxxxxx"
+    consult_hours = str(_g(general, "consult_hours", default="")).strip()
+    consult_contact = str(_g(general, "hours_note", default="")).strip()
+    consult_parts = []
+    if consult_hours not in ("", _DASH):
+        consult_parts.append((f"{consult_hours} ชั่วโมง/สัปดาห์", False))
+    if consult_contact not in ("", _DASH):
+        consult_parts.append((("    ติดต่อ " if consult_parts else "ติดต่อ ")
+                              + consult_contact, False))
+    if not consult_parts:
+        consult_parts = [("", False)]
     rows_full = [
         [("สถานภาพของวิชา    ", True), (status_line, False)],
         ("split2",
@@ -638,12 +822,12 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
          ("\nกรณีเรียนภายนอกมหาวิทยาลัย (สถานประกอบการ/ชุมชน/อื่นๆ) ", True),
          (_g(general, "external_location", default=""), False)],
         [("วันที่จัดทำหรือปรับปรุงประมวลการสอนหรือแผนการจัดการเรียนรู้ครั้งล่าสุด ", True),
-         (_g(general, "last_updated", default=""), False)],
+         (_fmt_date(_g(general, "last_updated", default="")), False)],
         [("ผลลัพธ์การเรียนรู้ ระดับหลักสูตร (Program Learning Outcomes: PLOs) "
           "(ให้ระบุเฉพาะ PLOs ที่เกี่ยวข้องกับรายวิชา และสอดคล้องกับเล่ม มคอ 2 หลักสูตร)\n", True),
          (str(_g(general, "plos", default="")).replace("—", "–"), False)],
         [("จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)\n", True),
-         (_g(general, "course_objective", "objectives", default=""), False)],
+         (_clo_lines(_g(general, "course_objective", "objectives", default="")), False)],
         [("จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)\n", True),
          ("จำนวนชั่วโมงบรรยาย ", False), (_g(general, "lecture_hours", default="......"), False),
          (" ชั่วโมง    จำนวนชั่วโมงฝึกปฏิบัติ/ภาคสนาม/การฝึกงาน ", False),
@@ -652,9 +836,7 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
          (_g(general, "self_hours", default="......"), False), (" ชั่วโมง", False)],
         [("จำนวนชั่วโมงต่อสัปดาห์ที่จะให้คำปรึกษาและแนะนำทางวิชาการแก่นักศึกษาเป็นรายบุคคล/"
           "ช่องทางการติดต่ออาจารย์ผู้สอน\n", True),
-         (_g(general, "consult_hours", default=""), False),
-         (("  " + str(_g(general, "hours_note"))) if _g(general, "hours_note", default="") else "",
-          False)],
+         *consult_parts],
         [("วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน กรณีการอุทธรณ์ผลคะแนนระหว่างภาคเรียนและคะแนนสอบ"
           "กลางภาค (ตามประกาศมหาวิทยาลัยราชภัฏเทพสตรี เรื่องระบบและแนวทางการอุทธรณ์ผลการเรียน"
           "การวัดและการประเมินผลการเรียนของนักศึกษา)\n", True),
@@ -668,6 +850,8 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
             _fill_cell(right, row[2])
         else:
             _fill_cell(_merge_full_row(info, offset), row)
+    _repeat_header_rows(info, header_rows=1)
+    _bind_header_to_body(info)
 
     # การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง (CLO table)
     _add_section_heading(doc, "การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง")
@@ -676,7 +860,8 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     criterias = _arr(general, "assess_criteria[]")
     assesses = _arr(general, "assess_strategy[]")
     rows = [
-        [_at(clo_texts, i), _at(teachs, i), _at(criterias, i), _at(assesses, i)]
+        [_clo_no(_at(clo_texts, i), i + 1), _at(teachs, i), _at(criterias, i),
+         _at(assesses, i)]
         for i in range(len(clo_texts))
     ]
     _add_table(doc, ["ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)",
@@ -738,7 +923,8 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
                      "จำนวนชั่วโมง", "กิจกรรมการเรียนการสอน สื่อที่ใช้ (ถ้ามี)", "ผู้สอน"],
                plan_rows, blank_empty=True,
                total_row=["", "", "รวม", total_hr, "", ""],
-               col_widths=[0.6, 2.8, 0.7, 0.6, 1.7, 1.3], long_table=True)
+               col_widths=[0.65, 1.6, 1.5, 0.55, 2.2, 0.76],
+               center_cols=[0, 3, 5], long_table=True)
 
     # วิธีจัดการเรียนการสอน (สองบล็อกเรียงข้างกัน ตามแบบฟอร์ม)
     _add_section_heading(doc, "วิธีจัดการเรียนการสอน")
@@ -752,14 +938,15 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     a_pct = _arr(general, "assess_pct[]", "assess_ratio[]")
     n_assess = max(len(a_clo), len(a_act), len(a_crit), len(a_pct))
     assess_rows = [
-        [_at(a_clo, i, default=""), _at(a_act, i, default=""),
+        [_clo_no(_at(a_clo, i, default=""), i + 1), _at(a_act, i, default=""),
          _at(a_crit, i, default=""), _at(a_pct, i, default="")]
         for i in range(n_assess)
     ]
     _add_table(doc, ["ผลลัพธ์การเรียนรู้ที่คาดหวังของรายวิชา (CLOs)",
                      "กิจกรรมการจัดการเรียนรู้ของผู้เรียน",
                      "เกณฑ์การประเมินผลลัพธ์การเรียนรู้ระดับรายวิชา",
-                     "สัดส่วนของการประเมินผล"], assess_rows, blank_empty=True)
+                     "สัดส่วนของการประเมินผล"], assess_rows, blank_empty=True,
+               col_widths=[1.12, 2.63, 2.64, 0.93], center_cols=[0, 3])
     n2 = doc.add_paragraph()
     _add_run(n2, "หมายเหตุ กรณีหลักสูตรใช้เกณฑ์มาตรฐาน 2558 ให้ระบุ CLOs "
              "ตามที่ปรับในหมวดการพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ที่คาดหวัง",
@@ -803,9 +990,9 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     # การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา
     _add_section_heading(doc, "การประเมินและปรับปรุงการจัดการเรียนรู้ของรายวิชา")
     _add_paragraph_field(doc, "1.  กลยุทธ์การประเมินการจัดการเรียนการสอนของรายวิชา",
-                         _g(general, "course_eval_strategy"))
+                         _g(general, "course_eval_strategy"), indent=0.4)
     _add_paragraph_field(doc, "2.  การปรับปรุงการจัดการเรียนรู้ของรายวิชา",
-                         _g(general, "course_improve", "improvement_strategy"))
+                         _g(general, "course_improve", "improvement_strategy"), indent=0.4)
     g2 = doc.add_paragraph()
     _add_run(g2, "(อธิบายกลไกและวิธีการปรับปรุงการสอน การวัดและการประเมินผลลัพธ์การเรียนรู้ "
              "เช่น คณะ/สาขาวิชา มีการกำหนดกลไกและวิธีการปรับปรุงการสอนไว้อย่างไร การวิจัยในชั้นเรียน "
@@ -813,15 +1000,19 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
              "เป็นต้น)", size=12, color=_MUTED_COLOR)
     _add_paragraph_field(doc, "3.  กระบวนการยืนยัน (verification) ผลสัมฤทธิ์ทางการเรียน "
                          "และผลลัพธ์การเรียนรู้ของนักศึกษา/ผู้เรียน",
-                         _g(general, "verification"))
+                         _g(general, "verification"), indent=0.4)
     g3 = doc.add_paragraph()
     _add_run(g3, "(อธิบายกระบวนการที่ใช้ในการยืนยัน (verification) ผลสัมฤทธิ์ของนักศึกษาหรือ"
              "ผลลัพธ์การเรียนรู้ของรายวิชา โดยกระบวนการอาจจะต่างกันไปสำหรับรายวิชาที่แตกต่างกัน "
              "หรือเป็นไปตามมาตรฐานผลการเรียนรู้แต่ละด้านที่หลักสูตรกำหนด)", size=12, color=_MUTED_COLOR)
 
+    sigs = ctx.get("signatures", {})
+    inst_name = _g(general, "instructor", default=ctx.get("instructor", ""))
+    owner_name = _g(general, "course_owner", default="")
     _add_signatures(doc, [
-        ("อาจารย์ผู้สอน", _g(general, "instructor", default=ctx.get("instructor", ""))),
-        ("ประธานบริหารหลักสูตร", _g(general, "course_owner", default="")),
+        ("อาจารย์ผู้สอน", inst_name,
+         sigs.get(str(inst_name).strip()) or ctx.get("instructor_signature", "")),
+        ("ประธานบริหารหลักสูตร", owner_name, sigs.get(str(owner_name).strip(), "")),
     ])
     _add_footer_note(doc, "หมายเหตุ Update มีนาคม 2569 ตามเกณฑ์มาตรฐานหลักสูตร 2565")
 
@@ -916,13 +1107,14 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     _add_paragraph_field(doc, "ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs) ที่เกี่ยวข้อง",
                          str(_g(general, "plos")).replace("—", "–"))
     _add_paragraph_field(doc, "จุดประสงค์การเรียนรู้ระดับรายวิชา (Course Learning Outcomes: CLOs)",
-                         _g(general, "course_objective"))
+                         _clo_lines(_g(general, "course_objective")))
     clo_texts = _arr(general, "clo_text[]", "clo_desc[]")
     clo_plo = _arr(general, "clo_plo[]", "plo[]")
     teachs = _arr(general, "teach_strategy[]")
     assesses = _arr(general, "assess_strategy[]")
     clo_rows = [
-        [_at(clo_texts, i), _at(clo_plo, i), _at(teachs, i), _at(assesses, i)]
+        [_clo_no(_at(clo_texts, i), i + 1), _at(clo_plo, i), _at(teachs, i),
+         _at(assesses, i)]
         for i in range(len(clo_texts))
     ]
     _add_table(doc, ["CLOs ฝึกประสบการณ์ภาคสนาม", "PLOs ที่รับผิดชอบ",
@@ -958,7 +1150,8 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     a_pct = _arr(general, "assess_pct[]")
     a_eval = _arr(general, "assess_evaluator[]")
     assess_rows = [
-        [_at(a_clo, i), _at(a_act, i), _at(a_crit, i), _at(a_pct, i), _at(a_eval, i)]
+        [_clo_no(_at(a_clo, i), i + 1), _at(a_act, i), _at(a_crit, i), _at(a_pct, i),
+         _at(a_eval, i)]
         for i in range(len(a_clo))
     ]
     _add_table(doc, ["CLOs", "กิจกรรมการประเมินผลการฝึก", "เกณฑ์การประเมิน",
@@ -988,7 +1181,14 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     _add_paragraph_field(doc, "กระบวนการยืนยัน (verification) ผลการประเมินและการวางแผนปรับปรุง",
                          _g(general, "verification"))
 
-    _add_signatures(doc, ["อาจารย์ผู้รับผิดชอบรายวิชา", "ประธานบริหารหลักสูตร"])
+    sigs = ctx.get("signatures", {})
+    inst_name = _g(general, "instructor", default=ctx.get("instructor", ""))
+    owner_name = _g(general, "course_owner", default="")
+    _add_signatures(doc, [
+        ("อาจารย์ผู้รับผิดชอบรายวิชา", inst_name,
+         sigs.get(str(inst_name).strip()) or ctx.get("instructor_signature", "")),
+        ("ประธานบริหารหลักสูตร", owner_name, sigs.get(str(owner_name).strip(), "")),
+    ])
 
     return _finalize(doc)
 
@@ -1041,7 +1241,7 @@ def build_tqf5_docx(data: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
          (str(_g(data, "plos", default="")).replace("—", "–"), False)],
         [("จุดประสงค์การจัดการเรียนรู้ ระดับรายวิชา (Course Learning Outcomes: CLOs) "
           "(รวมทั้งรายวิชาฝึกประสบการณ์ภาคสนาม)\n", True),
-         (_g(data, "course_objective", default=""), False)],
+         (_clo_lines(_g(data, "course_objective", default="")), False)],
         [("ภาคการศึกษา ", True), (_g(data, "semester", default=ctx.get("semester", _DASH)), False),
          ("    ปีการศึกษา ", True),
          (_g(data, "academic_year", default=ctx.get("year", _DASH)), False),
@@ -1067,6 +1267,8 @@ def build_tqf5_docx(data: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
             _fill_cell(right, row[2])
         else:
             _fill_cell(_merge_full_row(info, offset), row)
+    _repeat_header_rows(info, header_rows=1)
+    _bind_header_to_body(info)
 
     # การจัดการเรียนรู้และวิธีการประเมินผลที่ดำเนินการ (CLO table)
     _add_section_heading(doc, "การจัดการเรียนรู้และวิธีการประเมินผลที่ดำเนินการ"
@@ -1081,7 +1283,7 @@ def build_tqf5_docx(data: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     clo_rows = []
     for i in range(1, clo_n + 1):
         clo_rows.append([
-            _g(data, f"clo_desc_{i}", default=_at(legacy_codes, i - 1)),
+            _clo_no(_g(data, f"clo_desc_{i}", default=_at(legacy_codes, i - 1)), i),
             _g(data, f"clo_teach_{i}", default=_at(legacy_methods, i - 1)),
             _g(data, f"clo_assess_{i}", default=_at(legacy_assess, i - 1)),
             _g(data, f"clo_result_{i}", default=_at(legacy_results, i - 1)),
@@ -1157,8 +1359,11 @@ def build_tqf5_docx(data: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
     _add_paragraph_field(doc, "4. ข้อเสนอแนะของผู้สอนต่อคณะกรรมการบริหารหลักสูตร",
                          _g(data, "suggest_to_committee"))
 
+    sigs = ctx.get("signatures", {})
+    inst_name = _g(data, "instructors", default=ctx.get("instructor", ""))
     _add_signatures(doc, [
-        ("อาจารย์ผู้สอน", _g(data, "instructors", default=ctx.get("instructor", ""))),
+        ("อาจารย์ผู้สอน", inst_name,
+         sigs.get(str(inst_name).strip()) or ctx.get("instructor_signature", "")),
     ])
 
     return _finalize(doc)

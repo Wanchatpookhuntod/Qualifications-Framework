@@ -12,6 +12,18 @@
         <h2>รวม มคอ. ตามเทอม</h2>
         <p class="text-muted mb-0">เทอม {{ term.semester }}/{{ term.year }} – ฝ่ายวิชาการเปิดดูได้ (อ่านอย่างเดียว)</p>
     </div>
+    {% if terms %}
+    <div class="inline-actions">
+        <form method="GET" action="{{ url_for('academic_documents') }}" class="filter-form">
+            <label class="text-muted mb-0">ภาคเรียน/ปีการศึกษา</label>
+            <select name="term_id" class="form-control select-inline min-200" onchange="this.form.submit()">
+                {% for t in terms %}
+                <option value="{{ t.id }}" {% if term.id == t.id %}selected{% endif %}>{{ t.semester }}/{{ t.year }}</option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+    {% endif %}
 </div>
 
 <div class="glass glass-card-sm mb-5">
@@ -32,7 +44,7 @@
                     {% if row.submitted_at %} | ส่งเมื่อ {{ row.submitted_at.strftime('%d/%m/%Y %H:%M') }}{% endif %}
                 </div>
             </div>
-            <a class="btn btn-secondary btn-compact" href="{{ url_for('academic_view_head_tqf5_summary', summary_id=row.id) }}">👁️ เปิดสรุป</a>
+            <a class="btn btn-secondary btn-compact" href="{{ url_for('academic_view_head_tqf5_summary', summary_id=row.id) }}">เปิดสรุป</a>
         </div>
         {% else %}
         <div class="text-muted text-xs">ยังไม่มีหัวหน้าส่งสรุป มคอ.5 สำหรับเทอมนี้</div>
@@ -50,12 +62,12 @@
             <span class="status-badge role-instructor">มคอ.5 ส่งแล้ว: {{ stats.tqf5_submitted }}</span>
         </div>
         <form method="GET" action="{{ url_for('academic_term_documents', term_id=term.id) }}" class="filter-form">
-            <label class="text-muted text-xs mb-0">หลักสูตร</label>
-            <select name="program_id" class="form-control min-320" onchange="this.form.submit()">
-                <option value="" {% if not selected_program_id %}selected{% endif %}>ทั้งหมด</option>
-                {% for p in programs %}
-                <option value="{{ p.id }}" {% if selected_program_id == p.id %}selected{% endif %}>
-                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+            <label class="text-muted text-xs mb-0" style="width: 100px;">สาขาวิชา</label>
+            <select name="department_id" class="form-control min-320" onchange="this.form.submit()">
+                <option value="" {% if not selected_department_id %}selected{% endif %}>ทั้งหมด</option>
+                {% for d in departments %}
+                <option value="{{ d.id }}" {% if selected_department_id == d.id %}selected{% endif %}>
+                    {{ d.name }}
                 </option>
                 {% endfor %}
             </select>
@@ -78,7 +90,7 @@
                     <th>หลักสูตร</th>
                     <th>รายวิชา / กลุ่ม</th>
                     <th>อาจารย์ผู้สอน</th>
-                    <th class="text-right">มคอ.3</th>
+                    <th class="text-right">มคอ.3 / 4</th>
                     <th class="text-right">มคอ.5</th>
                 </tr>
             </thead>
@@ -104,8 +116,11 @@
                         {% endif %}
                     </td>
                     <td class="text-right table-t">
-                        {% if section.tqf3 and section.tqf3.status == 'APPROVED' %}
-                        <a class="status-badge status-approved" href="{{ url_for('academic_view_tqf', tqf_type='tqf3', tqf_id=section.tqf3.id, next=request.path) }}">อนุมัติแล้ว</a>
+                        {% set spec_doc = section.tqf4 if section.is_field else section.tqf3 %}
+                        {% set spec_type = 'tqf4' if section.is_field else 'tqf3' %}
+                        {% if section.is_field %}<div class="text-muted text-xs">มคอ.4</div>{% endif %}
+                        {% if spec_doc and spec_doc.status == 'APPROVED' %}
+                        <a class="status-badge status-approved" href="{{ url_for('academic_view_tqf', tqf_type=spec_type, tqf_id=spec_doc.id, next=request.path) }}">อนุมัติแล้ว</a>
                         {% else %}
                         <span class="text-muted text-xs">-</span>
                         {% endif %}

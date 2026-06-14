@@ -3,30 +3,139 @@
 {% block title %}Admin Dashboard - TQF Management{% endblock %}
 
 {% block content %}
-<div class="section-lead">
-    <h2>Admin Dashboard</h2>
-    <p>ระบบตั้งค่าพื้นฐานและจัดการผู้ใช้งาน (System Configuration)</p>
+<div class="page-header">
+    <div>
+        <h2>Admin Dashboard</h2>
+        <p class="text-muted mb-0">ภาพรวมระบบ ตั้งค่าพื้นฐานและจัดการผู้ใช้งาน (System Configuration)</p>
+    </div>
 </div>
 
+<!-- ภาพรวมข้อมูลระบบ (System Overview) -->
+<div class="stat-grid">
+    <a href="{{ url_for('manage_users') }}" class="glass stat-card" style="text-decoration: none; color: inherit;">
+        <div class="stat-label">ผู้ใช้งาน</div>
+        <div class="stat-value text-primary">{{ stats.users }}</div>
+        <div class="stat-sublabel">Users</div>
+    </a>
+    <a href="{{ url_for('admin_manage_programs') }}" class="glass stat-card" style="text-decoration: none; color: inherit;">
+        <div class="stat-label">หลักสูตร</div>
+        <div class="stat-value text-primary">{{ stats.programs }}</div>
+        <div class="stat-sublabel">Programs</div>
+    </a>
+    <a href="{{ url_for('manage_courses') }}" class="glass stat-card" style="text-decoration: none; color: inherit;">
+        <div class="stat-label">รายวิชา</div>
+        <div class="stat-value text-primary">{{ stats.courses }}</div>
+        <div class="stat-sublabel">Courses</div>
+    </a>
+    <div class="glass stat-card">
+        <div class="stat-label">ปีการศึกษา</div>
+        <div class="stat-value text-primary">{{ stats.terms }}</div>
+        <div class="stat-sublabel">Terms</div>
+    </div>
+</div>
+
+<!-- กราฟ (Charts) -->
+<div class="admin-chart-grid mt-4">
+
+    <!-- Donut: ผู้ใช้งานแยกตามบทบาท -->
+    <div class="glass admin-chart-card">
+        <div class="section-lead">
+            <h3 class="mb-0">ผู้ใช้งานแยกตามบทบาท</h3>
+            <p class="text-muted text-xs">Users by Role</p>
+        </div>
+        <div class="donut-wrap">
+            <svg viewBox="0 0 200 200" class="donut-svg" role="img" aria-label="สัดส่วนผู้ใช้งานตามบทบาท">
+                <g transform="rotate(-90 100 100)">
+                    <circle cx="100" cy="100" r="{{ role_chart.radius }}" fill="none"
+                        stroke="rgba(148,163,184,.18)" stroke-width="26"></circle>
+                    {% if role_chart.total %}
+                    {% for seg in role_chart.segments %}
+                    {% if seg.value %}
+                    <circle cx="100" cy="100" r="{{ role_chart.radius }}" fill="none"
+                        stroke="{{ seg.color }}" stroke-width="26"
+                        stroke-dasharray="{{ seg.dash }} {{ role_chart.circumference }}"
+                        stroke-dashoffset="{{ seg.offset }}"></circle>
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                </g>
+                <text x="100" y="92" text-anchor="middle" class="donut-center-value">{{ role_chart.total }}</text>
+                <text x="100" y="116" text-anchor="middle" class="donut-center-label">ผู้ใช้</text>
+            </svg>
+            <ul class="chart-legend">
+                {% for seg in role_chart.segments %}
+                <li>
+                    <span class="legend-dot" style="background: {{ seg.color }};"></span>
+                    <span class="legend-label">{{ seg.label }}</span>
+                    <span class="legend-value">{{ seg.value }} <span class="text-muted">({{ seg.pct }}%)</span></span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- Bars: จำนวนข้อมูลในระบบ -->
+    <div class="glass admin-chart-card">
+        <div class="section-lead">
+            <h3 class="mb-0">จำนวนข้อมูลในระบบ</h3>
+            <p class="text-muted text-xs">Records by Type</p>
+        </div>
+        <div class="bar-chart">
+            {% for bar in entity_bars %}
+            <div class="bar-row">
+                <div class="bar-label">{{ bar.label }}</div>
+                <div class="bar-track">
+                    <div class="bar-fill"
+                        style="width: {{ ((bar.value / entity_max * 100) if entity_max else 0) | round(1) }}%; background: {{ bar.color }};">
+                    </div>
+                </div>
+                <div class="bar-value">{{ bar.value }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- เมนูจัดการ (Management) -->
+<div class="section-lead mt-4">
+    <h3 class="mb-0">เมนูจัดการ</h3>
+    <p class="text-muted text-xs">Management</p>
+</div>
 <div class="card-grid">
     <a href="{{ url_for('manage_users') }}" class="feature-card">
-        <h3>จัดการผู้ใช้งาน</h3>
-        <p class="text-muted text-xs">สร้าง/แก้ไข บัญชีผู้ใช้ กำหนดบทบาทอาจารย์ หัวหน้าสาขา และฝ่ายวิชาการ</p>
+        <span class="feature-card-icon material-symbols-rounded">group</span>
+        <div class="feature-card-body">
+            <h3>จัดการผู้ใช้งาน</h3>
+            <p class="text-muted text-xs">สร้าง/แก้ไข บัญชีผู้ใช้ กำหนดบทบาทอาจารย์ หัวหน้าสาขา และฝ่ายวิชาการ</p>
+        </div>
+        <span class="feature-card-arrow material-symbols-rounded">arrow_forward</span>
     </a>
 
     <a href="{{ url_for('manage_faculties') }}" class="feature-card">
-        <h3>จัดการคณะ</h3>
-        <p class="text-muted text-xs">เพิ่ม/แก้ไข รายชื่อคณะทั้งหมดในมหาวิทยาลัย</p>
+        <span class="feature-card-icon material-symbols-rounded">apartment</span>
+        <div class="feature-card-body">
+            <h3>จัดการคณะ</h3>
+            <p class="text-muted text-xs">เพิ่ม/แก้ไข รายชื่อคณะทั้งหมดในมหาวิทยาลัย</p>
+        </div>
+        <span class="feature-card-arrow material-symbols-rounded">arrow_forward</span>
     </a>
 
     <a href="{{ url_for('admin_manage_programs') }}" class="feature-card">
-        <h3>จัดการหลักสูตร</h3>
-        <p class="text-muted text-xs">จัดการรายชื่อหลักสูตรและสาขาวิชา แยกตามคณะที่สังกัด</p>
+        <span class="feature-card-icon material-symbols-rounded">account_tree</span>
+        <div class="feature-card-body">
+            <h3>จัดการหลักสูตร</h3>
+            <p class="text-muted text-xs">จัดการรายชื่อหลักสูตรและสาขาวิชา แยกตามคณะที่สังกัด</p>
+        </div>
+        <span class="feature-card-arrow material-symbols-rounded">arrow_forward</span>
     </a>
 
     <a href="{{ url_for('manage_courses') }}" class="feature-card">
-        <h3>รายวิชา</h3>
-        <p class="text-muted text-xs">จัดการฐานข้อมูลรายวิชากลาง เพิ่ม/แก้ไข รายชื่อวิชาและหน่วยกิต</p>
+        <span class="feature-card-icon material-symbols-rounded">menu_book</span>
+        <div class="feature-card-body">
+            <h3>รายวิชา</h3>
+            <p class="text-muted text-xs">จัดการฐานข้อมูลรายวิชากลาง เพิ่ม/แก้ไข รายชื่อวิชาและหน่วยกิต</p>
+        </div>
+        <span class="feature-card-arrow material-symbols-rounded">arrow_forward</span>
     </a>
 </div>
 {% endblock %}

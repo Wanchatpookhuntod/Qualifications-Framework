@@ -141,114 +141,7 @@ document.addEventListener('DOMContentLoaded', function () {
     <fieldset {% if is_locked %}disabled{% endif %}>
         <!-- ขั้นตอนที่ 1: ข้อมูลรายวิชา -->
         <div class="tqf-step" data-step="1">
-        <div class="qtf-card">
-            <div class="qtf-section-title">ข้อมูลรายวิชา</div>
-            <div class="qtf-card qtf-highlight">
-                <div style="align-items: center;" class="mt-2">
-                    <div>รายวิชา {{ general.get('course_code', section.course.code) }} {{ general.get('course_name', section.course.name_th) | thai_wrap }} - 
-                        จำนวน {{ general.get('credits', section.course.credits) }} หน่วยกิต
-                    </div>
-                </div>
-            </div>
-
-            <div class="tqf-grid-new1" style="display: grid; grid-template-columns: 1fr 2fr; gap: 40px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr;">
-                    <div class="form-group">
-                        <label>ปีการศึกษา</label>
-                        <input style="background-color: transparent; border: none;" type="text" class="form-control" value="{{ general.get('semester', section.term.semester) }} / {{ general.get('academic_year', section.term.year) }}" disabled>
-                        <input type="hidden" name="semester" value="{{ general.get('semester', section.term.semester) }}">
-                        <input type="hidden" name="academic_year" value="{{ general.get('academic_year', section.term.year) }}">
-                    </div>
-                    <div class="form-group">
-                        <label>ชั้นปี</label>
-                        <input type="text" name="year_level" class="form-control" value="{{ general.get('year_level', '') }}">
-                    </div>
-                </div>
-
-                {% set course_status_val = general.get('course_status', '') %}
-                {% set student_type_val = general.get('student_type', '') %}
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr;">
-                    <div class="form-group">
-                        <label>สถานภาพของวิชา</label>
-                        <div class="flex-center-gap mt-3" style=" gap:1rem; flex-wrap:wrap;">
-                            {% for opt in ['วิชาบังคับ', 'วิชาเลือก', 'วิชาเลือกเสรี'] %}
-                            <label class="qtf-radio"><input type="radio" name="course_status" value="{{ opt }}" {% if course_status_val == opt %}checked{% endif %}> {{ opt }}</label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>ประเภทนักศึกษา</label>
-                        <div class="flex-center-gap mt-3" style="gap:1rem; flex-wrap:wrap;">
-                            {% for opt in ['ภาคปกติ', 'ภาคพิเศษ', 'บัณฑิตศึกษา'] %}
-                            <label class="qtf-radio"><input type="radio" name="student_type" value="{{ opt }}" {% if student_type_val == opt %}checked{% endif %}> {{ opt }}</label>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div>
-                <div class="qtf-grid three mt-2">
-                    <div class="form-group mt-2">
-                        <label>หมู่เรียน (Section)</label>
-                        <input type="text" name="class_group" class="form-control" value="{{ general.get('class_group', section.section_number or '') }}" placeholder="เช่น หมู่ 1 หรือ sec A">
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>รายวิชาที่บังคับเรียนก่อน</label>
-                        <input type="text" name="prereq" class="form-control" value="{{ general.get('prereq', '') }}" placeholder="ถ้ามี / ถ้าไม่มีใส่ -">
-                    </div>
-                    <div class="form-group mt-2">
-                        <label>วันที่จัดทำ/ปรับปรุงล่าสุด</label>
-                        <input type="date" name="last_updated" class="form-control" value="{{ general.get('last_updated', '') }}">
-                    </div>
-                </div>
-            </div>
-
-
-            <div class="form-group mt-3">
-                <label>คำอธิบายรายวิชา</label>
-                <textarea name="description" class="form-control" rows="4">{{ general.get('description', section.course.description or '') }}</textarea>
-            </div>
-
-            <div class="qtf-grid three mt-2">
-                {% set course_owner_val = (general.get('course_owner') or general.get('instructor', '')) %}
-                <div class="form-group">
-                    <label>อาจารย์ผู้รับผิดชอบรายวิชา</label>
-                    <div>{{ course_owner_val }}</div>
-                    <input type="hidden" name="course_owner" value="{{ course_owner_val }}">
-                </div>
-                <div class="form-group">
-                    <label>ห้องเรียน / สถานที่เรียน</label>
-                    <input type="text" name="location" class="form-control" value="{{ general.get('location', '') }}" placeholder="เช่น 16/805 หรือ ออนไลน์">
-                </div>
-                <div class="form-group">
-                    <label>ระบบออนไลน์</label>
-                    <input type="text" name="online_system" class="form-control" value="{{ general.get('online_system', '') }}" placeholder="เช่น MS Teams / Google Classroom">
-                </div>
-            </div>
-            <div class="form-group mt-2">
-                <label>กรณีเรียนภายนอกมหาวิทยาลัย (สถานประกอบการ/ชุมชน/อื่นๆ)</label>
-                <input type="text" name="external_location" class="form-control" value="{{ general.get('external_location', '') }}" placeholder="ถ้ามี">
-            </div>
-
-            <div class="qtf-grid three mt-2">
-                {% set instructor_val = general.get('instructor', '') %}
-                <div class="form-group">
-                    <label>อาจารย์ผู้สอน</label>
-                    <div>{{ instructor_val }}</div>
-                    <input type="hidden" name="instructor" value="{{ instructor_val }}">
-                </div>
-                <div class="form-group">
-                    <label>โทรศัพท์</label>
-                    <input type="text" name="phone" class="form-control" value="{{ general.get('phone', '') }}" placeholder="เช่น 06xxxxxxxx">
-                </div>
-                <div class="form-group">
-                    <label>ห้องพัก</label>
-                    <input type="text" name="office" class="form-control" value="{{ general.get('office', '') }}" placeholder="เช่น ชั้น 3 อาคาร 16">
-                </div>
-            </div>
-        </div>
+        {% include 'shared/_tqf3_course_info.html' %}
 
 
 
@@ -282,42 +175,9 @@ document.addEventListener('DOMContentLoaded', function () {
             </div>
         </div>
 
-        <div class="qtf-card">
-            <div class="qtf-section-title">จำนวนชั่วโมงที่ใช้ต่อสัปดาห์ในการจัดการเรียนรู้ (Hours/Week)</div>
-            <div class="qtf-grid four mt-2">
-                <div class="form-group">
-                    <label>ชั่วโมงบรรยาย/ภาค</label>
-                    <input type="number" name="lecture_hours" class="form-control" min="0" step="1" value="{{ general.get('lecture_hours', '') }}">
-                </div>
-                <div class="form-group">
-                    <label>ชั่วโมงปฏิบัติ/ภาคสนาม/ฝึกงาน</label>
-                    <input type="number" name="lab_hours" class="form-control" min="0" step="1" value="{{ general.get('lab_hours', '') }}">
-                </div>
-                <div class="form-group">
-                    <label>ชั่วโมงศึกษาด้วยตนเอง</label>
-                    <input type="number" name="self_hours" class="form-control" min="0" step="1" value="{{ general.get('self_hours', '') }}">
-                </div>
-                <div class="form-group">
-                    <label>ชั่วโมงให้คำปรึกษาต่อสัปดาห์</label>
-                    <input type="number" name="consult_hours" class="form-control" min="0" step="0.5" value="{{ general.get('consult_hours', '') }}">
-                </div>
-            </div>
-        </div>
+        {% include 'shared/_tqf3_hours.html' %}
 
-        <div class="qtf-card">
-            <div class="qtf-section-title">การอุทธรณ์</div>
-                <div class="qtf-grid two mt-2">
-                    <div class="form-group">
-                    <label>วิธีการ/ช่องทางสำหรับอุทธรณ์การเรียน (คะแนนระหว่างภาค/สอบกลางภาค)</label>
-                    <textarea name="appeal_channel" class="form-control" rows="3" placeholder="ระบุช่องทางสำหรับการติดต่ออาจารย์ผู้สอน ตามประกาศมหาวิทยาลัยฯ">{{ general.get('appeal_channel', '') }}</textarea>
-                </div>
-                <div class="form-group">
-                    <label>หมายเหตุ / ช่องทางติดต่ออาจารย์</label>
-                    <input type="text" name="hours_note" class="form-control" value="{{ general.get('hours_note', '') }}" placeholder="เช่น ช่องทางติดต่อ">
-                </div>
-
-            </div>
-        </div>
+        {% include 'shared/_tqf3_appeal.html' %}
         </div>
 
         <!-- ขั้นตอนที่ 2: การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้ -->

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}PLOs หลักสูตร - ฝ่ายวิชาการ{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('academic_dashboard') }}">Dashboard ฝ่ายวิชาการ</a> /
+            <span class="text-muted">PLOs หลักสูตร</span>
+        </nav>
+        <h2>ผลลัพธ์การเรียนรู้ระดับหลักสูตร (PLOs)</h2>
+        <p class="text-muted mb-0">PLOs ของสาขาแยกตามปีของหลักสูตร เพื่อใช้อ้างอิงในการจัดทำ มคอ.</p>
+    </div>
+</div>
+
+{% if programs %}
+<div class="glass panel mb-3">
+    <form method="GET" action="{{ url_for('academic_view_plos') }}" class="filter-form">
+        <label class="text-muted mb-0">หลักสูตร / ปี</label>
+        <select name="program_id" class="form-control select-inline min-220" onchange="this.form.submit()">
+            {% for p in programs %}
+            <option value="{{ p.id }}" {% if selected_program and selected_program.id == p.id %}selected{% endif %}>
+                {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+
+<div class="glass panel">
+    <h3 class="panel-title">
+        PLOs ของหลักสูตร{% if selected_program %} : {{ selected_program.name }}{% if selected_program.year %} ({{ selected_program.year }}){% endif %}{% endif %}
+    </h3>
+    <div class="table-wrapper">
+        <table class="data-table" style="table-layout: fixed; width: 100%;">
+            <colgroup>
+                <col style="width: 18%;">
+                <col style="width: 82%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="text-center">รหัส</th>
+                    <th>คำอธิบาย</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for plo in plos %}
+                <tr>
+                    <td class="text-center text-table">{{ plo.code }}</td>
+                    <td class="text-table">{{ plo.description | thai_wrap }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="2" class="empty-state text-center text-muted">ยังไม่มี PLO ในหลักสูตรนี้</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% else %}
+<div class="glass panel">
+    <div class="empty-state text-center text-muted">ยังไม่มีหลักสูตรในระบบ</div>
+</div>
+{% endif %}
+{% endblock %}

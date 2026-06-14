@@ -10,6 +10,10 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
   <link rel="stylesheet" href="/static/manual/_base.css" />
   <style>
+    body{
+      font-family: 'Sarabun', 'Kanit', 'Prompt', 'Inter', sans-serif;
+      font-size: 15px; line-height: 1.7; color: var(--text-color);
+    }
     :root { --role-color: #b45309; --role-bg: #fef3c7; }
     .site-header {
       background: linear-gradient(135deg, #92400e 0%, #b45309 100%);
@@ -24,20 +28,20 @@
     .site-header .role-tag .material-symbols-rounded { font-size: 18px; }
     .site-header h1 { font-family: 'Kanit','Sarabun',sans-serif; font-size: 1.9rem; font-weight: 600; margin-bottom: 6px; }
     .site-header p { font-size: 14px; opacity: 0.85; }
+
+    .mt-3 { margin-top: 1.25rem; }
+    .text-center { text-align: center; }
   </style>
 </head>
 <body>
 
 <header class="site-header">
   <div class="header-topbar">
-    <div class="breadcrumb">
-      <a href="/manual">คู่มือการใช้งาน</a> <span class="material-symbols-rounded">chevron_right</span> ผู้ดูแลระบบ
-    </div>
     <a href="/admin/dashboard" class="btn-back-dashboard"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
   </div>
   <div class="role-tag"><span class="material-symbols-rounded">admin_panel_settings</span> Admin</div>
-  <h1>คู่มือผู้ดูแลระบบ</h1>
-  <p>จัดการโครงสร้างข้อมูลพื้นฐาน: ผู้ใช้, คณะ, หลักสูตร, รายวิชา</p>
+  <h1 class="text-center">คู่มือผู้ดูแลระบบ</h1>
+  <p class="text-center">จัดการโครงสร้างข้อมูลพื้นฐาน: ผู้ใช้, คณะ, หลักสูตร, รายวิชา</p>
 </header>
 
 <div class="container">
@@ -47,7 +51,6 @@
     <aside class="toc">
       <div class="toc-nav-actions">
         <a href="/admin/dashboard" class="back-link"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
-        <a href="/manual" class="alt-link"><span class="material-symbols-rounded">swap_horiz</span> เลือกบทบาทอื่น</a>
       </div>
       <h3>สารบัญ</h3>
       <ul>
@@ -95,6 +98,14 @@
           <span class="material-symbols-rounded">lightbulb</span>
           <span>Admin ควรตั้งค่าโครงสร้างข้อมูล (คณะ → หลักสูตร → รายวิชา → ผู้ใช้) ก่อนที่ Academic จะสร้างภาคการศึกษา</span>
         </div>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">groups</span>
+          <span>หลักสูตรและรายวิชา <strong>ฝ่ายวิชาการ (Academic) จัดการได้เช่นกัน</strong> ส่วนผลการเรียนรู้ <strong>PLO/CLO เป็นหน้าที่ของหัวหน้าสาขา (Head)</strong> – Admin ไม่ต้องกรอก PLO/CLO เอง</span>
+        </div>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">menu_open</span>
+          <span>เมนูฝั่งซ้ายของ Admin: <strong>แดชบอร์ด · คณะ / ภาควิชา · หลักสูตร · รายวิชา · ผู้ใช้งาน</strong></span>
+        </div>
       </section>
 
       <!-- LOGIN -->
@@ -122,7 +133,7 @@
           <li>กรอก <strong>ชื่อผู้ใช้ (Username)</strong> – ใช้สำหรับล็อกอิน ไม่สามารถซ้ำกันได้</li>
           <li>กรอก <strong>รหัสผ่าน</strong> – ระบบเข้ารหัสอัตโนมัติ</li>
           <li>กรอก <strong>ชื่อ-นามสกุล</strong></li>
-          <li>ติ๊กเลือก <strong>บทบาท</strong> ที่ต้องการ (เลือกได้หลายบทบาทพร้อมกัน):
+          <li>ติ๊กเลือก <strong>บทบาท</strong> ที่ต้องการ:
             <ul>
               <li><code>instructor</code> – อาจารย์ผู้สอน</li>
               <li><code>head</code> – หัวหน้าสาขา</li>
@@ -189,25 +200,82 @@
 
         <hr id="program-import" />
         <h3 class="sub-title"><span class="material-symbols-rounded">upload_file</span> นำเข้ารายวิชาจากไฟล์ (Bulk Import)</h3>
-        <p>สามารถนำเข้ารายวิชาทั้งหมดของหลักสูตรได้ครั้งเดียวผ่านไฟล์</p>
+        <p>แทนที่จะเพิ่มรายวิชาทีละวิชา สามารถนำเข้ารายวิชาทั้งหมดของหลักสูตรพร้อมกันได้จากไฟล์เดียว</p>
         <ol class="steps">
-          <li>ในตารางหลักสูตร คลิกช่อง <strong>อัปโหลดไฟล์</strong> ที่แถวหลักสูตรที่ต้องการ</li>
-          <li>เลือกไฟล์จากเครื่อง (รองรับ <code>.json</code>, <code>.csv</code>, <code>.txt</code>)</li>
-          <li>กดปุ่ม <strong>"อัปโหลด"</strong></li>
+          <li>ในตาราง <strong>หลักสูตร</strong> หาแถวของหลักสูตรที่ต้องการ แล้วคลิกช่อง <strong>อัปโหลดไฟล์</strong></li>
+          <li>เลือกไฟล์จากเครื่อง – รองรับ <code>.json</code>, <code>.csv</code>, <code>.txt</code></li>
+          <li>กดปุ่ม <strong>"อัปโหลด"</strong> – ระบบจะตรวจสอบไฟล์แล้วนำเข้าให้ทันที</li>
         </ol>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>ไฟล์ต้องมีขนาด<strong>ไม่เกิน 2 MB</strong> และบันทึกเป็น <strong>UTF-8</strong> (เพื่อให้ภาษาไทยไม่เพี้ยน)</span>
+        </div>
 
-        <h4>รูปแบบไฟล์ที่รองรับ</h4>
+        <h4>คอลัมน์/ฟิลด์ของข้อมูลรายวิชา</h4>
         <table>
-          <thead><tr><th>รูปแบบ</th><th>หัวคอลัมน์ที่รองรับ</th></tr></thead>
+          <thead><tr><th>ฟิลด์</th><th>จำเป็น?</th><th>ชื่อหัวคอลัมน์ที่ระบบรู้จัก (ไทย/อังกฤษ)</th></tr></thead>
           <tbody>
-            <tr><td>CSV / TSV</td><td><code>รหัสวิชา</code> หรือ <code>code</code>, <code>ชื่อวิชา</code> หรือ <code>name</code>, <code>หน่วยกิต</code> หรือ <code>credits</code></td></tr>
-            <tr><td>Pipe-delimited</td><td>เหมือน CSV แต่คั่นด้วย <code>|</code></td></tr>
-            <tr><td>JSON</td><td>Array ของ object ที่มี field <code>code</code>, <code>name</code>, <code>credits</code></td></tr>
+            <tr><td>รหัสวิชา</td><td><strong>จำเป็น</strong></td><td><code>รหัสวิชา</code>, <code>รหัส</code>, <code>code</code></td></tr>
+            <tr><td>ชื่อวิชา (ไทย)</td><td><strong>จำเป็น</strong></td><td><code>ชื่อวิชา</code>, <code>ชื่อรายวิชา</code>, <code>ชื่อวิชาไทย</code>, <code>name</code></td></tr>
+            <tr><td>ชื่อวิชา (อังกฤษ)</td><td>ไม่บังคับ</td><td><code>ชื่ออังกฤษ</code>, <code>ชื่อวิชาภาษาอังกฤษ</code>, <code>name_en</code></td></tr>
+            <tr><td>หน่วยกิต</td><td>ไม่บังคับ</td><td><code>หน่วยกิต</code>, <code>credits</code> (เช่น <code>3(2-2-5)</code>)</td></tr>
+            <tr><td>คำอธิบายรายวิชา</td><td>ไม่บังคับ</td><td><code>คำอธิบาย</code>, <code>คำอธิบายรายวิชา</code>, <code>description</code></td></tr>
           </tbody>
         </table>
         <div class="callout callout-info">
           <span class="material-symbols-rounded">lightbulb</span>
-          <span>รองรับหัวคอลัมน์ทั้งภาษาไทยและอังกฤษ – ระบบตรวจจับอัตโนมัติ</span>
+          <span>ระบบตรวจจับหัวคอลัมน์ทั้ง<strong>ภาษาไทยและอังกฤษ</strong>ให้อัตโนมัติ ไม่จำเป็นต้องเรียงคอลัมน์ตามลำดับ
+          – ยกเว้นไฟล์ <code>.txt</code> ที่<strong>ไม่มีหัวคอลัมน์</strong> ให้เรียงตามลำดับนี้:
+          <code>รหัสวิชา | ชื่อไทย | ชื่ออังกฤษ | คำอธิบาย | หน่วยกิต</code></span>
+        </div>
+
+        <h4>ตัวอย่างรูปแบบไฟล์ (ของจริง)</h4>
+
+        <p class="mt-3"><strong>1) CSV</strong> <code>.csv</code> – <strong>ต้องมีบรรทัดหัวคอลัมน์เสมอ</strong> คั่นด้วยจุลภาค (,) สลับลำดับคอลัมน์ได้</p>
+        <pre style="font-family: Sarabun; background:var(--gray-100);border:1px solid var(--border-color);border-radius:6px;padding:12px 14px;overflow-x:auto;font-size:0.85em;line-height:1.6;">รหัสวิชา,ชื่อวิชา,ชื่ออังกฤษ,หน่วยกิต,คำอธิบาย
+CS101,การเขียนโปรแกรม 1,Programming I,3(2-2-5),พื้นฐานการเขียนโปรแกรม
+CS102,โครงสร้างข้อมูล,Data Structures,3(2-2-5),</pre>
+
+        <p class="mt-3"><strong>2) TXT แบบมีหัวคอลัมน์</strong> <code>.txt</code> – คั่นด้วย <code>|</code> (หรือ Tab / ; ) สลับลำดับคอลัมน์ได้</p>
+        <pre style="font-family: Sarabun; background:var(--gray-100);border:1px solid var(--border-color);border-radius:6px;padding:12px 14px;overflow-x:auto;font-size:0.85em;line-height:1.6;">รหัสวิชา | ชื่อวิชา | หน่วยกิต
+CS101 | การเขียนโปรแกรม 1 | 3(2-2-5)
+CS102 | โครงสร้างข้อมูล | 3(2-2-5)</pre>
+
+        <p class="mt-3"><strong>3) TXT แบบไม่มีหัวคอลัมน์</strong> – <strong>ต้องเรียงตามลำดับนี้เท่านั้น</strong>
+           ช่องที่ไม่มีข้อมูลให้เว้นว่าง (เช่น ไม่มีชื่ออังกฤษ/คำอธิบาย)</p>
+        <p class="text-muted" style="margin:-6px 0 6px;">ลำดับ: <code>รหัสวิชา | ชื่อไทย | ชื่ออังกฤษ | คำอธิบาย | หน่วยกิต</code></p>
+        <pre style="font-family: Sarabun; background:var(--gray-100);border:1px solid var(--border-color);border-radius:6px;padding:12px 14px;overflow-x:auto;font-size:0.85em;line-height:1.6;">CS101 | การเขียนโปรแกรม 1 | Programming I | พื้นฐานการเขียนโปรแกรม | 3(2-2-5)
+CS102 | โครงสร้างข้อมูล | | | 3(2-2-5)</pre>
+
+        <p class="mt-3"><strong>4) JSON</strong> <code>.json</code> – เป็น Array ของ object (ชื่อฟิลด์ใช้ไทยหรืออังกฤษก็ได้)</p>
+        <pre style="font-family: Sarabun; background:var(--gray-100);border:1px solid var(--border-color);border-radius:6px;padding:12px 14px;overflow-x:auto;font-size:0.85em;line-height:1.6;">[
+  { "code": "CS101", "name": "การเขียนโปรแกรม 1",
+    "name_en": "Programming I", "credits": "3(2-2-5)",
+    "description": "พื้นฐานการเขียนโปรแกรม" },
+  { "code": "CS102", "name": "โครงสร้างข้อมูล", "credits": "3(2-2-5)" }
+]</pre>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">data_object</span>
+          <span>JSON ยังรองรับรูปแบบ <strong>จับคู่ตามรหัสวิชา</strong> ด้วย เช่น
+          <code>{ "courses": { "CS101": { "name": "..." }, ... } }</code></span>
+        </div>
+
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">rule</span>
+          <span><strong>กฎสำคัญ:</strong> ทุกแถว/ทุก object ต้องมี <strong>รหัสวิชา</strong> และ <strong>ชื่อวิชาไทย</strong> –
+          ถ้ามีแม้แต่แถวเดียวที่ขาด ระบบจะ <strong>ปฏิเสธทั้งไฟล์</strong> (ไม่นำเข้าบางส่วน) และแจ้งเลขบรรทัด/รายการที่ผิด</span>
+        </div>
+
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">sync</span>
+          <span><strong>นำเข้าซ้ำได้อย่างปลอดภัย:</strong> ระบบจับคู่รายวิชาด้วย <strong>รหัสวิชา</strong> ภายในหลักสูตรเดียวกัน –
+          ถ้ารหัสซ้ำกับที่มีอยู่จะ <strong>อัปเดต</strong> ข้อมูลเดิม ถ้าเป็นรหัสใหม่จะ <strong>เพิ่มใหม่</strong> (ไม่เกิดข้อมูลซ้ำ)
+          หลังอัปโหลดจะแจ้งผลว่า เพิ่มใหม่ / อัปเดต / ข้าม กี่รายการ</span>
+        </div>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">error</span>
+          <span>ถ้าไฟล์มีปัญหา (เช่น แถวที่ขาด <strong>รหัสวิชา</strong> หรือ <strong>ชื่อวิชาไทย</strong>) ระบบจะแสดง
+          <em>"ตรวจสอบไฟล์ไม่ผ่าน"</em> พร้อมเลขบรรทัดที่ผิด และจะ<strong>ไม่นำเข้า</strong>จนกว่าจะแก้ไฟล์ให้ถูกต้อง</span>
         </div>
       </section>
 
@@ -240,12 +308,42 @@
       <!-- ACCOUNT -->
       <section id="account">
         <h2 class="section-title"><span class="material-symbols-rounded">settings</span> ตั้งค่าบัญชี</h2>
+        <p>เข้าหน้านี้โดยคลิกรูปโปรไฟล์มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong> หน้าจัดการบัญชีมี 3 ส่วน</p>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">badge</span> ข้อมูลบัญชี</h3>
+        <p>กดปุ่ม <strong>"แก้ไข"</strong> ที่การ์ด <strong>ข้อมูลบัญชี</strong> เพื่อปรับ <strong>ชื่อผู้ใช้</strong>,
+           <strong>ชื่อ-นามสกุล</strong>, <strong>โทรศัพท์</strong> และ <strong>ห้องพัก</strong></p>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">draw</span> ลายเซ็น</h3>
+        <p>ที่การ์ด <strong>ลายเซ็น</strong> กดปุ่ม <strong>"เพิ่มลายเซ็น"</strong> (หรือ <strong>"แก้ไขลายเซ็น"</strong> ถ้ามีอยู่แล้ว)
+           จะเปิดหน้าต่างที่มี 2 วิธีให้เลือก:</p>
+        <table>
+          <thead><tr><th>วิธี</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td><strong>วาดลายเซ็น</strong></td><td>วาดด้วยเมาส์หรือนิ้วในกรอบที่กำหนด – กด <strong>"ล้าง"</strong> เพื่อเริ่มใหม่</td></tr>
+            <tr><td><strong>อัปโหลดไฟล์</strong></td><td>เลือกไฟล์ภาพ <code>PNG</code>, <code>JPG</code> หรือ <code>WEBP</code> ขนาด<strong>ไม่เกิน 750 KB</strong></td></tr>
+          </tbody>
+        </table>
         <ol class="steps">
-          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
-          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
-          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>เลือกแท็บที่ต้องการ แล้ววาดหรือเลือกไฟล์</li>
+          <li>กดปุ่ม <strong>"บันทึกลายเซ็น"</strong> – ระบบจะแสดงตัวอย่างลายเซ็นบนการ์ด</li>
+          <li>ต้องการลบ ให้กดปุ่ม <strong>"ลบ"</strong> ที่การ์ดลายเซ็น (มีการยืนยันก่อน)</li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>ลายเซ็นใช้สำหรับช่องลงนามในเอกสาร มคอ. ที่พิมพ์/ส่งออก (สำหรับผู้ที่ต้องลงนามในเอกสาร)</span>
+        </div>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">lock</span> เปลี่ยนรหัสผ่าน</h3>
+        <ol class="steps">
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong> ที่การ์ด <strong>ความปลอดภัย</strong></li>
+          <li>กรอก <strong>รหัสผ่านปัจจุบัน</strong>, <strong>รหัสผ่านใหม่</strong>, และ <strong>ยืนยันรหัสผ่านใหม่</strong></li>
           <li>กดปุ่ม <strong>"บันทึก"</strong></li>
         </ol>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>รหัสผ่านใหม่ต้องมี<strong>อย่างน้อย 6 ตัวอักษร</strong> และทั้งสองช่องต้องตรงกัน</span>
+        </div>
       </section>
 
       <!-- FAQ -->

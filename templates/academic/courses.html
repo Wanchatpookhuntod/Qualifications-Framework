@@ -1,17 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}จัดการรายวิชา{% endblock %}
-
-{% set delete_endpoint = 'academic_delete_course' if request.endpoint == 'academic_manage_courses' else 'delete_course' %}
+{% block title %}จัดการรายวิชา - ฝ่ายวิชาการ{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
         <nav class="breadcrumb">
-            <a href="{{ url_for('dashboard') }}">Dashboard</a> /
+            <a href="{{ url_for('academic_dashboard') }}">Dashboard ฝ่ายวิชาการ</a> /
             <span class="text-muted">จัดการรายวิชา</span>
         </nav>
-        <h2>จัดการรายวิชา (Course Master)</h2>
+        <h2>รายวิชาทั้งหมด</h2>
+        <p class="text-muted mb-0">ดูคำอธิบายรายวิชาและผลลัพธ์การเรียนรู้ระดับรายวิชา (CLO) ของแต่ละหลักสูตร</p>
     </div>
     <button class="btn btn-primary" onclick="document.getElementById('modal-add-course').style.display='flex'"
         {% if not programs %}disabled title="กรุณาเพิ่มหลักสูตรก่อน"{% endif %}>
@@ -42,44 +41,71 @@
 <div class="glass panel" style="margin-bottom:1rem;">
     <h4 class="course-section-title">หลักสูตร: {{ prog_name | thai_wrap }}</h4>
     <div class="muted mb-5">จำนวนรายวิชา: {{ courses|length }}</div>
-    <div class="table-scroll">
-        <table class="data-table">
-            <colgroup>
-                <col style="width: 15%;">
-                <col style="width: 55%;">
-                <col style="width: 15%;">
-                <col style="width: 15%;">
-            </colgroup>
-            <thead>
-                <tr>
-                    <th>รหัส</th>
-                    <th>ชื่อรายวิชา</th>
-                    <th class="text-center">หน่วยกิต</th>
-                    <th class="text-center">จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for course in courses %}
-                <tr>
-                    <td class="course-code">{{ course.code }}</td>
-                    <td>
-                        <div class="course-name">{{ course.name_th | thai_wrap }}</div>
-                        <div class="muted">{{ course.name_en }}</div>
-                    </td>
-                    <td class="text-center">{{ course.credits }}</td>
-                    <td class="text-center">
-                        <form action="{{ url_for(delete_endpoint, course_id=course.id) }}" method="POST"
-                            onsubmit="return confirm('ยืนยันการลบรายวิชานี้จากฐานข้อมูล?')">
-                            <input type="hidden" name="next" value="{{ request.full_path }}">
-                            <button type="submit" class="row-action-btn row-action-danger" title="ลบ" aria-label="ลบรายวิชา">
-                                <span class="material-symbols-rounded">close</span>
-                            </button>
-                        </form>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+    <div class="grid-gap-sm">
+        {% for course in courses %}
+        {% set clos = clos_by_course.get(course.id, []) %}
+        
+        <details style="border-radius: 0px; margin-bottom: 0rem" class="glass-courses accordion-card course-accordion">
+            <summary>
+                <div style="border: none;">
+                    <span class="course-code">{{ course.code }}</span>
+                    <span class="course-name">{{ course.name_th | thai_wrap }}</span>
+                    <div class="muted text-xs">{{ course.name_en }}{% if course.credits %} · {{ course.credits }} หน่วยกิต{% endif %}</div>
+                </div>
+                <span style="flex-grow: 1; height: 2px;"></span>
+                <span class="accordion-hint text-xs text-muted">ดูรายละเอียด</span>
+                <span class="status-badge role-instructor">CLO: {{ clos|length }}</span>
+                <span class="material-symbols-rounded accordion-chevron" aria-hidden="true">expand_more</span>
+            </summary>
+
+            <div class="mt-3">
+                <div class="fw-bold text-xs text-muted mb-1">คำอธิบายรายวิชา</div>
+                {% if course.description %}
+                <p class="text-content" style="white-space: pre-wrap;">{{ course.description | thai_wrap }}</p>
+                {% else %}
+                <p class="text-muted text-xs">ยังไม่มีคำอธิบายรายวิชา</p>
+                {% endif %}
+
+                <div class="fw-bold text-xs text-muted mb-1 mt-3">ผลลัพธ์การเรียนรู้ระดับรายวิชา (CLO)</div>
+                {% if clos %}
+                <div class="table-wrapper">
+                    <table class="data-table">
+                        <colgroup>
+                            <col style="width: 12%;">
+                            <col style="width: 63%;">
+                            <col style="width: 25%;">
+                        </colgroup>
+                        <thead>
+                            <tr>
+                                <th class="text-center">รหัส</th>
+                                <th class="text-center">คำอธิบาย</th>
+                                <th class="text-center">PLO ที่รองรับ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for clo in clos %}
+                            <tr>
+                                <td class="text-center text-table">{{ clo.code }}</td>
+                                <td class="text-table">{{ clo.description | thai_wrap }}</td>
+                                <td class="text-table">
+                                    {% if clo.plo_list %}
+                                    {% for code in clo.plo_list %}<span class="status-badge role-instructor">{{ code | replace('PLO', '') }}</span> {% endfor %}
+                                    {% else %}
+                                    <span class="text-muted text-xs">-</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-xs">ยังไม่มี CLO สำหรับรายวิชานี้ (หัวหน้าสาขาเป็นผู้กำหนด)</p>
+                {% endif %}
+            </div>
+        </details>
+        {% endfor %}
     </div>
 </div>
 {% else %}

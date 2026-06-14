@@ -48,6 +48,72 @@
         </div>
     </div>
 
+    <div class="glass glass-card" style="grid-column: 1 / -1;">
+        <div class="flex-between mb-2">
+            <h3 class="mb-0 text-muted">ลายเซ็น</h3>
+            <div class="flex-end">
+                <button type="button" class="btn btn-secondary btn-compact" onclick="openSignatureModal()">
+                    {{ 'แก้ไขลายเซ็น' if current_user.signature else 'เพิ่มลายเซ็น' }}
+                </button>
+                {% if current_user.signature %}
+                <form method="POST" onsubmit="return confirm('ต้องการลบลายเซ็นใช่หรือไม่?');" style="display:inline;">
+                    <input type="hidden" name="action" value="clear_signature">
+                    <button type="submit" class="btn btn-danger btn-compact">ลบ</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+        {% if current_user.signature %}
+        <div class="signature-preview">
+            <img src="{{ current_user.signature }}" alt="ลายเซ็น" style="max-height: 120px; max-width: 100%;">
+        </div>
+        {% else %}
+        <div class="form-note">ยังไม่มีลายเซ็น — อัปโหลดไฟล์ภาพหรือวาดลายเซ็นด้วยตนเอง</div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Signature Modal -->
+<div id="signatureModal" class="modal">
+    <div class="glass glass-card modal-panel">
+        <div class="flex-between mb-1">
+            <h3 class="mb-0">ลายเซ็น</h3>
+            <button type="button" class="modal-close-btn" onclick="closeSignatureModal()"><span class="material-symbols-rounded">close</span></button>
+        </div>
+
+        <div class="tab-bar mb-2">
+            <button type="button" class="btn btn-secondary btn-compact sig-tab is-active" data-tab="draw" onclick="switchSigTab('draw')">วาดลายเซ็น</button>
+            <button type="button" class="btn btn-secondary btn-compact sig-tab" data-tab="upload" onclick="switchSigTab('upload')">อัปโหลดไฟล์</button>
+        </div>
+
+        <div id="sigTabDraw" class="sig-panel">
+            <div class="form-note mb-1">วาดลายเซ็นในกรอบด้านล่าง (ใช้เมาส์หรือนิ้ว)</div>
+            <canvas id="sigCanvas" width="600" height="200" class="signature-canvas"></canvas>
+            <div class="flex-end mt-1">
+                <button type="button" class="btn btn-secondary btn-compact" onclick="clearSigCanvas()">ล้าง</button>
+            </div>
+        </div>
+
+        <div id="sigTabUpload" class="sig-panel" style="display:none;">
+            <div class="form-group">
+                <label>เลือกไฟล์ภาพ (PNG, JPG, WEBP — สูงสุด 750 KB)</label>
+                <input type="file" id="sigFileInput" accept="image/png,image/jpeg,image/webp" class="form-control" onchange="previewSigFile(event)">
+            </div>
+            <div id="sigUploadPreview" class="signature-preview" style="display:none;">
+                <img id="sigUploadImg" alt="ตัวอย่างลายเซ็น" style="max-height: 120px; max-width: 100%;">
+            </div>
+        </div>
+
+        <form method="POST" onsubmit="return prepareSignatureSubmit();">
+            <input type="hidden" name="action" value="update_signature">
+            <input type="hidden" name="signature" id="sigDataField">
+            <div class="flex-end mt-2">
+                <button type="button" class="btn btn-secondary" onclick="closeSignatureModal()">ยกเลิก</button>
+                <button type="submit" class="btn btn-primary">บันทึกลายเซ็น</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <!-- Edit Profile Modal -->
@@ -116,7 +182,7 @@
 
 {% block scripts %}
 <script>
-    const ACCOUNT_MODALS = ['editProfileModal', 'changePasswordModal'];
+    const ACCOUNT_MODALS = ['editProfileModal', 'changePasswordModal', 'signatureModal'];
 
     function openModalById(id) {
         const modal = document.getElementById(id);
@@ -132,6 +198,93 @@
     function closeEditProfileModal() { closeModalById('editProfileModal'); }
     function openChangePasswordModal() { openModalById('changePasswordModal'); }
     function closeChangePasswordModal() { closeModalById('changePasswordModal'); }
+
+    // ----- Signature -----
+    const SIG_MAX_BYTES = 750 * 1024;
+    let sigActiveTab = 'draw';
+    let sigUploadDataUrl = '';
+    let sigCanvas, sigCtx, sigDrawing = false, sigHasDrawing = false;
+
+    function initSigCanvas() {
+        sigCanvas = document.getElementById('sigCanvas');
+        if (!sigCanvas) return;
+        sigCtx = sigCanvas.getContext('2d');
+        sigCtx.lineWidth = 2.5;
+        sigCtx.lineCap = 'round';
+        sigCtx.lineJoin = 'round';
+        sigCtx.strokeStyle = '#1a1a1a';
+
+        const pos = (e) => {
+            const rect = sigCanvas.getBoundingClientRect();
+            const t = e.touches ? e.touches[0] : e;
+            return {
+                x: (t.clientX - rect.left) * (sigCanvas.width / rect.width),
+                y: (t.clientY - rect.top) * (sigCanvas.height / rect.height),
+            };
+        };
+        const start = (e) => { e.preventDefault(); sigDrawing = true; const p = pos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); };
+        const move = (e) => { if (!sigDrawing) return; e.preventDefault(); const p = pos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); sigHasDrawing = true; };
+        const end = () => { sigDrawing = false; };
+
+        sigCanvas.addEventListener('mousedown', start);
+        sigCanvas.addEventListener('mousemove', move);
+        window.addEventListener('mouseup', end);
+        sigCanvas.addEventListener('touchstart', start, { passive: false });
+        sigCanvas.addEventListener('touchmove', move, { passive: false });
+        sigCanvas.addEventListener('touchend', end);
+    }
+
+    function clearSigCanvas() {
+        if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas.width, sigCanvas.height);
+        sigHasDrawing = false;
+    }
+
+    function switchSigTab(tab) {
+        sigActiveTab = tab;
+        document.querySelectorAll('.sig-tab').forEach(b => b.classList.toggle('is-active', b.dataset.tab === tab));
+        document.getElementById('sigTabDraw').style.display = tab === 'draw' ? '' : 'none';
+        document.getElementById('sigTabUpload').style.display = tab === 'upload' ? '' : 'none';
+    }
+
+    function previewSigFile(event) {
+        const file = event.target.files && event.target.files[0];
+        sigUploadDataUrl = '';
+        const wrap = document.getElementById('sigUploadPreview');
+        if (!file) { wrap.style.display = 'none'; return; }
+        if (file.size > SIG_MAX_BYTES) {
+            alert('ไฟล์มีขนาดใหญ่เกินไป (สูงสุด 750 KB)');
+            event.target.value = '';
+            wrap.style.display = 'none';
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            sigUploadDataUrl = e.target.result;
+            document.getElementById('sigUploadImg').src = sigUploadDataUrl;
+            wrap.style.display = '';
+        };
+        reader.readAsDataURL(file);
+    }
+
+    function prepareSignatureSubmit() {
+        let dataUrl = '';
+        if (sigActiveTab === 'draw') {
+            if (!sigHasDrawing) { alert('กรุณาวาดลายเซ็นก่อน'); return false; }
+            dataUrl = sigCanvas.toDataURL('image/png');
+        } else {
+            if (!sigUploadDataUrl) { alert('กรุณาเลือกไฟล์ภาพ'); return false; }
+            dataUrl = sigUploadDataUrl;
+        }
+        document.getElementById('sigDataField').value = dataUrl;
+        return true;
+    }
+
+    function openSignatureModal() {
+        openModalById('signatureModal');
+        if (!sigCanvas) initSigCanvas();
+        switchSigTab('draw');
+    }
+    function closeSignatureModal() { closeModalById('signatureModal'); }
 
     // Close on backdrop click
     document.addEventListener('click', function (e) {

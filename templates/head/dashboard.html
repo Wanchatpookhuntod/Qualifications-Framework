@@ -70,8 +70,15 @@
     </div>
     <div class="mt-3">
         <div style="margin-top: 2.5rem;">
-
-            <a class="btn btn-primary" style="display: flex; justify-content: center; align-items: center; width: 35%; margin: 0 auto;" href="{{ url_for('head_sections', term_id=selected_term_id or '') }}">รายวิชา / มอบหมายผู้สอน</a>
+            <a class="feature-card" style="max-width: 520px; margin: 0 auto;"
+                href="{{ url_for('head_sections', term_id=selected_term_id or '') }}">
+                <span class="feature-card-icon material-symbols-rounded">assignment_ind</span>
+                <div class="feature-card-body">
+                    <h3>รายวิชา / มอบหมายผู้สอน</h3>
+                    <p class="text-muted text-xs">เลือกรายวิชาเพื่อมอบหมายอาจารย์ผู้สอนและเปิดให้ส่ง มคอ.</p>
+                </div>
+                <span class="feature-card-arrow material-symbols-rounded">arrow_forward</span>
+            </a>
         </div>
         <div class="flex-center-gap flex-wrap mt-4" style="justify-content: center; gap: 20px;">
             <a class="tqf-step-nav-btn tqf-step-nav-btn--primary" href="{{ url_for('head_documents', term_id=selected_term_id or '') }}">เอกสาร มคอ.</a>

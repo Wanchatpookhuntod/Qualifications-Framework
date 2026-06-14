@@ -77,7 +77,9 @@
                         {% if current_user.id != user.id %}
                         <form action="{{ url_for('admin_delete_user', user_id=user.id) }}" method="POST"
                             onsubmit="return confirm('ยืนยันการลบผู้ใช้นี้?')" class="mb-0">
-                            <button type="submit" class="btn btn-outline-danger">ลบ</button>
+                            <button type="submit" class="row-action-btn row-action-danger" title="ลบ" aria-label="ลบผู้ใช้">
+                                <span class="material-symbols-rounded">close</span>
+                            </button>
                         </form>
                         {% else %}
                         <span class="text-muted text-xxs">-</span>

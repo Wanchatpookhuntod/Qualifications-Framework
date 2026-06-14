@@ -11,6 +11,10 @@
   <link rel="stylesheet" href="/static/manual/_base.css" />
   <style>
     :root { --role-color: #0f83a6; --role-bg: rgba(15, 131, 166, 0.12); }
+    body{
+      font-family: 'Sarabun', 'Kanit', 'Prompt', 'Inter', sans-serif;
+      font-size: 15px; line-height: 1.7; color: var(--text-color);
+    }
     .site-header {
       background: linear-gradient(135deg, #0c6a85 0%, #0f83a6 100%);
       color: white; padding: 28px 32px 28px;
@@ -38,20 +42,14 @@
     .sf-item small .material-symbols-rounded { font-size: 14px; color: var(--accent-success); }
     .sf-arrow { color: var(--gray-400); display: inline-flex; align-items: center; }
     .sf-arrow .material-symbols-rounded { font-size: 22px; }
+    .text-center { text-align: center; }
   </style>
 </head>
 <body>
 
 <header class="site-header">
-  <div class="header-topbar">
-    <div class="breadcrumb">
-      <a href="/manual">คู่มือการใช้งาน</a> <span class="material-symbols-rounded">chevron_right</span> อาจารย์ผู้สอน
-    </div>
-    <a href="/instructor/dashboard" class="btn-back-dashboard"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
-  </div>
-  <div class="role-tag"><span class="material-symbols-rounded">edit_document</span> Instructor</div>
-  <h1>คู่มืออาจารย์ผู้สอน</h1>
-  <p>กรอกและส่งเอกสาร มคอ.3 และ มคอ.5 สำหรับรายวิชาที่ได้รับมอบหมาย</p>
+  <h1 class="text-center">คู่มืออาจารย์ผู้สอน</h1>
+  <p class="text-center">กรอกและส่งเอกสาร มคอ.3 และ มคอ.5 สำหรับรายวิชาที่ได้รับมอบหมาย</p>
 </header>
 
 <div class="container">
@@ -61,14 +59,14 @@
     <aside class="toc">
       <div class="toc-nav-actions">
         <a href="/instructor/dashboard" class="back-link"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
-        <a href="/manual" class="alt-link"><span class="material-symbols-rounded">swap_horiz</span> เลือกบทบาทอื่น</a>
       </div>
       <h3>สารบัญ</h3>
       <ul>
         <li><a href="#overview"   class="toc-link">ภาพรวม Instructor</a></li>
         <li><a href="#dashboard"  class="toc-link">Dashboard</a></li>
+        <li><a href="#reference"  class="toc-link">ดูรายวิชา & PLOs</a></li>
         <li>
-          <a href="#tqf3"         class="toc-link">มคอ.3</a>
+          <a href="#tqf3"         class="toc-link">มคอ.3 / มคอ.4</a>
           <div class="toc-sub"><ul>
             <li><a href="#tqf3-what"    class="toc-link">มคอ.3 คืออะไร</a></li>
             <li><a href="#tqf3-fill"    class="toc-link">วิธีกรอก มคอ.3</a></li>
@@ -95,7 +93,7 @@
       <!-- OVERVIEW -->
       <section id="overview">
         <h2 class="section-title"><span class="material-symbols-rounded">edit_document</span> ภาพรวม Instructor</h2>
-        <p>อาจารย์ผู้สอนมีหน้าที่จัดทำเอกสาร มคอ. 2 ประเภท สำหรับแต่ละรายวิชาที่รับผิดชอบ</p>
+        <p>อาจารย์ผู้สอนมีหน้าที่จัดทำเอกสาร มคอ. สำหรับแต่ละรายวิชาที่รับผิดชอบ</p>
         <table>
           <thead><tr><th>เอกสาร</th><th>ชื่อเต็ม</th><th>จัดทำเมื่อไหร่</th></tr></thead>
           <tbody>
@@ -105,12 +103,21 @@
               <td>ต้นภาคการศึกษา – ก่อนหรือเมื่อเริ่มสอน</td>
             </tr>
             <tr>
+              <td><strong>มคอ.4</strong></td>
+              <td>รายละเอียดของประสบการณ์ภาคสนาม – ใช้แทน มคอ.3 สำหรับวิชาฝึกประสบการณ์/สหกิจ/ภาคสนาม</td>
+              <td>ต้นภาคการศึกษา (รอบเดียวกับ มคอ.3)</td>
+            </tr>
+            <tr>
               <td><strong>มคอ.5</strong></td>
               <td>รายงานผลการดำเนินการของรายวิชา (Course Report)</td>
               <td>หลังสิ้นสุดภาคการศึกษา – หลังประกาศผลแล้ว</td>
             </tr>
           </tbody>
         </table>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>ระบบจะเลือกฟอร์ม <strong>มคอ.3</strong> หรือ <strong>มคอ.4</strong> ให้อัตโนมัติตามชนิดของรายวิชา – หากเป็นวิชาฝึกประสบการณ์/สหกิจ/ภาคสนาม จะแสดง มคอ.4</span>
+        </div>
         <div class="callout callout-warning">
           <span class="material-symbols-rounded">warning</span>
           <span><strong>ต้องได้รับ มคอ.3 ที่ APPROVED ก่อน</strong> จึงจะส่ง มคอ.5 ได้ (บันทึกฉบับร่างได้ก่อน)</span>
@@ -120,17 +127,46 @@
       <!-- DASHBOARD -->
       <section id="dashboard">
         <h2 class="section-title"><span class="material-symbols-rounded">dashboard</span> Dashboard</h2>
-        <p>หน้า Dashboard แสดงรายวิชาทั้งหมดที่คุณได้รับมอบหมาย จัดกลุ่มตามภาคการศึกษา</p>
+        <p>หน้า Dashboard แสดงรายวิชาทั้งหมดที่คุณได้รับมอบหมาย จัดกลุ่มตามภาคการศึกษา
+           (ใช้ dropdown <strong>"ภาคเรียน/ปีการศึกษา"</strong> มุมขวาบนเพื่อกรอง)</p>
         <ul>
-          <li><strong>ชื่อรายวิชา</strong>, รหัสวิชา, หมู่เรียน, ภาคการศึกษา</li>
-          <li><strong>สถานะ มคอ.3</strong>: DRAFT / SUBMITTED / RETURNED / APPROVED</li>
-          <li><strong>สถานะ มคอ.5</strong>: DRAFT / SUBMITTED / RETURNED / APPROVED</li>
-          <li>วันที่ส่งล่าสุดของแต่ละเอกสาร</li>
-          <li>ปุ่มลิงก์ไปกรอก มคอ.3 และ มคอ.5</li>
+          <li>แต่ละเทอมมีป้ายบอกว่า <strong>มคอ.3: เปิด/ปิด</strong> และ <strong>มคอ.5: เปิด/ปิด</strong> ตามที่ฝ่ายวิชาการตั้งไว้</li>
+          <li>ตารางแสดง <strong>ชื่อรายวิชา</strong>, หมู่เรียน (Section) และ 2 คอลัมน์: <strong>มคอ.3 / 4</strong> และ <strong>มคอ.5</strong></li>
+          <li><strong>ป้ายสถานะในแต่ละช่องคือปุ่มลิงก์</strong> – คลิกเพื่อเปิดฟอร์มกรอก/แก้ไข</li>
+          <li>ใต้ป้ายจะแสดง <strong>วันที่ส่งล่าสุด</strong> หากเคยส่งแล้ว</li>
+          <li>หน้านี้ <strong>รีเฟรชอัตโนมัติทุก 30 วินาที</strong> เมื่อสถานะการเปิด/ปิดรอบเปลี่ยน</li>
         </ul>
+
+        <h4>ความหมายของป้ายสถานะบน Dashboard</h4>
+        <table>
+          <thead><tr><th>ป้ายที่เห็น</th><th>ความหมาย</th></tr></thead>
+          <tbody>
+            <tr><td><strong>เริ่ม</strong></td><td>ยังไม่เคยกรอก – คลิกเพื่อเริ่มทำเอกสาร</td></tr>
+            <tr><td><span class="status status-draft">ร่าง</span></td><td>DRAFT – กรอกค้างไว้ ยังไม่ได้ส่ง</td></tr>
+            <tr><td><span class="status status-submitted">รอตรวจสอบ</span></td><td>SUBMITTED – ส่งแล้ว รอหัวหน้าสาขา</td></tr>
+            <tr><td><span class="status status-returned">ส่งคืน</span></td><td>RETURNED – ถูกตีกลับให้แก้ไข</td></tr>
+            <tr><td><span class="status status-approved">อนุมัติแล้ว</span></td><td>APPROVED – อนุมัติเรียบร้อย เอกสารล็อก</td></tr>
+            <tr><td><strong>ยังไม่เปิด / ปิดรับแล้ว</strong></td><td>ฝ่ายวิชาการยังไม่เปิด หรือปิดรอบแล้ว – <strong>กดไม่ได้ เปิดฟอร์มไม่ได้</strong></td></tr>
+          </tbody>
+        </table>
+
         <div class="callout callout-info">
           <span class="material-symbols-rounded">lightbulb</span>
           <span>ถ้าไม่เห็นรายวิชา แปลว่า <strong>Head ยังไม่ได้มอบหมายคุณ</strong> ให้ Section นั้น – ติดต่อหัวหน้าสาขา</span>
+        </div>
+      </section>
+
+      <!-- REFERENCE -->
+      <section id="reference">
+        <h2 class="section-title"><span class="material-symbols-rounded">menu_book</span> ดูรายวิชา & PLOs ของหลักสูตร</h2>
+        <p>ก่อนกรอก มคอ.3 ควรดูข้อมูลอ้างอิงของหลักสูตรเพื่อให้เชื่อมโยง CLO–PLO ได้ถูกต้อง</p>
+        <ul>
+          <li>เมนู <strong>รายวิชา</strong> – ดูรายวิชาในหลักสูตรพร้อม <strong>CLO</strong> ที่หัวหน้าสาขากำหนดไว้</li>
+          <li>เมนู <strong>PLOs หลักสูตร</strong> – ดูรายการ <strong>PLO (Program Learning Outcomes)</strong> ของหลักสูตร</li>
+        </ul>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>หน้าเหล่านี้เป็นแบบ <strong>อ่านอย่างเดียว</strong> – การกำหนด PLO/CLO เป็นหน้าที่ของหัวหน้าสาขา ส่วนการแมป CLO→PLO ของรายวิชาคุณจะทำในฟอร์ม มคอ.3</span>
         </div>
       </section>
 
@@ -145,46 +181,67 @@
 
         <hr id="tqf3-fill" />
         <h3 class="sub-title">วิธีกรอก มคอ.3</h3>
-        <p>กดปุ่ม <strong>"มคอ.3"</strong> ที่แถวรายวิชาบน Dashboard</p>
+        <p>บน Dashboard ที่คอลัมน์ <strong>"มคอ.3 / 4"</strong> ให้คลิกที่ <strong>ป้ายสถานะ</strong> ของรายวิชา
+           (เช่น <span class="status status-draft">ร่าง</span> หรือ <strong>เริ่ม</strong> หากยังไม่เคยกรอก) เพื่อเปิดฟอร์ม</p>
+        <p>ฟอร์ม มคอ.3 เป็นแบบ <strong>วิซาร์ด 8 ขั้นตอน</strong> มีแถบขั้นตอนด้านข้าง และปุ่ม
+           <strong>"ขั้นตอนถัดไป"</strong> / <strong>"ขั้นตอนก่อนหน้า"</strong> ด้านล่าง</p>
 
         <div class="callout callout-success">
           <span class="material-symbols-rounded">check_circle</span>
-          <span>ระบบจะดึงข้อมูลจาก มคอ.3 ที่เคยอนุมัติแล้วของรายวิชาเดิมมาใส่ให้อัตโนมัติ (Pre-fill) ไม่ต้องกรอกใหม่ทุกครั้ง</span>
+          <span><strong>บันทึกอัตโนมัติ (Autosave):</strong> ระบบบันทึกข้อมูลให้เองระหว่างกรอก (ดูสถานะข้าง ๆ ปุ่มบันทึก) – แต่ยังควรกด <strong>"บันทึกฉบับร่าง"</strong> เมื่อกรอกเสร็จแต่ละช่วง</span>
+        </div>
+        <div class="callout callout-success">
+          <span class="material-symbols-rounded">history</span>
+          <span><strong>ดึงข้อมูลเดิมอัตโนมัติ (Pre-fill):</strong> หากเคยทำ มคอ.3 ของรายวิชาเดียวกันในเทอมก่อน ระบบจะดึงข้อมูลมาเติมให้ พร้อมแจ้งแหล่งที่มาด้านบนฟอร์ม</span>
         </div>
 
-        <h4>หมวดที่ต้องกรอก</h4>
+        <h4>8 ขั้นตอนของ มคอ.3</h4>
         <table>
-          <thead><tr><th>#</th><th>หมวด</th><th>รายละเอียด</th></tr></thead>
+          <thead><tr><th>#</th><th>ขั้นตอน</th><th>รายละเอียด</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td>ข้อมูลรายวิชา</td><td>มหาวิทยาลัย, คณะ, หลักสูตร, รหัสวิชา, ชื่อวิชา (ไทย/อังกฤษ), หน่วยกิต, ชั้นปี, หมู่เรียน, วิชาบังคับก่อน, วันที่ปรับปรุงล่าสุด</td></tr>
-            <tr><td>2</td><td>คำอธิบายรายวิชา</td><td>รายละเอียดเนื้อหาวิชาทั้งภาษาไทยและอังกฤษ</td></tr>
-            <tr><td>3</td><td>CLO – ผลการเรียนรู้</td><td>กำหนด CLO (Course Learning Outcomes) พร้อมรหัสและคำอธิบายแต่ละข้อ</td></tr>
-            <tr><td>4</td><td>การแมป CLO-PLO</td><td>เชื่อมโยง CLO แต่ละข้อกับ PLO (Program Learning Outcomes) ของหลักสูตร</td></tr>
-            <tr><td>5</td><td>แผนการสอน</td><td>วิธีการสอน, โครงร่างเนื้อหา, ตารางสัปดาห์การสอน</td></tr>
-            <tr><td>6</td><td>แผนการประเมิน</td><td>วิธีการประเมินผล, เกณฑ์คะแนน, น้ำหนักคะแนน</td></tr>
+            <tr><td>1</td><td>ข้อมูลรายวิชา</td><td>หัวเอกสาร (มหาวิทยาลัย/คณะ/หลักสูตร/รหัส/ชื่อ/หน่วยกิต ดึงให้อัตโนมัติ), เลือก <strong>PLO</strong> ของหลักสูตรที่เกี่ยวข้อง, กำหนด <strong>CLO</strong>, ชั่วโมงสอน และ<strong>ช่องทางการอุทธรณ์</strong>ของนักศึกษา</td></tr>
+            <tr><td>2</td><td>การพัฒนานักศึกษาตามผลลัพธ์การเรียนรู้</td><td>ตารางเชื่อม CLO ↔ PLO พร้อมกลยุทธ์การสอนและวิธีวัดประเมินของแต่ละ CLO</td></tr>
+            <tr><td>3</td><td>แผนการจัดการเรียนรู้</td><td>ตารางรายสัปดาห์: หัวข้อ, CLO, ชั่วโมง, กิจกรรม/สื่อ, ผู้สอน</td></tr>
+            <tr><td>4</td><td>แผนการประเมินตามผลลัพธ์การเรียนรู้</td><td>ตาราง CLO / กิจกรรมประเมิน / เกณฑ์ / น้ำหนักคะแนน (%)</td></tr>
+            <tr><td>5</td><td>วิธีจัดการเรียนการสอน</td><td>สัดส่วน % ของวิธีสอน (บรรยาย/อภิปราย/กรณีศึกษา/ฝึกปฏิบัติ/กลุ่ม/อื่นๆ) รวมให้ได้ 100%</td></tr>
+            <tr><td>6</td><td>เครื่องมือสำคัญที่ใช้ประเมินผลลัพธ์การเรียนรู้</td><td>Rubric – ประเด็นประเมินและคำอธิบายแต่ละระดับ (5 ถึง 1)</td></tr>
+            <tr><td>7</td><td>ตำราและเอกสาร</td><td>รายการตำรา/เอกสารประกอบการสอน (เขียนตามรูปแบบบรรณานุกรม APA)</td></tr>
+            <tr><td>8</td><td>การประเมินและปรับปรุงการจัดการเรียนรู้</td><td>กลยุทธ์การประเมินรายวิชา, แนวทางปรับปรุง, และกระบวนการยืนยัน (verification) ผลลัพธ์การเรียนรู้</td></tr>
           </tbody>
         </table>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>เลือก PLO ได้เฉพาะที่หัวหน้าสาขากำหนดไว้ในหลักสูตร – หากยังไม่มี PLO ให้แจ้งหัวหน้าสาขาเพิ่มที่เมนู "จัดการ PLOs" ก่อน</span>
+        </div>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">description</span>
+          <span>กดปุ่ม <strong>"ดาวน์โหลด Word"</strong> หรือ <strong>"บันทึก PDF"</strong> ด้านบนฟอร์มเพื่อส่งออกเอกสารได้ทุกเมื่อ</span>
+        </div>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">hiking</span>
+          <span>สำหรับวิชาฝึกประสบการณ์/สหกิจ/ภาคสนาม ระบบจะแสดงฟอร์ม <strong>มคอ.4</strong> แทน ซึ่งมีหมวดเฉพาะของการฝึกภาคสนาม แต่ขั้นตอนการบันทึก/ส่ง/ตีกลับ เหมือนกับ มคอ.3</span>
+        </div>
 
         <hr id="tqf3-submit" />
         <h3 class="sub-title">การส่งและติดตามสถานะ</h3>
         <ol class="steps">
           <li>กรอกข้อมูลให้ครบ แล้วกดปุ่ม <strong>"บันทึกฉบับร่าง"</strong> เพื่อบันทึกระหว่างกรอก<br/>
             <em>(สามารถกลับมาแก้ไขได้เรื่อยๆ ขณะที่สถานะยังเป็น DRAFT)</em></li>
-          <li>เมื่อพร้อมส่ง กดปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> – สถานะเปลี่ยนเป็น <span class="status status-submitted">SUBMITTED</span></li>
+          <li>เมื่อพร้อมส่ง กดปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> – สถานะเปลี่ยนเป็น <span class="status status-submitted">รอตรวจสอบ</span></li>
           <li>รอหัวหน้าสาขาตรวจสอบ – ติดตามสถานะได้บน Dashboard</li>
-          <li>เมื่อได้รับ <span class="status status-approved">APPROVED</span> เอกสารจะล็อค อ่านได้อย่างเดียว</li>
+          <li>เมื่อได้รับ <span class="status status-approved">อนุมัติแล้ว</span> เอกสารจะล็อค อ่านได้อย่างเดียว</li>
         </ol>
 
         <div class="callout callout-warning">
           <span class="material-symbols-rounded">warning</span>
-          <span>ปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> จะถูก disabled ถ้าฝ่ายวิชาการยังไม่ได้เปิดรอบ มคอ.3</span>
+          <span>ถ้าฝ่ายวิชาการ <strong>ยังไม่เปิด</strong> (หรือปิดรอบ) มคอ.3 ป้ายบน Dashboard จะกดไม่ได้ และ <strong>เปิดฟอร์มไม่ได้เลย</strong> – ไม่ใช่แค่ปุ่มส่งถูกปิด</span>
         </div>
 
         <hr id="tqf3-return" />
         <h3 class="sub-title">เมื่อถูกตีกลับ (RETURNED)</h3>
         <ol class="steps">
-          <li>เปิดหน้า มคอ.3 ของ Section นั้น</li>
-          <li>อ่าน <strong>ความคิดเห็นของหัวหน้าสาขา</strong> ที่แสดงด้านบนฟอร์ม</li>
+          <li>คลิกป้าย <span class="status status-returned">ส่งคืน</span> ของ Section นั้นบน Dashboard เพื่อเปิดฟอร์ม</li>
+          <li>อ่านกล่อง <strong>"ข้อเสนอแนะจากหัวหน้าสาขา"</strong> (กรอบสีแดง) ที่แสดงด้านบนฟอร์ม – แสดงทุกความเห็นเรียงตามวันที่</li>
           <li>แก้ไขข้อมูลตามที่ระบุในความคิดเห็น</li>
           <li>กดปุ่ม <strong>"บันทึกฉบับร่าง"</strong> แล้ว <strong>"ส่งให้หัวหน้าสาขา"</strong> อีกครั้ง</li>
         </ol>
@@ -206,7 +263,7 @@
 
         <div class="callout callout-danger">
           <span class="material-symbols-rounded">block</span>
-          <span><strong>ต้องมี มคอ.3 ที่ได้รับการ <span class="status status-approved">APPROVED</span> ก่อน</strong> จึงจะส่ง มคอ.5 ได้<br/>
+          <span><strong>ต้องมี มคอ.3 ที่ได้รับการ <span class="status status-approved">อนุมัติแล้ว</span> ก่อน</strong> จึงจะส่ง มคอ.5 ได้<br/>
           (สามารถบันทึกฉบับร่างไว้ก่อนได้ แต่ยังส่งไม่ได้)</span>
         </div>
 
@@ -223,95 +280,110 @@
         <table>
           <thead><tr><th>#</th><th>หมวด</th><th>รายละเอียด</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td>ข้อมูลรายวิชา</td><td>ดึงจาก มคอ.3 อัตโนมัติ – ตรวจสอบความถูกต้อง</td></tr>
-            <tr><td>2</td><td>ชั่วโมงสอนจริง</td><td>บันทึกชั่วโมงที่สอนจริงเทียบกับแผนใน มคอ.3 และหมายเหตุความแตกต่าง</td></tr>
-            <tr><td>3</td><td>สถิตินักศึกษา</td><td>จำนวนที่ลงทะเบียน, สอบผ่านและสำเร็จ, ถอน/ลาออก</td></tr>
-            <tr><td>4</td><td>การกระจายเกรด</td><td>จำนวนนักศึกษาที่ได้เกรด A, B+, B, C+, C, D+, D, F</td></tr>
-            <tr><td>5</td><td>ปัญหาและการปรับปรุง</td><td>ปัญหาที่พบระหว่างการสอนและวิธีแก้ไขที่ดำเนินการแล้ว</td></tr>
-            <tr><td>6</td><td>วิธีการตรวจสอบ</td><td>กระบวนการตรวจสอบคุณภาพที่ใช้</td></tr>
-            <tr><td>7</td><td>ผลการบรรลุ CLO</td><td>หลักฐานและข้อมูลที่แสดงว่า CLO แต่ละข้อบรรลุผลหรือไม่</td></tr>
-            <tr><td>8</td><td>ข้อเสนอแนะ</td><td>ข้อเสนอแนะสำหรับภาคการศึกษาถัดไป (ปรับปรุงการสอน, เนื้อหา, การประเมิน)</td></tr>
+            <tr><td>–</td><td>ข้อมูลรายวิชา</td><td>หัวเอกสาร ดึงจาก มคอ.3 / มคอ.4 อัตโนมัติ – ตรวจสอบความถูกต้อง</td></tr>
+            <tr><td>–</td><td>การจัดการเรียนรู้ที่ดำเนินการจริง</td><td>การจัดการเรียนรู้และวิธีประเมินที่ทำจริงเทียบกับที่ระบุใน มคอ.3 (ตาม CLO)</td></tr>
+            <tr><td>1</td><td>จำนวนนักศึกษาที่ลงทะเบียน</td><td>จำนวนที่ลงทะเบียนเรียนจริง</td></tr>
+            <tr><td>2</td><td>จำนวนนักศึกษาที่คงอยู่</td><td>จำนวนที่เรียนจนสิ้นสุดรายวิชา</td></tr>
+            <tr><td>3</td><td>จำนวนนักศึกษาที่ถอน (W)</td><td>จำนวนที่ถอนรายวิชา</td></tr>
+            <tr><td>4</td><td>การกระจายของระดับคะแนน (เกรด)</td><td>จำนวนนักศึกษาในแต่ละระดับเกรด (แยกตามสาขาได้ถ้ามี)</td></tr>
+            <tr><td>5</td><td>การบรรลุผลลัพธ์การเรียนรู้</td><td>ผลการบรรลุ CLO ระดับรายวิชาและเชื่อมโยงระดับหลักสูตร (PLO)</td></tr>
+            <tr><td>6</td><td>ปัจจัยที่ทำให้ไม่บรรลุผลลัพธ์</td><td>สาเหตุที่นักศึกษาบางส่วนไม่บรรลุ CLO/PLO</td></tr>
+            <tr><td>7</td><td>แนวทางการปรับปรุงแก้ไข</td><td>แนวทางแก้ไขกรณีนักศึกษาไม่บรรลุผลลัพธ์การเรียนรู้</td></tr>
+            <tr><td>8</td><td>กระบวนการยืนยัน (verification)</td><td>วิธียืนยันผลสัมฤทธิ์/ผลลัพธ์การเรียนรู้ของนักศึกษา</td></tr>
+            <tr><td>9</td><td>ปัญหาและผลกระทบ</td><td>ปัญหาที่พบและผลกระทบต่อการดำเนินการจัดการเรียนรู้</td></tr>
+            <tr><td>10</td><td>การประเมินผลรายวิชา</td><td>ข้อวิพากษ์จากผู้เรียน, ข้อคิดเห็นของผู้สอน, แผนการปรับปรุง และข้อเสนอแนะต่อคณะกรรมการบริหารหลักสูตร</td></tr>
           </tbody>
         </table>
 
         <hr id="tqf5-submit" />
         <h3 class="sub-title">การส่งและติดตามสถานะ</h3>
         <ol class="steps">
-          <li>ตรวจสอบว่า <strong>มคอ.3 ของ Section เดียวกัน</strong> ได้รับ <span class="status status-approved">APPROVED</span> แล้ว</li>
+          <li>ตรวจสอบว่า <strong>มคอ.3 ของ Section เดียวกัน</strong> ได้รับ <span class="status status-approved">อนุมัติแล้ว</span> แล้ว</li>
           <li>กรอกข้อมูลทุกหมวดให้ครบ</li>
           <li>กดปุ่ม <strong>"บันทึกฉบับร่าง"</strong> เพื่อบันทึกระหว่างกรอก</li>
-          <li>กดปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> – สถานะเปลี่ยนเป็น <span class="status status-submitted">SUBMITTED</span></li>
+          <li>กดปุ่ม <strong>"ส่งให้หัวหน้าสาขา"</strong> – สถานะเปลี่ยนเป็น <span class="status status-submitted">รอตรวจสอบ</span></li>
           <li>รอหัวหน้าสาขาอนุมัติ</li>
         </ol>
         <div class="callout callout-warning">
           <span class="material-symbols-rounded">warning</span>
-          <span>ปุ่มส่งจะ disabled ถ้า: (1) มคอ.3 ยังไม่ APPROVED หรือ (2) ฝ่ายวิชาการยังไม่เปิดรอบ มคอ.5</span>
+          <span>เงื่อนไขของ มคอ.5:
+            <ul style="margin:6px 0 0 0;">
+              <li>ฝ่ายวิชาการยัง <strong>ไม่เปิดรอบ มคอ.5</strong> → ป้ายบน Dashboard กดไม่ได้ เปิดฟอร์มไม่ได้</li>
+              <li>ยังไม่มี <strong>มคอ.3 / มคอ.4</strong> ของรายวิชา → ระบบจะให้กลับไปทำเอกสารนั้นก่อน</li>
+              <li>มี มคอ.3/4 แล้วแต่ <strong>ยังไม่ APPROVED</strong> → เปิดฟอร์มและ<strong>บันทึกฉบับร่างได้</strong> แต่กด "ส่งให้หัวหน้าสาขา" ไม่ได้ (ระบบแจ้งว่า "มคอ.3 ยังไม่อนุมัติ")</li>
+            </ul>
+          </span>
         </div>
       </section>
 
       <!-- STATUS GUIDE -->
       <section id="status-guide">
         <h2 class="section-title"><span class="material-symbols-rounded">flag</span> คู่มือสถานะเอกสาร</h2>
+        <p>บนหน้าจอจริงระบบจะแสดง <strong>ป้ายสถานะเป็นภาษาไทย</strong> (รหัสภายในในวงเล็บ) ดังนี้</p>
         <table>
-          <thead><tr><th>สถานะ</th><th>ความหมาย</th><th>สิ่งที่ต้องทำ</th></tr></thead>
+          <thead><tr><th>ป้ายที่เห็นบนจอ</th><th>ความหมาย</th><th>สิ่งที่ต้องทำ</th></tr></thead>
           <tbody>
             <tr>
-              <td><span class="status status-draft">DRAFT</span></td>
+              <td><span class="status status-draft">ร่าง</span><br/><small class="text-muted">(DRAFT)</small></td>
               <td>ฉบับร่าง – กำลังกรอกหรือยังไม่ได้ส่ง</td>
               <td>กรอกให้ครบแล้วกด "ส่งให้หัวหน้าสาขา"</td>
             </tr>
             <tr>
-              <td><span class="status status-submitted">SUBMITTED</span></td>
+              <td><span class="status status-submitted">รอตรวจสอบ</span><br/><small class="text-muted">(SUBMITTED)</small></td>
               <td>ส่งแล้ว – รอหัวหน้าสาขาตรวจสอบ</td>
               <td>รอผล – ดูสถานะบน Dashboard</td>
             </tr>
             <tr>
-              <td><span class="status status-returned">RETURNED</span></td>
+              <td><span class="status status-returned">ส่งคืน</span><br/><small class="text-muted">(RETURNED)</small></td>
               <td>ตีกลับ – หัวหน้าสาขาต้องการให้แก้ไข</td>
-              <td>อ่านความคิดเห็น → แก้ไข → ส่งใหม่</td>
+              <td>อ่าน "ข้อเสนอแนะจากหัวหน้าสาขา" → แก้ไข → ส่งใหม่</td>
             </tr>
             <tr>
-              <td><span class="status status-approved">APPROVED</span></td>
+              <td><span class="status status-approved">อนุมัติแล้ว</span><br/><small class="text-muted">(APPROVED)</small></td>
               <td>อนุมัติแล้ว – เอกสารสมบูรณ์</td>
               <td>ไม่ต้องทำอะไร เอกสารล็อค อ่านอย่างเดียว</td>
             </tr>
           </tbody>
         </table>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>หากยังไม่เคยกรอกเอกสาร ป้ายจะขึ้นว่า <strong>"เริ่ม"</strong> และเมื่อฝ่ายวิชาการปิดรอบจะขึ้นว่า <strong>"ยังไม่เปิด" / "ปิดรับแล้ว"</strong> (คลิกไม่ได้)</span>
+        </div>
 
         <h3 class="sub-title">กระบวนการสถานะ มคอ.3</h3>
         <div class="status-flow">
           <div class="sf-item">
-            <span class="status status-draft">DRAFT</span>
+            <span class="status status-draft">ร่าง</span>
             <small>กรอก/แก้ไข</small>
           </div>
           <span class="sf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="sf-item">
-            <span class="status status-submitted">SUBMITTED</span>
+            <span class="status status-submitted">รอตรวจสอบ</span>
             <small>ส่งแล้ว</small>
           </div>
           <span class="sf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="sf-item">
-            <span class="status status-approved">APPROVED</span>
+            <span class="status status-approved">อนุมัติแล้ว</span>
             <small><span class="material-symbols-rounded">check_circle</span> อนุมัติ</small>
           </div>
         </div>
         <div class="status-flow" style="margin-top:4px;">
           <div class="sf-item">
-            <span class="status status-submitted">SUBMITTED</span>
+            <span class="status status-submitted">รอตรวจสอบ</span>
           </div>
           <span class="sf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="sf-item">
-            <span class="status status-returned">RETURNED</span>
+            <span class="status status-returned">ส่งคืน</span>
             <small>ตีกลับ</small>
           </div>
           <span class="sf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="sf-item">
-            <span class="status status-submitted">SUBMITTED</span>
+            <span class="status status-submitted">รอตรวจสอบ</span>
             <small>ส่งใหม่</small>
           </div>
           <span class="sf-arrow"><span class="material-symbols-rounded">arrow_forward</span></span>
           <div class="sf-item">
-            <span class="status status-approved">APPROVED</span>
+            <span class="status status-approved">อนุมัติแล้ว</span>
             <small><span class="material-symbols-rounded">check_circle</span> อนุมัติ</small>
           </div>
         </div>
@@ -320,12 +392,50 @@
       <!-- ACCOUNT -->
       <section id="account">
         <h2 class="section-title"><span class="material-symbols-rounded">settings</span> ตั้งค่าบัญชี</h2>
+        <p>เข้าหน้านี้โดยคลิกรูปโปรไฟล์มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong> หน้าจัดการบัญชีมี 3 ส่วน</p>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">badge</span> ข้อมูลบัญชี</h3>
+        <p>กดปุ่ม <strong>"แก้ไข"</strong> ที่การ์ด <strong>ข้อมูลบัญชี</strong> เพื่อปรับข้อมูลเหล่านี้:</p>
+        <ul>
+          <li><strong>ชื่อผู้ใช้ (Username)</strong> – ใช้ล็อกอิน (ห้ามซ้ำกับผู้อื่น)</li>
+          <li><strong>ชื่อ-นามสกุล</strong></li>
+          <li><strong>โทรศัพท์</strong> และ <strong>ห้องพัก</strong></li>
+        </ul>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span><strong>โทรศัพท์</strong> และ <strong>ห้องพัก</strong> จะถูกดึงไปเติมในเอกสาร มคอ.3 / มคอ.4 ให้อัตโนมัติ – กรอกให้ถูกต้องเพื่อให้เอกสารสมบูรณ์</span>
+        </div>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">draw</span> ลายเซ็น</h3>
+        <p>ที่การ์ด <strong>ลายเซ็น</strong> กดปุ่ม <strong>"เพิ่มลายเซ็น"</strong> (หรือ <strong>"แก้ไขลายเซ็น"</strong> ถ้ามีอยู่แล้ว)
+           จะเปิดหน้าต่างที่มี 2 วิธีให้เลือก:</p>
+        <table>
+          <thead><tr><th>วิธี</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td><strong>วาดลายเซ็น</strong></td><td>วาดด้วยเมาส์หรือนิ้วในกรอบที่กำหนด – กด <strong>"ล้าง"</strong> เพื่อเริ่มใหม่</td></tr>
+            <tr><td><strong>อัปโหลดไฟล์</strong></td><td>เลือกไฟล์ภาพ <code>PNG</code>, <code>JPG</code> หรือ <code>WEBP</code> ขนาด<strong>ไม่เกิน 750 KB</strong></td></tr>
+          </tbody>
+        </table>
         <ol class="steps">
-          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
-          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
-          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>เลือกแท็บที่ต้องการ แล้ววาดหรือเลือกไฟล์</li>
+          <li>กดปุ่ม <strong>"บันทึกลายเซ็น"</strong> – ระบบจะแสดงตัวอย่างลายเซ็นบนการ์ด</li>
+          <li>ต้องการลบ ให้กดปุ่ม <strong>"ลบ"</strong> ที่การ์ดลายเซ็น (มีการยืนยันก่อน)</li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>ลายเซ็นนี้จะปรากฏในเอกสาร มคอ. ที่<strong>พิมพ์/ส่งออกเป็นไฟล์ Word หรือ PDF</strong> (ช่องลงนามของผู้สอน) จึงควรตั้งลายเซ็นไว้ก่อนส่งเอกสาร</span>
+        </div>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">lock</span> เปลี่ยนรหัสผ่าน</h3>
+        <ol class="steps">
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong> ที่การ์ด <strong>ความปลอดภัย</strong></li>
+          <li>กรอก <strong>รหัสผ่านปัจจุบัน</strong>, <strong>รหัสผ่านใหม่</strong>, และ <strong>ยืนยันรหัสผ่านใหม่</strong></li>
           <li>กดปุ่ม <strong>"บันทึก"</strong></li>
         </ol>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>รหัสผ่านใหม่ต้องมี<strong>อย่างน้อย 6 ตัวอักษร</strong> และทั้งสองช่องต้องตรงกัน</span>
+        </div>
       </section>
 
       <!-- FAQ -->
@@ -338,12 +448,13 @@
           <li>ฝ่ายวิชาการยังไม่ได้เปิดรายวิชา (สร้าง Section) – ติดต่อฝ่ายวิชาการ</li>
         </ul>
 
-        <h3 class="sub-title">Q: ปุ่มส่ง มคอ. เป็นสีเทา กดไม่ได้?</h3>
-        <ul>
-          <li>ฝ่ายวิชาการยังไม่ได้เปิดรอบ มคอ.3 หรือ มคอ.5</li>
-          <li>สำหรับ มคอ.5: มคอ.3 ยังไม่ได้รับ <span class="status status-approved">APPROVED</span></li>
-          <li>เอกสารอยู่ในสถานะ SUBMITTED หรือ APPROVED อยู่แล้ว</li>
-        </ul>
+        <h3 class="sub-title">Q: ป้ายบน Dashboard เป็น "ยังไม่เปิด/ปิดรับแล้ว" คลิกไม่ได้?</h3>
+        <p>แปลว่าฝ่ายวิชาการยังไม่เปิด (หรือปิดรอบ) มคอ.3/มคอ.5 ของเทอมนั้นแล้ว – เมื่อรอบปิด จะ
+           <strong>เปิดฟอร์มไม่ได้เลย</strong> ทั้งกรอกและส่ง ให้ติดต่อฝ่ายวิชาการเพื่อเปิดรอบ</p>
+
+        <h3 class="sub-title">Q: เปิดฟอร์ม มคอ.5 ได้ แต่กด "ส่งให้หัวหน้าสาขา" ไม่สำเร็จ?</h3>
+        <p>มคอ.5 จะส่งได้ก็ต่อเมื่อ <strong>มคอ.3 / มคอ.4 ของ Section เดียวกันได้รับ
+           <span class="status status-approved">อนุมัติแล้ว</span></strong> แล้วเท่านั้น – ระหว่างนี้บันทึกฉบับร่างไปก่อนได้</p>
 
         <h3 class="sub-title">Q: ส่ง มคอ.3 ไปแล้ว อยากแก้ไข ทำได้ไหม?</h3>
         <p>ไม่ได้ ขณะที่สถานะ SUBMITTED เอกสารจะล็อค – ต้องรอให้หัวหน้าสาขาตีกลับ (RETURNED) ก่อน จึงจะแก้ไขได้</p>
@@ -354,8 +465,9 @@
         <h3 class="sub-title">Q: ลืมรหัสผ่าน ต้องทำอย่างไร?</h3>
         <p>ติดต่อ <strong>Admin</strong> ของระบบเพื่อให้รีเซ็ตรหัสผ่านให้</p>
 
-        <h3 class="sub-title">Q: บันทึกฉบับร่างบ่อยแค่ไหนดี?</h3>
-        <p>แนะนำให้กด <strong>"บันทึกฉบับร่าง"</strong> ทุกครั้งที่กรอกเสร็จแต่ละหมวด เพื่อป้องกันข้อมูลสูญหาย</p>
+        <h3 class="sub-title">Q: ต้องกด "บันทึกฉบับร่าง" บ่อยไหม ในเมื่อมี Autosave?</h3>
+        <p>ระบบมี <strong>บันทึกอัตโนมัติ (Autosave)</strong> ระหว่างกรอกอยู่แล้ว แต่แนะนำให้กด
+           <strong>"บันทึกฉบับร่าง"</strong> เมื่อกรอกเสร็จแต่ละช่วงด้วย เพื่อความมั่นใจว่าข้อมูลถูกบันทึกครบ</p>
       </section>
 
     </main>

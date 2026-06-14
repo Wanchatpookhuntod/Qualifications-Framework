@@ -92,7 +92,9 @@ block content %}
               method="POST"
               onsubmit="return confirm('ยืนยันการลบคณะนี้?');"
             >
-              <button type="submit" class="btn btn-outline-danger">ลบ</button>
+              <button type="submit" class="row-action-btn row-action-danger" title="ลบ" aria-label="ลบคณะ">
+                <span class="material-symbols-rounded">close</span>
+              </button>
             </form>
           </td>
         </tr>
@@ -477,9 +479,9 @@ block content %}
         _esc(dept.major) +
         '">' +
         "</div>" +
-        '<button type="button" class="btn btn-outline-danger btn-compact" onclick="deleteDept(\'' +
+        '<button type="button" class="row-action-btn row-action-danger" title="ลบสาขานี้" aria-label="ลบสาขานี้" onclick="deleteDept(\'' +
         dept.id +
-        "')\">ลบสาขานี้</button>";
+        '\')"><span class="material-symbols-rounded">close</span></button>';
       list.appendChild(div);
     });
     document.getElementById("modal-edit-dept").style.display = "flex";

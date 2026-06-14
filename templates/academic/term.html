@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}ปีการศึกษา {{ term.semester }}/{{ term.year }} - ฝ่ายวิชาการ{% endblock %}
+
+{% block content %}
+{% set month_names = ['', 'มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'] %}
+<div class="page-header">
+    <div>
+        <nav class="breadcrumb">
+            <a href="{{ url_for('academic_dashboard') }}">Dashboard ฝ่ายวิชาการ</a> /
+            <span class="text-muted">ปีการศึกษา {{ term.semester }}/{{ term.year }}</span>
+        </nav>
+        <h2>ปีการศึกษา {{ term.semester }}/{{ term.year }}</h2>
+        {% if term.start_month and term.start_year and term.end_month and term.end_year %}
+        <p class="text-muted mb-0">{{ month_names[term.start_month] }} {{ term.start_year }} – {{ month_names[term.end_month] }} {{ term.end_year }}</p>
+        {% endif %}
+    </div>
+    <div class="inline-actions">
+        <form method="POST" action="{{ url_for('toggle_open_term_tqf3', term_id=term.id) }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn {{ 'status-approved' if term.is_open_tqf3 else 'status-returned' }}">
+                {% if term.is_open_tqf3 %}เปิดส่ง มคอ.3{% else %}ปิดส่ง มคอ.3{% endif %}
+            </button>
+        </form>
+        <form method="POST" action="{{ url_for('toggle_open_term_tqf5', term_id=term.id) }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <button type="submit" class="btn {{ 'status-approved' if term.is_open_tqf5 else 'status-returned' }}">
+                {% if term.is_open_tqf5 %}เปิดส่ง มคอ.5{% else %}ปิดส่ง มคอ.5{% endif %}
+            </button>
+        </form>
+        <a href="{{ url_for('academic_term_documents', term_id=term.id) }}" class="btn btn-secondary">รวม มคอ.</a>
+    </div>
+</div>
+
+<!-- Add program to this term -->
+<div class="glass term-banner mb-3">
+    <div class="flex-between flex-wrap">
+        <div>
+            <div class="fw-bold">เพิ่มหลักสูตรเข้าเทอมนี้</div>
+            <div class="text-muted text-xs">เลือกหลักสูตรเพื่อเริ่มเปิดรายวิชาและมอบหมายผู้สอน</div>
+        </div>
+        <form method="POST" action="{{ url_for('academic_add_program_to_term') }}" class="form-inline-grid"
+            style="grid-template-columns: minmax(260px, 340px) auto;">
+            <input type="hidden" name="term_id" value="{{ term.id }}">
+            <input type="hidden" name="next" value="{{ request.path }}">
+            <select name="program_id" class="form-control min-320" required>
+                <option value="" disabled selected>-- เลือกหลักสูตร --</option>
+                {% for p in programs %}
+                <option value="{{ p.id }}" {% if p.id in added_ids %}disabled{% endif %}>
+                    {{ p.name }}{% if p.year %} ({{ p.year }}){% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary">เพิ่มหลักสูตร</button>
+        </form>
+    </div>
+</div>
+
+<!-- Programs in this term -->
+<div class="glass panel">
+    <h3 class="panel-title">หลักสูตรในเทอมนี้</h3>
+    {% if term_programs %}
+    <div class="table-wrapper">
+        <table class="data-table">
+            <colgroup>
+                <col style="width: 8%;">
+                <col style="width: 62%;">
+                <col style="width: 18%;">
+                <col style="width: 12%;">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="text-center">#</th>
+                    <th>หลักสูตร</th>
+                    <th class="text-center">รายวิชาที่เปิด</th>
+                    <th class="text-center">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for program in term_programs %}
+                <tr>
+                    <td class="text-center text-muted">{{ loop.index }}</td>
+                    <td>
+                        <a href="{{ url_for('academic_term_program', term_id=term.id, program_id=program.id) }}"
+                            style="text-decoration: none; color: inherit;">
+                            <div class="text-table">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %}</div>
+                            <div class="text-muted text-xs">คลิกเพื่อเปิดรายวิชา / มอบหมายผู้สอน / ติดตามสถานะเอกสาร</div>
+                        </a>
+                    </td>
+                    <td class="text-center">
+                        <span class="status-badge role-instructor">{{ section_count_by_program.get(program.id, 0) }} วิชา</span>
+                    </td>
+                    <td class="text-center">
+                        <div class="inline-actions" style="justify-content: center;">
+                            <a href="{{ url_for('academic_term_program', term_id=term.id, program_id=program.id) }}"
+                                class="btn btn-secondary btn-compact">เปิดรายวิชา</a>
+                            <form method="POST" action="{{ url_for('academic_remove_program_from_term') }}"
+                                onsubmit="return confirm('ยืนยันการลบหลักสูตรนี้ออกจากเทอม? (ต้องไม่มีรายวิชาที่เปิดสอนแล้ว)')">
+                                <input type="hidden" name="term_id" value="{{ term.id }}">
+                                <input type="hidden" name="program_id" value="{{ program.id }}">
+                                <input type="hidden" name="next" value="{{ request.path }}">
+                                <button type="submit" class="row-action-btn row-action-danger" title="ลบ" aria-label="ลบหลักสูตรออกจากเทอม">
+                                    <span class="material-symbols-rounded">close</span>
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="empty-state text-center text-muted">ยังไม่มีหลักสูตรในเทอมนี้ — เพิ่มหลักสูตรด้านบนเพื่อเริ่มเปิดรายวิชา</div>
+    {% endif %}
+</div>
+{% endblock %}

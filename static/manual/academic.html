@@ -11,6 +11,10 @@
   <link rel="stylesheet" href="/static/manual/_base.css" />
   <style>
     :root { --role-color: #6d28d9; --role-bg: #ede9fe; }
+    body{
+      font-family: 'Sarabun', 'Kanit', 'Prompt', 'Inter', sans-serif;
+      font-size: 15px; line-height: 1.7; color: var(--text-color);
+    }
     .site-header {
       background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 100%);
       color: white; padding: 28px 32px 28px;
@@ -24,35 +28,42 @@
     .site-header .role-tag .material-symbols-rounded { font-size: 18px; }
     .site-header h1 { font-family: 'Kanit','Sarabun',sans-serif; font-size: 1.9rem; font-weight: 600; margin-bottom: 6px; }
     .site-header p { font-size: 14px; opacity: 0.85; }
+
+    .mt-3 { margin-top: 1.25rem; }
+    .text-center { text-align: center; }
   </style>
 </head>
 <body>
 
 <header class="site-header">
   <div class="header-topbar">
-    <div class="breadcrumb">
-      <a href="/manual">คู่มือการใช้งาน</a> <span class="material-symbols-rounded">chevron_right</span> ฝ่ายวิชาการ
-    </div>
     <a href="/academic/dashboard" class="btn-back-dashboard"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
   </div>
   <div class="role-tag"><span class="material-symbols-rounded">assignment</span> Academic</div>
-  <h1>คู่มือฝ่ายวิชาการ</h1>
-  <p>ควบคุมภาคการศึกษา, เปิดรายวิชา และเปิด/ปิดรอบการส่ง มคอ.</p>
+  <h1 class="text-center">คู่มือฝ่ายวิชาการ</h1>
+  <p class="text-center">จัดการหลักสูตร/รายวิชา, ควบคุมภาคการศึกษา, เปิดรายวิชา และเปิด/ปิดรอบการส่ง มคอ.</p>
 </header>
 
-<div class="container">
+  <div class="container">
   <div class="layout">
 
     <!-- TOC -->
     <aside class="toc">
       <div class="toc-nav-actions">
         <a href="/academic/dashboard" class="back-link"><span class="material-symbols-rounded">arrow_back</span> กลับหน้าหลัก</a>
-        <a href="/manual" class="alt-link"><span class="material-symbols-rounded">swap_horiz</span> เลือกบทบาทอื่น</a>
       </div>
       <h3>สารบัญ</h3>
       <ul>
         <li><a href="#overview"   class="toc-link">ภาพรวม Academic</a></li>
         <li><a href="#dashboard"  class="toc-link">Dashboard & สถิติ</a></li>
+        <li>
+          <a href="#curriculum"   class="toc-link">จัดการหลักสูตร/รายวิชา</a>
+          <div class="toc-sub"><ul>
+            <li><a href="#programs"  class="toc-link">หลักสูตร</a></li>
+            <li><a href="#courses"   class="toc-link">รายวิชา</a></li>
+            <li><a href="#plos"      class="toc-link">PLOs หลักสูตร</a></li>
+          </ul></div>
+        </li>
         <li>
           <a href="#terms"        class="toc-link">จัดการภาคการศึกษา</a>
           <div class="toc-sub"><ul>
@@ -66,10 +77,10 @@
           <div class="toc-sub"><ul>
             <li><a href="#tqf3-open"  class="toc-link">เปิด/ปิดรอบ มคอ.3</a></li>
             <li><a href="#tqf5-open"  class="toc-link">เปิด/ปิดรอบ มคอ.5</a></li>
-            <li><a href="#lock-all"   class="toc-link">ล็อกระบบทั้งหมด</a></li>
           </ul></div>
         </li>
         <li><a href="#documents"  class="toc-link">ดูเอกสาร มคอ.</a></li>
+        <li><a href="#all-docs"   class="toc-link">เอกสาร มคอ. ทุกภาค</a></li>
         <li><a href="#workflow"   class="toc-link">ขั้นตอนตลอดภาคเรียน</a></li>
         <li><a href="#account"    class="toc-link">ตั้งค่าบัญชี</a></li>
         <li><a href="#faq"        class="toc-link">คำถามที่พบบ่อย</a></li>
@@ -85,13 +96,20 @@
         <table>
           <thead><tr><th>หน้าที่</th><th>รายละเอียด</th></tr></thead>
           <tbody>
+            <tr><td>จัดการหลักสูตร</td><td>เพิ่ม/แก้ไข/ลบหลักสูตร (ร่วมกับ Admin)</td></tr>
+            <tr><td>จัดการรายวิชา</td><td>เพิ่ม/ลบรายวิชาในแต่ละหลักสูตร</td></tr>
+            <tr><td>ดู PLOs</td><td>ดูผลการเรียนรู้ระดับหลักสูตร (ดูอย่างเดียว)</td></tr>
             <tr><td>สร้างภาคการศึกษา</td><td>กำหนดปีการศึกษาและภาค</td></tr>
             <tr><td>เพิ่มหลักสูตรในภาค</td><td>ระบุหลักสูตรที่เปิดสอนในภาคนั้น</td></tr>
             <tr><td>เปิดรายวิชา</td><td>สร้าง Section สำหรับแต่ละรายวิชา</td></tr>
             <tr><td>เปิด/ปิดรอบ มคอ.</td><td>อนุญาตหรือล็อกการส่งเอกสาร มคอ.3 / มคอ.5</td></tr>
-            <tr><td>ดูภาพรวมเอกสาร</td><td>ติดตามสถานะเอกสารทุกรายวิชา</td></tr>
+            <tr><td>ดูภาพรวมเอกสาร</td><td>ติดตามสถานะเอกสารทุกรายวิชา/ทุกภาค</td></tr>
           </tbody>
         </table>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>เมนูฝั่งซ้าย: <strong>แดชบอร์ด · ภาคการศึกษา · หลักสูตร · รายวิชา · PLOs หลักสูตร · เอกสาร มคอ.</strong></span>
+        </div>
       </section>
 
       <!-- DASHBOARD -->
@@ -102,11 +120,53 @@
           <li><strong>จำนวน Section ทั้งหมด</strong> ในภาคการศึกษา</li>
           <li><strong>อัตราการส่ง มคอ.3</strong> (%) และอัตราการอนุมัติ</li>
           <li><strong>อัตราการส่ง มคอ.5</strong> (%) และอัตราการอนุมัติ</li>
-          <li><strong>สถานะการล็อกระบบ</strong>: แสดงว่าระบบเปิดหรือปิดรอบอยู่</li>
+          <li><strong>สถานะรอบ มคอ.</strong>: แสดงว่า มคอ.3 / มคอ.5 เปิดหรือปิดรอบอยู่</li>
         </ul>
         <div class="callout callout-info">
           <span class="material-symbols-rounded">lightbulb</span>
           <span>ใช้ <strong>dropdown เลือกภาคการศึกษา</strong> ด้านบนเพื่อดูข้อมูลของแต่ละภาค</span>
+        </div>
+      </section>
+
+      <!-- CURRICULUM -->
+      <section id="curriculum">
+        <h2 class="section-title"><span class="material-symbols-rounded">menu_book</span> จัดการหลักสูตรและรายวิชา</h2>
+        <p>นอกจากควบคุมภาคการศึกษาแล้ว ฝ่ายวิชาการยังจัดการโครงสร้างหลักสูตรและรายวิชาได้ (สิทธิ์ร่วมกับ Admin)
+           ส่วนการกำหนด PLO/CLO เป็นหน้าที่ของหัวหน้าสาขา (Head) ฝ่ายวิชาการดูได้อย่างเดียว</p>
+
+        <hr id="programs" />
+        <h3 class="sub-title"><span class="material-symbols-rounded">school</span> จัดการหลักสูตร</h3>
+        <p>เข้าเมนู <strong>หลักสูตร</strong></p>
+        <ol class="steps">
+          <li>เลือก <strong>คณะ/ภาควิชา</strong> ที่หลักสูตรสังกัด</li>
+          <li>กรอก <strong>ชื่อหลักสูตร</strong> และ <strong>ปีหลักสูตร</strong> (เช่น 2566)</li>
+          <li>กดปุ่ม <strong>"บันทึก"</strong> – แก้ไขหรือลบหลักสูตรได้จากแถวในตาราง</li>
+        </ol>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>ลบหลักสูตรได้เฉพาะเมื่อไม่มีรายวิชาหรือถูกใช้ในภาคการศึกษาอยู่</span>
+        </div>
+
+        <hr id="courses" />
+        <h3 class="sub-title"><span class="material-symbols-rounded">book_2</span> จัดการรายวิชา</h3>
+        <p>เข้าเมนู <strong>รายวิชา</strong></p>
+        <ol class="steps">
+          <li>กรอก <strong>รหัสวิชา</strong>, <strong>ชื่อวิชา (ไทย/อังกฤษ)</strong>, <strong>หน่วยกิต</strong> และ <strong>คำอธิบายรายวิชา</strong></li>
+          <li>เลือก <strong>หลักสูตร</strong> ที่รายวิชาสังกัด แล้วกด <strong>"บันทึก"</strong></li>
+          <li>ใช้ตัวกรอง <strong>"หลักสูตร"</strong> เพื่อดูเฉพาะรายวิชาในหลักสูตรที่ต้องการ – แต่ละแถวจะแสดง <strong>CLO</strong> และรหัส <strong>PLO</strong> ที่เชื่อมโยงด้วย</li>
+        </ol>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>ลบรายวิชาไม่ได้หากเคยถูกเปิดสอน (มี Section) ในภาคการศึกษาใดแล้ว</span>
+        </div>
+
+        <hr id="plos" />
+        <h3 class="sub-title"><span class="material-symbols-rounded">flag</span> ดู PLOs หลักสูตร</h3>
+        <p>เข้าเมนู <strong>PLOs หลักสูตร</strong> เลือกหลักสูตรจาก dropdown เพื่อดูรายการ
+           <strong>PLO (Program Learning Outcomes)</strong> ที่หัวหน้าสาขากำหนดไว้</p>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>หน้านี้เป็นแบบ <strong>อ่านอย่างเดียว</strong> หากต้องการเพิ่ม/แก้ไข PLO ให้หัวหน้าสาขา (Head) ดำเนินการในเมนูของตน</span>
         </div>
       </section>
 
@@ -167,7 +227,7 @@
         <p>ในหน้า Dashboard ที่แถวของภาคการศึกษา:</p>
         <ul>
           <li>กดปุ่ม <strong>"เปิดส่ง มคอ.3"</strong> → อาจารย์ทุกคนสามารถกรอกและส่ง มคอ.3 ได้</li>
-          <li>กดปุ่ม <strong>"ปิดการส่ง มคอ.3"</strong> → อาจารย์ไม่สามารถส่งได้ (แต่ยังบันทึกฉบับร่างได้ถ้ายังไม่ล็อก)</li>
+          <li>กดปุ่ม <strong>"ปิดการส่ง มคอ.3"</strong> → อาจารย์จะ<strong>เปิดฟอร์มไม่ได้เลย</strong> (กรอก/บันทึกร่าง/ส่ง ไม่ได้ทั้งหมด) จนกว่าจะเปิดรอบอีกครั้ง</li>
         </ul>
         <div class="callout callout-success">
           <span class="material-symbols-rounded">check_circle</span>
@@ -183,19 +243,6 @@
         <div class="callout callout-success">
           <span class="material-symbols-rounded">check_circle</span>
           <span>ควรเปิดรอบ มคอ.5 <strong>หลังสิ้นสุดภาคการศึกษา</strong> หลังประกาศผลการศึกษาแล้ว</span>
-        </div>
-
-        <hr id="lock-all" />
-        <h3 class="sub-title"><span class="material-symbols-rounded">lock</span> ล็อกระบบทั้งหมด</h3>
-        <p>กดปุ่ม <strong>"ปิดรอบภาคการศึกษา"</strong> บน Dashboard</p>
-        <ul>
-          <li>ระบบจะยืนยันก่อนดำเนินการ – <em>"ยืนยันการปิดภาคเรียน? เอกสารทั้งหมดจะถูกล็อก..."</em></li>
-          <li>หลังล็อก อาจารย์จะไม่สามารถแก้ไขเอกสารใดๆ ได้</li>
-          <li>กดปุ่ม <strong>"เปิดรอบภาคการศึกษา"</strong> เพื่อยกเลิกการล็อก</li>
-        </ul>
-        <div class="callout callout-danger">
-          <span class="material-symbols-rounded">block</span>
-          <span>การล็อกระบบมีผลกับ <strong>ทุกภาคการศึกษา</strong> ทุกรายวิชา และทุกอาจารย์</span>
         </div>
       </section>
 
@@ -215,6 +262,21 @@
         </div>
       </section>
 
+      <!-- ALL DOCUMENTS -->
+      <section id="all-docs">
+        <h2 class="section-title"><span class="material-symbols-rounded">description</span> เอกสาร มคอ. ทุกภาคการศึกษา</h2>
+        <p>เข้าเมนู <strong>เอกสาร มคอ.</strong> (ฝั่งซ้าย) เพื่อดูเอกสารรวมทุกภาคการศึกษาในที่เดียว</p>
+        <ul>
+          <li>รวม มคอ.3 / มคอ.4 / มคอ.5 ของทุกหลักสูตรและทุกภาค</li>
+          <li>กรองตาม <strong>ภาคการศึกษา</strong>, <strong>หลักสูตร</strong> หรือ <strong>สถานะ</strong> ได้</li>
+          <li>คลิกเปิดดูเอกสารฉบับเต็มแบบอ่านอย่างเดียว</li>
+        </ul>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>วิชาฝึกประสบการณ์/สหกิจ/ภาคสนาม จะใช้ <strong>มคอ.4</strong> แทน มคอ.3 โดยอัตโนมัติ (อยู่ในรอบเดียวกับ มคอ.3)</span>
+        </div>
+      </section>
+
       <!-- WORKFLOW -->
       <section id="workflow">
         <h2 class="section-title"><span class="material-symbols-rounded">sync</span> ขั้นตอนตลอดภาคการศึกษา</h2>
@@ -227,19 +289,49 @@
           <li>รอ Head ตรวจสอบ มคอ.3 จนครบ</li>
           <li>หลังสิ้นภาค <strong>เปิดรอบ มคอ.5</strong> → อาจารย์กรอกและส่ง</li>
           <li>รอ Head ตรวจสอบ มคอ.5 จนครบ</li>
-          <li><strong>ปิดรอบ</strong> ล็อกเอกสารทั้งหมด</li>
+          <li>เมื่อจบกระบวนการ <strong>ปิดรอบ มคอ.</strong> เพื่อล็อกการแก้ไข</li>
         </ol>
       </section>
 
       <!-- ACCOUNT -->
       <section id="account">
         <h2 class="section-title"><span class="material-symbols-rounded">settings</span> ตั้งค่าบัญชี</h2>
+        <p>เข้าหน้านี้โดยคลิกรูปโปรไฟล์มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong> หน้าจัดการบัญชีมี 3 ส่วน</p>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">badge</span> ข้อมูลบัญชี</h3>
+        <p>กดปุ่ม <strong>"แก้ไข"</strong> ที่การ์ด <strong>ข้อมูลบัญชี</strong> เพื่อปรับ <strong>ชื่อผู้ใช้</strong>,
+           <strong>ชื่อ-นามสกุล</strong>, <strong>โทรศัพท์</strong> และ <strong>ห้องพัก</strong></p>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">draw</span> ลายเซ็น</h3>
+        <p>ที่การ์ด <strong>ลายเซ็น</strong> กดปุ่ม <strong>"เพิ่มลายเซ็น"</strong> (หรือ <strong>"แก้ไขลายเซ็น"</strong> ถ้ามีอยู่แล้ว)
+           จะเปิดหน้าต่างที่มี 2 วิธีให้เลือก:</p>
+        <table>
+          <thead><tr><th>วิธี</th><th>รายละเอียด</th></tr></thead>
+          <tbody>
+            <tr><td><strong>วาดลายเซ็น</strong></td><td>วาดด้วยเมาส์หรือนิ้วในกรอบที่กำหนด – กด <strong>"ล้าง"</strong> เพื่อเริ่มใหม่</td></tr>
+            <tr><td><strong>อัปโหลดไฟล์</strong></td><td>เลือกไฟล์ภาพ <code>PNG</code>, <code>JPG</code> หรือ <code>WEBP</code> ขนาด<strong>ไม่เกิน 750 KB</strong></td></tr>
+          </tbody>
+        </table>
         <ol class="steps">
-          <li>คลิกรูปโปรไฟล์ที่มุมขวาบน → เลือก <strong>"บัญชีของฉัน"</strong></li>
-          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong></li>
-          <li>กรอกรหัสผ่านปัจจุบัน, รหัสผ่านใหม่, และยืนยันรหัสผ่านใหม่</li>
+          <li>เลือกแท็บที่ต้องการ แล้ววาดหรือเลือกไฟล์</li>
+          <li>กดปุ่ม <strong>"บันทึกลายเซ็น"</strong> – ระบบจะแสดงตัวอย่างลายเซ็นบนการ์ด</li>
+          <li>ต้องการลบ ให้กดปุ่ม <strong>"ลบ"</strong> ที่การ์ดลายเซ็น (มีการยืนยันก่อน)</li>
+        </ol>
+        <div class="callout callout-info">
+          <span class="material-symbols-rounded">lightbulb</span>
+          <span>ลายเซ็นใช้สำหรับช่องลงนามในเอกสาร มคอ. ที่พิมพ์/ส่งออก (สำหรับผู้ที่ต้องลงนามในเอกสาร)</span>
+        </div>
+
+        <h3 class="sub-title"><span class="material-symbols-rounded">lock</span> เปลี่ยนรหัสผ่าน</h3>
+        <ol class="steps">
+          <li>กดปุ่ม <strong>"เปลี่ยนรหัสผ่าน"</strong> ที่การ์ด <strong>ความปลอดภัย</strong></li>
+          <li>กรอก <strong>รหัสผ่านปัจจุบัน</strong>, <strong>รหัสผ่านใหม่</strong>, และ <strong>ยืนยันรหัสผ่านใหม่</strong></li>
           <li>กดปุ่ม <strong>"บันทึก"</strong></li>
         </ol>
+        <div class="callout callout-warning">
+          <span class="material-symbols-rounded">warning</span>
+          <span>รหัสผ่านใหม่ต้องมี<strong>อย่างน้อย 6 ตัวอักษร</strong> และทั้งสองช่องต้องตรงกัน</span>
+        </div>
       </section>
 
       <!-- FAQ -->

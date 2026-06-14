@@ -64,8 +64,7 @@
                 <div class="text-muted text-xs">เพิ่ม/แก้ไขรายวิชาเปิดสอนในเทอมนี้</div>
             </div>
             <div class="inline-actions">
-                <button type="button" class="btn btn-secondary" onclick="openBulkModal()">เปิดหลายวิชา</button>
-                <button type="button" class="btn btn-secondary" onclick="openSingleModal()">เปิดทีละวิชา</button>
+                <button type="button" class="btn btn-secondary" onclick="openBulkModal()">เปิดวิชา</button>
             </div>
         </div>
 
@@ -102,7 +101,7 @@
                         {% endif %}
                     </td>
                     <td style="font-size:0.877rem;">
-                        <select name="instructor_{{ section.id }}" class="form-control">
+                        <select name="instructor_{{ section.id }}" class="form-control select-search">
                             <option value="">-- รอมอบหมาย --</option>
                             {% for ins in instructors %}
                             <option value="{{ ins.id }}" {% if section.instructor_id == ins.id %}selected{% endif %}>{{ ins.full_name }}</option>
@@ -134,7 +133,9 @@
                         {% endif %}
                     </td>
                     <td style="text-align: right;">
-                        <button type="submit" form="del-{{ section.id }}" class="btn btn-outline-danger">ลบ</button>
+                        <button type="submit" form="del-{{ section.id }}" class="row-action-btn row-action-danger" title="ลบ" aria-label="ลบรายวิชาที่เปิดสอน">
+                            <span class="material-symbols-rounded">close</span>
+                        </button>
                     </td>
                 </tr>
                 {% else %}
@@ -187,7 +188,7 @@
                 </div>
                 <div style="flex: 1;">
                     <label class="text-muted text-xs">มอบหมายผู้สอน (ถ้ามี)</label>
-                    <select name="instructor_id" class="form-control">
+                    <select name="instructor_id" class="form-control select-search">
                         <option value="">-- เลือกผู้สอน --</option>
                         {% for ins in instructors %}
                         <option value="{{ ins.id }}">{{ ins.full_name }}</option>
@@ -203,7 +204,7 @@
                             <th class="col-48"><input type="checkbox" id="bulkSelectAll" onclick="toggleBulkAll()"></th>
                             <th>รหัส</th>
                             <th>ชื่อรายวิชา</th>
-                            <th class="col-90">หน่วยกิต</th>
+                            <th class="col-110">หน่วยกิต</th>
                         </tr>
                     </thead>
                     <tbody id="bulkCourseTbody">
@@ -219,53 +220,8 @@
                 </table>
             </div>
 
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeBulkModal()">ยกเลิก</button>
-                <button type="submit" class="btn btn-primary">เพิ่มรายวิชา</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<div id="singleModal" class="modal">
-    <div class="modal-card">
-        <div class="modal-header">
-            <div>
-                <div class="fw-bold">เปิดรายวิชาสอน (ทีละวิชา)</div>
-                <div class="text-muted text-xs">{{ program.name | thai_wrap }}{% if program.year %} ({{ program.year }}){% endif %} – {{ term.semester }}/{{ term.year }}</div>
-            </div>
-            <button type="button" class="modal-close-btn" onclick="closeSingleModal()"><span class="material-symbols-rounded">close</span></button>
-        </div>
-        <form method="POST" action="{{ url_for('open_course') }}" class="modal-body">
-            <input type="hidden" name="term_id" value="{{ term.id }}">
-            <input type="hidden" name="next" value="{{ request.path }}">
-            <div style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
-                <div style="flex:1 1 240px; min-width:0;">
-                    <label class="text-muted text-xs">รายวิชา</label>
-                    <select name="course_id" class="form-control" required>
-                        <option value="" disabled selected>-- เลือกรายวิชา --</option>
-                        {% for c in courses %}
-                        <option value="{{ c.id }}">{{ c.code }} – {{ c.name_th }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div style="flex:0 0 72px;">
-                    <label class="text-muted text-xs">หมู่เรียน</label>
-                    <input type="text" name="section_number" class="form-control" value="1">
-                </div>
-            </div>
-            <div style="margin-top:1rem;">
-                <label class="text-muted text-xs">มอบหมายผู้สอน (ถ้ามี)</label>
-                <select name="instructor_id" class="form-control">
-                    <option value="">-- เลือกผู้สอน --</option>
-                    {% for ins in instructors %}
-                    <option value="{{ ins.id }}">{{ ins.full_name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="modal-actions">
-                <button type="button" class="btn btn-secondary" onclick="closeSingleModal()">ยกเลิก</button>
-                <button type="submit" class="btn btn-primary">เปิดรายวิชา</button>
+            <div class="modal-actions" style="justify-content:center;">
+                <button type="submit" class="btn btn-primary" style="width:130px;">+ เพิ่มรายวิชา</button>
             </div>
         </form>
     </div>
@@ -283,14 +239,6 @@
     }
     function closeBulkModal() {
         const el = document.getElementById('bulkModal');
-        if (el) el.style.display = 'none';
-    }
-    function openSingleModal() {
-        const el = document.getElementById('singleModal');
-        if (el) { el.style.display = 'flex'; window.initCustomSelects && window.initCustomSelects(el); }
-    }
-    function closeSingleModal() {
-        const el = document.getElementById('singleModal');
         if (el) el.style.display = 'none';
     }
     function filterBulkCourses() {
@@ -311,13 +259,10 @@
     document.addEventListener('click', function (e) {
         const bulk = document.getElementById('bulkModal');
         if (bulk && bulk.style.display === 'block' && e.target === bulk) closeBulkModal();
-        const single = document.getElementById('singleModal');
-        if (single && single.style.display === 'block' && e.target === single) closeSingleModal();
     });
     document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape') {
             closeBulkModal();
-            closeSingleModal();
         }
     });
 </script>

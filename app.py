@@ -2919,17 +2919,20 @@ def _section_export_context(section: Section) -> dict:
     }
 
 
-def _attach_named_signatures(ctx: dict, *names: str) -> None:
-    """Resolve each name to a user and add their saved signature (data URL) to
-    ``ctx['signatures']`` so the exporter can draw it over the signature line."""
-    sigs = ctx.setdefault("signatures", {})
-    for name in names:
-        name = (name or "").strip()
-        if not name or name in sigs:
-            continue
-        user = User.first_by("full_name", name)
-        if user and getattr(user, "signature", ""):
-            sigs[name] = user.signature
+def _attach_chair_signature(ctx: dict, approved_by: str) -> None:
+    """Attach the program chair's signature to ``ctx``, bound to the verified
+    user who approved the document (``approved_by``).
+
+    The chair name on the document comes from a free-text ``course_owner`` form
+    field that the instructor controls, so it must never be used to look up a
+    signature: doing so would let a tampered name pull in any user's stored
+    signature image. We instead resolve the signature by the approver's user id
+    and overwrite the printed chair name with that verified identity.
+    """
+    approver = User.get(approved_by) if approved_by else None
+    if approver and getattr(approver, "signature", ""):
+        ctx["chair_name"] = approver.full_name
+        ctx["chair_signature"] = approver.signature
 
 
 def _export_filename(prefix: str, section: Section, ext: str) -> str:
@@ -2954,7 +2957,7 @@ def _tqf3_export_buffer(section: Section) -> io.BytesIO:
     ctx = _section_export_context(section)
     # The program chair (ประธานบริหารหลักสูตร) signs only after the มคอ. is approved.
     if tqf3.status == "APPROVED":
-        _attach_named_signatures(ctx, tqf3.general_info.get("course_owner", ""))
+        _attach_chair_signature(ctx, tqf3.approved_by)
     return build_tqf3_docx(tqf3.general_info, ctx)
 
 
@@ -2963,7 +2966,7 @@ def _tqf4_export_buffer(section: Section) -> io.BytesIO:
     ctx = _section_export_context(section)
     # The program chair (ประธานบริหารหลักสูตร) signs only after the มคอ. is approved.
     if tqf4.status == "APPROVED":
-        _attach_named_signatures(ctx, tqf4.general_info.get("course_owner", ""))
+        _attach_chair_signature(ctx, tqf4.approved_by)
     return build_tqf4_docx(tqf4.general_info, ctx)
 
 
@@ -2972,7 +2975,7 @@ def _tqf5_export_buffer(section: Section) -> io.BytesIO:
     ctx = _section_export_context(section)
     # The program chair (ประธานบริหารหลักสูตร) signs only after the มคอ. is approved.
     if tqf5.status == "APPROVED":
-        _attach_named_signatures(ctx, tqf5.actual_teaching.get("course_owner", ""))
+        _attach_chair_signature(ctx, tqf5.approved_by)
     return build_tqf5_docx(tqf5.actual_teaching, ctx)
 
 
@@ -4017,6 +4020,12 @@ def review_tqf(tqf_type, tqf_id):
         tqf.status = "APPROVED" if action == "approve" else "RETURNED"
         if action == "approve":
             tqf.submitted_at = _utcnow()
+            # Bind the chair signature to the verified approver identity so the
+            # exported document cannot be made to carry an arbitrary user's
+            # signature via a tampered ``course_owner`` form field.
+            tqf.approved_by = current_user.id
+        else:
+            tqf.approved_by = ""
         tqf.save()
 
         Feedback(

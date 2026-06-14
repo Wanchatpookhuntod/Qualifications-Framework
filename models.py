@@ -564,6 +564,7 @@ class TQF3(FirestoreModel):
     section_id: str = ""
     status: str = "DRAFT"
     submitted_at: Optional[datetime] = None
+    approved_by: str = ""
 
     general_info: Dict[str, Any] = field(default_factory=dict)
     clo_plo_mapping: Dict[str, Any] = field(default_factory=dict)
@@ -575,6 +576,7 @@ class TQF3(FirestoreModel):
             "section_id": self.section_id,
             "status": self.status,
             "submitted_at": self.submitted_at,
+            "approved_by": self.approved_by,
             "general_info": self.general_info,
             "clo_plo_mapping": self.clo_plo_mapping,
             "teaching_plan": self.teaching_plan,
@@ -588,6 +590,7 @@ class TQF3(FirestoreModel):
             section_id=(data.get("section_id") or ""),
             status=(data.get("status") or "DRAFT"),
             submitted_at=data.get("submitted_at"),
+            approved_by=(data.get("approved_by") or ""),
             general_info=data.get("general_info") or {},
             clo_plo_mapping=data.get("clo_plo_mapping") or {},
             teaching_plan=data.get("teaching_plan") or {},
@@ -608,6 +611,7 @@ class TQF4(FirestoreModel):
     section_id: str = ""
     status: str = "DRAFT"
     submitted_at: Optional[datetime] = None
+    approved_by: str = ""
 
     general_info: Dict[str, Any] = field(default_factory=dict)
 
@@ -616,6 +620,7 @@ class TQF4(FirestoreModel):
             "section_id": self.section_id,
             "status": self.status,
             "submitted_at": self.submitted_at,
+            "approved_by": self.approved_by,
             "general_info": self.general_info,
         }
 
@@ -626,6 +631,7 @@ class TQF4(FirestoreModel):
             section_id=(data.get("section_id") or ""),
             status=(data.get("status") or "DRAFT"),
             submitted_at=data.get("submitted_at"),
+            approved_by=(data.get("approved_by") or ""),
             general_info=data.get("general_info") or {},
         )
 
@@ -638,6 +644,7 @@ class TQF5(FirestoreModel):
     tqf3_id: str = ""
     status: str = "DRAFT"
     submitted_at: Optional[datetime] = None
+    approved_by: str = ""
 
     actual_teaching: Dict[str, Any] = field(default_factory=dict)
     grade_distribution: Dict[str, Any] = field(default_factory=dict)
@@ -650,6 +657,7 @@ class TQF5(FirestoreModel):
             "tqf3_id": self.tqf3_id,
             "status": self.status,
             "submitted_at": self.submitted_at,
+            "approved_by": self.approved_by,
             "actual_teaching": self.actual_teaching,
             "grade_distribution": self.grade_distribution,
             "improvements": self.improvements,
@@ -664,6 +672,7 @@ class TQF5(FirestoreModel):
             tqf3_id=(data.get("tqf3_id") or ""),
             status=(data.get("status") or "DRAFT"),
             submitted_at=data.get("submitted_at"),
+            approved_by=(data.get("approved_by") or ""),
             actual_teaching=data.get("actual_teaching") or {},
             grade_distribution=data.get("grade_distribution") or {},
             improvements=data.get("improvements") or {},

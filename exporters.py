@@ -1008,11 +1008,13 @@ def build_tqf3_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
 
     sigs = ctx.get("signatures", {})
     inst_name = _g(general, "instructor", default=ctx.get("instructor", ""))
-    owner_name = _g(general, "course_owner", default="")
+    # Chair name/signature are bound to the verified approver (ctx); the free-text
+    # ``course_owner`` is only a printed-name fallback and never fetches an image.
+    chair_name = ctx.get("chair_name") or _g(general, "course_owner", default="")
     _add_signatures(doc, [
         ("อาจารย์ผู้สอน", inst_name,
          sigs.get(str(inst_name).strip()) or ctx.get("instructor_signature", "")),
-        ("ประธานบริหารหลักสูตร", owner_name, sigs.get(str(owner_name).strip(), "")),
+        ("ประธานบริหารหลักสูตร", chair_name, ctx.get("chair_signature", "")),
     ])
     _add_footer_note(doc, "หมายเหตุ Update มีนาคม 2569 ตามเกณฑ์มาตรฐานหลักสูตร 2565")
 
@@ -1183,11 +1185,13 @@ def build_tqf4_docx(general: Dict[str, Any], ctx: Dict[str, Any]) -> io.BytesIO:
 
     sigs = ctx.get("signatures", {})
     inst_name = _g(general, "instructor", default=ctx.get("instructor", ""))
-    owner_name = _g(general, "course_owner", default="")
+    # Chair name/signature are bound to the verified approver (ctx); the free-text
+    # ``course_owner`` is only a printed-name fallback and never fetches an image.
+    chair_name = ctx.get("chair_name") or _g(general, "course_owner", default="")
     _add_signatures(doc, [
         ("อาจารย์ผู้รับผิดชอบรายวิชา", inst_name,
          sigs.get(str(inst_name).strip()) or ctx.get("instructor_signature", "")),
-        ("ประธานบริหารหลักสูตร", owner_name, sigs.get(str(owner_name).strip(), "")),
+        ("ประธานบริหารหลักสูตร", chair_name, ctx.get("chair_signature", "")),
     ])
 
     return _finalize(doc)
